@@ -158,6 +158,26 @@ Reglerzug ist sofort sichtbar.
 Der Haken **„Während der Justage nur die Vorschau zeigen"** schaltet das ab;
 dann liegen beide übereinander.
 
+### Überlagern und justieren (eigenes Fenster)
+
+**„Überlagern und justieren …"** öffnet ein eigenes Fenster, in dem beide Wolken
+übereinander liegen — so wie in der Pipeline. Das Hauptfenster bleibt dabei
+unberührt.
+
+| Ansicht | was zu sehen ist |
+|---|---|
+| **Überlagerung** | Karte in Grau, die Fotopunkte des Fluges in Magenta |
+| **Farbvorschau** | die Karte, eingefärbt mit der aktuellen Lage |
+
+Gier, X und Y wirken in beiden sofort (rund 100 ms). Unter dem Bild stehen
+Winkel, Versatz und — je nach Ansicht — der Abstand der Schwerpunkte oder die
+Trefferquote. **Lage übernehmen** schreibt die eingestellte Lage als neue Basis
+zurück ins Hauptfenster, **zurücksetzen** stellt die gefundene Lage wieder her.
+
+Das ist der Weg, wenn die automatische Ausrichtung danebenliegt: erst in der
+Überlagerung grob schieben, bis Magenta auf Grau liegt, dann in der Farbvorschau
+feinjustieren.
+
 In der Vorschau bedeutet **Grau: von keinem Bild getroffen**, und **Magenta** sind
 die Kamerastandorte des Fluges. Sieht man nur Grau, beantwortet ein Blick auf die
 magentafarbenen Punkte die erste Frage sofort — liegen sie weit neben der Wolke,

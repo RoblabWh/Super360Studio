@@ -637,6 +637,12 @@ class MainWindow(QMainWindow):
         hl.addWidget(self._btn_meander_align)
         hl.addWidget(self._btn_meander_run)
         form.addRow(row)
+        self._btn_meander_fenster = QPushButton("Überlagern und justieren …")
+        self._btn_meander_fenster.setToolTip(
+            "Eigenes Fenster: Karte und Flug übereinander, live verschieben,\n"
+            "mit Farbvorschau. Das Hauptfenster bleibt unberührt.")
+        self._btn_meander_fenster.clicked.connect(self._on_meander_fenster)
+        form.addRow(self._btn_meander_fenster)
 
         # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke
         grid_holder = QWidget()
@@ -658,7 +664,7 @@ class MainWindow(QMainWindow):
             self._spin_meander[key] = sp
         form.addRow("Lage von Hand:", grid_holder)
         self._chk_solo = QCheckBox("Während der Justage nur die Vorschau zeigen")
-        self._chk_solo.setChecked(True)
+        self._chk_solo.setChecked(False)
         self._chk_solo.setToolTip(
             "Blendet die volle Karte aus, solange die Vorschau läuft.\n"
             "50.000 Stichprobenpunkte gehen in 24 Millionen sonst unter.\n"
@@ -912,10 +918,11 @@ class MainWindow(QMainWindow):
         hat_flug = bool(self._meander_dir)
         for b in (self._btn_meander_align, self._btn_meander_run):
             b.setEnabled(not busy and has_rec and hat_flug)
-            b.setToolTip(b.toolTip() if hat_flug else
-                         "Erst einen Mäanderflug wählen.")
+            if not hat_flug:
+                b.setToolTip("Erst einen Mäanderflug wählen.")
         hat_lage = (self._meander_pipe is not None
                     and getattr(self._meander_pipe, "yaw", None) is not None)
+        self._btn_meander_fenster.setEnabled(not busy and hat_lage)
         for key, sp in self._spin_meander.items():
             sp.setEnabled(not busy and hat_lage)
             sp.setToolTip(
@@ -1874,6 +1881,47 @@ class MainWindow(QMainWindow):
         return (float(np.degrees(pipe.yaw)) + float(self._spin_meander["yaw"].value()),
                 t)
 
+    def _on_meander_fenster(self) -> None:
+        """Ausrichtfenster oeffnen: Karte und Flug uebereinander, live justierbar."""
+        pipe = self._meander_pipe
+        if pipe is None or getattr(pipe, "yaw", None) is None:
+            QMessageBox.information(
+                self, "Überlagern",
+                "Erst „Ausrichten“ laufen lassen — das Fenster zeigt die "
+                "gefundene Lage und lässt sie von Hand nachziehen.")
+            return
+        if self._world is None:
+            return
+        from ui.meander_align_window import MeanderAlignWindow
+        stich = self._live_pts
+        if stich is None:
+            n = len(self._world)
+            stich = np.ascontiguousarray(
+                self._world[::max(1, n // _LIVE_PUNKTE)][:_LIVE_PUNKTE],
+                dtype=np.float64)
+        fenster = MeanderAlignWindow(self._world, pipe, self._live, stich, self)
+        fenster.uebernommen.connect(self._on_meander_fenster_lage)
+        fenster.setAttribute(Qt.WA_DeleteOnClose, True)
+        self._meander_fenster = fenster       # Referenz halten, sonst weg
+        fenster.show()
+        if self._live is None:
+            self._log("Das Ausrichtfenster zeigt die Überlagerung. Für die "
+                      "Farbvorschau darin werden die Vorschaubilder gebraucht — "
+                      "die lädt „Ausrichten“ im Anschluss.")
+
+    def _on_meander_fenster_lage(self, yaw_deg: float, t) -> None:
+        """Lage aus dem Ausrichtfenster als neue Basis uebernehmen."""
+        from core import meander as meander_mod
+        meander_mod.set_manual(self._meander_pipe, float(yaw_deg), t)
+        for sp in self._spin_meander.values():
+            sp.blockSignals(True)
+            sp.setValue(0.0)
+            sp.blockSignals(False)
+        self._log(f"Lage aus dem Ausrichtfenster übernommen: Gier "
+                  f"{yaw_deg:.2f}°, Versatz {np.round(np.asarray(t)[:2], 2).tolist()} m.")
+        if hasattr(self, "_lbl_meander_lage"):
+            self._lbl_meander_lage.setText(self._meander_zustand_text())
+
     def _on_meander_manual(self) -> None:
         """Handjustage anwenden und die Vorschau nachziehen.
 
@@ -2178,6 +2226,17 @@ class MainWindow(QMainWindow):
                 self._loading_ui = False
                 self._log("Für diese Farbquelle gibt es noch keine Einfärbung — "
                           "die Ansicht steht auf Höhe statt auf einfarbigem Grau.")
+        # Eine fast leere Ebene plus "Nur eingefaerbte Punkte" ergibt eine leere
+        # Ansicht — und die sieht aus, als sei das Modell weg. Das darf nie
+        # passieren, also lieber den Haken loesen und es sagen.
+        if (self._valid is not None and self._chk_only_colored.isChecked()
+                and float(self._valid.mean()) < 0.01):
+            self._loading_ui = True
+            self._chk_only_colored.setChecked(False)
+            self._loading_ui = False
+            self._log(f"Diese Farbquelle hat nur {100.0 * self._valid.mean():.1f} % "
+                      f"eingefärbte Punkte — 'Nur eingefärbte Punkte' wurde gelöst, "
+                      f"sonst bliebe die Ansicht leer.")
         self._cloud_view.set_cloud(
             self._world, self._colors,
             self._rec.intensity if self._rec is not None else None, self._valid)
