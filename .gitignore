@@ -1,0 +1,19 @@
+# Abgeleitete Daten — nie ins Repo
+cache/
+*.ply
+*.pcd
+*.las
+*.laz
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

@@ -1,0 +1,509 @@
+"""CloudView: VTK point cloud viewer widget for Super360 Studio.
+
+Renders large point clouds (tested up to 9M points) via vtkPolyData with a
+direct vertex cell array (no vtkVertexGlyphFilter). Supports color modes
+rgb/hoehe/intensitaet/uniform, a valid mask filter ("nur eingefaerbte
+Punkte"), display voxel downsampling, a trajectory polyline, EDL shading
+(with graceful fallback) and screenshots. All calls GUI-thread only.
+"""
+from __future__ import annotations
+
+import numpy as np
+from PyQt5 import QtWidgets
+
+import vtk
+from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
+
+try:  # pin the Qt binding before the interactor module is imported
+    import vtkmodules.qt as _vtk_qt
+
+    if _vtk_qt.PyQtImpl is None:
+        _vtk_qt.PyQtImpl = "PyQt5"
+except ImportError:
+    pass
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+_ACCENT = (0x4F / 255.0, 0xC3 / 255.0, 0xF7 / 255.0)  # #4FC3F7
+_BG = {"dunkel": (0.102, 0.110, 0.125), "hell": (0.93, 0.94, 0.955)}
+_UNIFORM_COLOR = {"dunkel": (0.80, 0.82, 0.85), "hell": (0.22, 0.25, 0.28)}
+_COLOR_MODES = ("rgb", "hoehe", "intensitaet", "uniform")
+_ID_DTYPE = np.int64 if vtk.vtkIdTypeArray().GetDataTypeSize() == 8 else np.int32
+
+
+def _turbo_lut() -> np.ndarray:
+    """256x3 uint8 turbo colormap (polynomial approximation, matplotlib-free)."""
+    t = np.linspace(0.0, 1.0, 256)
+    r = 34.61 + t * (1172.33 - t * (10793.56 - t * (33300.12 - t * (38394.49 - t * 14825.05))))
+    g = 23.31 + t * (557.33 + t * (1225.33 - t * (3574.96 - t * (1073.77 + t * 707.56))))
+    b = 27.2 + t * (3211.1 - t * (15327.97 - t * (27814.0 - t * (22569.18 - t * 6838.66))))
+    return np.clip(np.stack([r, g, b], axis=1), 0.0, 255.0).astype(np.uint8)
+
+
+_TURBO = _turbo_lut()
+
+
+def _scalar_to_rgb(vals: np.ndarray, lut: np.ndarray | None) -> np.ndarray:
+    """Percentile-scale (2..98) scalars to uint8 RGB; lut=None gives greys."""
+    if vals.size == 0:
+        return np.empty((0, 3), np.uint8)
+    vals = vals.astype(np.float32, copy=False)
+    lo, hi = np.percentile(vals, [2.0, 98.0])
+    if hi - lo < 1e-9:
+        hi = lo + 1e-9
+    idx = (np.clip((vals - lo) / (hi - lo), 0.0, 1.0) * 255.0).astype(np.uint8)
+    if lut is None:
+        return np.repeat(idx[:, None], 3, axis=1)
+    return lut[idx]
+
+
+def _strip_numpy_ref(vtk_arr):
+    """numpy-Referenz vom VTK-Wrapper entfernen (Lebensdauer regeln wir selbst).
+
+    numpy_to_vtk(deep=False) haengt das numpy-Array als ``_numpy_reference`` an
+    den Python-Wrapper. Stirbt der Wrapper, waehrend das C++-Objekt weiterlebt,
+    "ghostet" VTK den Wrapper samt Dict — die numpy-Puffer bleiben dann auch
+    nach set_cloud(None) unbegrenzt gepinnt (empirisch auf VTK 9.1 verifiziert).
+    CloudView haelt die Puffer selbst in ``_vtk_refs``; die Wrapper-Referenz ist
+    daher redundant und wird geloescht, damit set_cloud(None) wirklich freigibt.
+    """
+    try:
+        del vtk_arr._numpy_reference
+    except AttributeError:
+        pass
+    return vtk_arr
+
+
+def _voxel_first_indices(pts: np.ndarray, voxel: float) -> np.ndarray:
+    """Indices of the first point per occupied voxel (numpy grid hash)."""
+    if len(pts) == 0:
+        return np.empty(0, np.int64)
+    g = np.floor(pts.astype(np.float64) / voxel).astype(np.int64)
+    g -= g.min(axis=0)
+    dims = g.max(axis=0) + 1
+    if float(dims[0]) * float(dims[1]) * float(dims[2]) < 2**62:
+        key = (g[:, 0] * dims[1] + g[:, 1]) * dims[2] + g[:, 2]
+    else:  # degenerate extent: fall back to xor hash (collisions tolerable for display)
+        key = (g[:, 0] * 73856093) ^ (g[:, 1] * 19349663) ^ (g[:, 2] * 83492791)
+    _, first = np.unique(key, return_index=True)
+    return np.sort(first)
+
+
+class CloudView(QtWidgets.QWidget):
+    """VTK-Punktwolken-Viewer (Trackball-Kamera, EDL optional)."""
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self._vtkw = QVTKRenderWindowInteractor(self)
+        layout.addWidget(self._vtkw)
+
+        self._renderer = vtk.vtkRenderer()
+        self._background = "dunkel"
+        self._renderer.SetBackground(*_BG[self._background])
+        rw = self._vtkw.GetRenderWindow()
+        rw.SetMultiSamples(0)  # required for correct render-pass (EDL) output
+        rw.AddRenderer(self._renderer)
+        rw.GetInteractor().SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+
+        self._mapper = vtk.vtkPolyDataMapper()
+        self._mapper.SetColorModeToDirectScalars()
+        self._actor = vtk.vtkActor()
+        self._actor.SetMapper(self._mapper)
+        self._actor.GetProperty().SetPointSize(2)
+        self._renderer.AddActor(self._actor)
+        self._path_actor: vtk.vtkActor | None = None
+
+        # EDL (eye-dome lighting) — availability exposed as attribute.
+        self.edl_available: bool = False
+        self._edl_pass = None
+        self._edl_on = False
+        try:
+            steps = vtk.vtkRenderStepsPass()
+            edl = vtk.vtkEDLShading()
+            edl.SetDelegatePass(steps)
+            if not hasattr(self._renderer, "SetPass"):
+                raise AttributeError("Renderer ohne SetPass")
+            self._edl_pass = edl
+            self.edl_available = True
+        except Exception:
+            self.edl_available = False
+
+        # original data (kept so toggles can re-filter)
+        self._points: np.ndarray | None = None
+        self._colors: np.ndarray | None = None
+        self._intensity: np.ndarray | None = None
+        self._valid: np.ndarray | None = None
+        # display state
+        self._color_mode = "rgb"
+        self._only_colored = False
+        self._voxel = 0.0
+        self._poly: vtk.vtkPolyData | None = None
+        self._sel: np.ndarray | None = None
+        self._disp_points: np.ndarray | None = None
+        self._rgb_np: np.ndarray | None = None
+        self._vtk_refs: list = []  # keep numpy buffers alive for deep=False arrays
+        self._initialized = False
+        self._had_cloud = False
+
+    # ------------------------------------------------------------------ data
+
+    def set_cloud(self, points: np.ndarray, colors: np.ndarray | None = None,
+                  intensity: np.ndarray | None = None,
+                  valid: np.ndarray | None = None) -> None:
+        if points is None:
+            # Alle gehaltenen Puffer freigeben (auch Anzeige-/VTK-Referenzen),
+            # sonst bleiben ~Hunderte MB der alten Wolke fuer die Session liegen.
+            self._points = self._colors = self._intensity = self._valid = None
+            self._mapper.SetInputData(vtk.vtkPolyData())
+            self._poly = None
+            self._sel = None
+            self._disp_points = None
+            self._rgb_np = None
+            self._vtk_refs = []
+            self._had_cloud = False  # naechste Wolke passt die Kamera neu ein
+            self._render()
+            return
+        pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
+        n = len(pts)
+        if colors is not None:
+            colors = np.asarray(colors).reshape(-1, 3)
+            if len(colors) != n:
+                raise ValueError("Farben passen nicht zur Punktanzahl.")
+            if colors.dtype != np.uint8:
+                if np.issubdtype(colors.dtype, np.floating) and colors.size and colors.max() <= 1.0:
+                    colors = colors * 255.0
+                colors = np.clip(colors, 0, 255).astype(np.uint8)
+            colors = np.ascontiguousarray(colors)
+        if intensity is not None:
+            intensity = np.asarray(intensity, dtype=np.float32).ravel()
+            if len(intensity) != n:
+                raise ValueError("Intensitäten passen nicht zur Punktanzahl.")
+        if valid is not None:
+            valid = np.asarray(valid).ravel().astype(bool)
+            if len(valid) != n:
+                raise ValueError("Gültigkeitsmaske passt nicht zur Punktanzahl.")
+        self._points, self._colors = pts, colors
+        self._intensity, self._valid = intensity, valid
+        self._rebuild_geometry()
+        if not self._had_cloud:
+            self._had_cloud = True
+            self.reset_camera()
+        else:
+            self._render()
+
+    def set_path(self, positions: np.ndarray | None) -> None:
+        if self._path_actor is not None:
+            self._renderer.RemoveActor(self._path_actor)
+            self._path_actor = None
+        if positions is not None:
+            pos = np.ascontiguousarray(np.asarray(positions, dtype=np.float32).reshape(-1, 3))
+            if len(pos) >= 2:
+                poly = vtk.vtkPolyData()
+                vp = vtk.vtkPoints()
+                vp.SetData(numpy_to_vtk(pos, deep=True, array_type=vtk.VTK_FLOAT))
+                poly.SetPoints(vp)
+                cell = np.empty(len(pos) + 1, dtype=_ID_DTYPE)
+                cell[0] = len(pos)
+                cell[1:] = np.arange(len(pos), dtype=_ID_DTYPE)
+                lines = vtk.vtkCellArray()
+                lines.SetCells(1, numpy_to_vtkIdTypeArray(cell, deep=True))
+                poly.SetLines(lines)
+                mapper = vtk.vtkPolyDataMapper()
+                mapper.SetInputData(poly)
+                actor = vtk.vtkActor()
+                actor.SetMapper(mapper)
+                prop = actor.GetProperty()
+                prop.SetColor(*_ACCENT)
+                prop.SetLineWidth(3.0)
+                prop.LightingOff()
+                self._renderer.AddActor(actor)
+                self._path_actor = actor
+        self._render()
+
+    # --------------------------------------------------------------- options
+
+    def set_point_size(self, size: int) -> None:
+        self._actor.GetProperty().SetPointSize(int(max(1, min(8, size))))
+        self._render()
+
+    def set_color_mode(self, mode: str) -> None:
+        if mode not in _COLOR_MODES:
+            raise ValueError(f"Unbekannter Farbmodus: {mode!r}")
+        if mode != self._color_mode:
+            self._color_mode = mode
+            self._update_colors()
+            self._render()
+
+    def set_only_colored(self, on: bool) -> None:
+        on = bool(on)
+        if on != self._only_colored:
+            self._only_colored = on
+            self._rebuild_geometry()
+            self._render()
+
+    def set_voxel_display(self, voxel: float) -> None:
+        voxel = max(0.0, float(voxel))
+        if voxel != self._voxel:
+            self._voxel = voxel
+            self._rebuild_geometry()
+            self._render()
+
+    def set_background(self, name: str) -> None:
+        if name not in _BG:
+            raise ValueError(f"Unbekannter Hintergrund: {name!r}")
+        self._background = name
+        self._renderer.SetBackground(*_BG[name])
+        self._actor.GetProperty().SetColor(*_UNIFORM_COLOR[name])  # used in uniform mode
+        self._render()
+
+    def set_eyedome(self, on: bool) -> None:
+        if not self.edl_available:
+            self._edl_on = False
+            return
+        self._edl_on = bool(on)
+        try:
+            self._renderer.SetPass(self._edl_pass if self._edl_on else None)
+        except Exception:
+            self.edl_available = False
+            self._edl_on = False
+        self._render()
+
+    # --------------------------------------------------------------- actions
+
+    def reset_camera(self) -> None:
+        # Auf die 1..99-Perzentil-Box einpassen, damit einzelne Ausreißer-Punkte
+        # die Startansicht nicht winzig machen.
+        if self._points is not None and len(self._points) > 100:
+            lo = np.percentile(self._points, 1.0, axis=0)
+            hi = np.percentile(self._points, 99.0, axis=0)
+            pad = np.maximum((hi - lo) * 0.05, 0.1)
+            lo, hi = lo - pad, hi + pad
+            self._renderer.ResetCamera(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2])
+        else:
+            self._renderer.ResetCamera()
+        self._renderer.ResetCameraClippingRange()
+        self._render()
+
+    def screenshot(self, path: str) -> None:
+        if not self._initialized:
+            raise RuntimeError("Screenshot erst möglich, wenn das Widget angezeigt wurde.")
+        rw = self._vtkw.GetRenderWindow()
+        rw.Render()
+        w2i = vtk.vtkWindowToImageFilter()
+        w2i.SetInput(rw)
+        w2i.ReadFrontBufferOff()
+        w2i.Update()
+        writer = vtk.vtkPNGWriter()
+        writer.SetFileName(path)
+        writer.SetInputConnection(w2i.GetOutputPort())
+        writer.Write()
+
+    # ------------------------------------------------------------- internals
+
+    def _rebuild_geometry(self) -> None:
+        """Apply valid mask + voxel downsample, then build fresh polydata."""
+        if self._points is None:
+            return
+        sel: np.ndarray | None = None
+        if self._only_colored and self._valid is not None:
+            sel = np.flatnonzero(self._valid)
+        if self._voxel > 0.0:
+            pts = self._points if sel is None else self._points[sel]
+            keep = _voxel_first_indices(pts, self._voxel)
+            sel = keep if sel is None else sel[keep]
+        self._sel = sel
+        disp = self._points if sel is None else self._points[sel]
+        self._disp_points = np.ascontiguousarray(disp, dtype=np.float32)
+        n = len(self._disp_points)
+
+        refs: list = [self._disp_points]
+        vtk_pts = vtk.vtkPoints()
+        vtk_pts.SetData(_strip_numpy_ref(
+            numpy_to_vtk(self._disp_points, deep=False, array_type=vtk.VTK_FLOAT)))
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(vtk_pts)
+        verts = vtk.vtkCellArray()
+        try:
+            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
+            conn = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
+                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
+            refs += [offsets, conn]
+        except (AttributeError, TypeError):  # pre-9.0 fallback: legacy cell layout
+            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
+            legacy[0::2] = 1
+            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
+            refs.append(legacy)
+        poly.SetVerts(verts)
+        self._vtk_refs = refs
+        self._poly = poly
+        self._mapper.SetInputData(poly)
+        self._update_colors()
+
+    def _update_colors(self) -> None:
+        if self._poly is None:
+            return
+        sel = self._sel
+        rgb: np.ndarray | None = None
+        if self._disp_points is not None and len(self._disp_points) > 0:
+            mode = self._color_mode
+            if mode == "rgb" and self._colors is not None:
+                rgb = self._colors if sel is None else self._colors[sel]
+                if self._valid is not None and not self._only_colored:
+                    # Nicht eingefaerbte Punkte neutral grau anzeigen — auf einer
+                    # Kopie, das Farb-Array des Aufrufers wird nie veraendert.
+                    vmask = self._valid if sel is None else self._valid[sel]
+                    invalid = ~vmask
+                    if invalid.any():
+                        if rgb is self._colors:
+                            rgb = rgb.copy()
+                        rgb[invalid] = 90
+            elif mode == "hoehe":
+                rgb = _scalar_to_rgb(self._disp_points[:, 2], _TURBO)
+            elif mode == "intensitaet" and self._intensity is not None:
+                vals = self._intensity if sel is None else self._intensity[sel]
+                rgb = _scalar_to_rgb(vals, None)
+        if rgb is None:  # "uniform" or missing data for the requested mode
+            self._mapper.ScalarVisibilityOff()
+            self._actor.GetProperty().SetColor(*_UNIFORM_COLOR[self._background])
+        else:
+            self._rgb_np = np.ascontiguousarray(rgb, dtype=np.uint8)
+            arr = _strip_numpy_ref(
+                numpy_to_vtk(self._rgb_np, deep=False, array_type=vtk.VTK_UNSIGNED_CHAR))
+            arr.SetName("farben")
+            self._poly.GetPointData().SetScalars(arr)
+            self._mapper.SetColorModeToDirectScalars()
+            self._mapper.ScalarVisibilityOn()
+        self._poly.Modified()
+
+    def _render(self) -> None:
+        if self._initialized:
+            self._vtkw.GetRenderWindow().Render()
+
+    # ------------------------------------------------------------- lifecycle
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if not self._initialized:
+            self._vtkw.Initialize()
+            self._vtkw.Start()  # no-op under Qt event loop, standard pattern
+            self._initialized = True
+        self._render()
+
+    def closeEvent(self, event) -> None:
+        try:
+            rw = self._vtkw.GetRenderWindow()
+            if self._edl_pass is not None:
+                self._renderer.SetPass(None)
+                self._edl_pass.ReleaseGraphicsResources(rw)
+            rw.Finalize()
+        except Exception:
+            pass
+        try:
+            self._vtkw.close()
+        except Exception:
+            pass
+        super().closeEvent(event)
+
+
+if __name__ == "__main__":
+    import os
+    import sys
+    import time
+
+    from PyQt5 import QtCore
+
+    ev_dir = ("/tmp/super360_modtests/"
+              "cloud_view")
+    os.makedirs(ev_dir, exist_ok=True)
+    os.environ.setdefault("DISPLAY", ":0")
+
+    app = QtWidgets.QApplication(sys.argv)
+    view = CloudView()
+    view.resize(1280, 800)
+    view.setWindowTitle("CloudView Selbsttest")
+    view.show()
+    app.processEvents()
+
+    report: list[str] = []
+
+    def snap(name: str) -> None:
+        view.screenshot(os.path.join(ev_dir, name))
+        app.processEvents()
+
+    def timed(label: str, fn) -> float:
+        t0 = time.perf_counter()
+        fn()
+        dt = time.perf_counter() - t0
+        report.append(f"{label}: {dt:.3f} s")
+        return dt
+
+    rng = np.random.default_rng(42)
+
+    # ---- 2M synthetic terrain-like points -----------------------------------
+    N2 = 2_000_000
+    xy = rng.uniform(-25.0, 25.0, (N2, 2)).astype(np.float32)
+    z = (2.0 * np.sin(xy[:, 0] * 0.35) * np.cos(xy[:, 1] * 0.28)
+         + 0.15 * rng.standard_normal(N2)).astype(np.float32)
+    pts2 = np.column_stack([xy, z])
+    colors2 = np.empty((N2, 3), np.uint8)
+    colors2[:, 0] = ((xy[:, 0] + 25.0) / 50.0 * 255.0).astype(np.uint8)
+    colors2[:, 1] = ((xy[:, 1] + 25.0) / 50.0 * 255.0).astype(np.uint8)
+    colors2[:, 2] = np.clip((z + 3.0) / 6.0 * 255.0, 0, 255).astype(np.uint8)
+    inten2 = (np.abs(np.sin(xy[:, 0] * 0.9)) * 80.0
+              + 20.0 * rng.random(N2)).astype(np.float32)
+    valid2 = xy[:, 0] > 0.0  # spatial half-false mask
+    t_path = np.linspace(0.0, 4.0 * np.pi, 500)
+    path = np.column_stack([10.0 * np.cos(t_path), 10.0 * np.sin(t_path),
+                            3.0 + 0.2 * t_path]).astype(np.float32)
+
+    report.append(f"EDL verfügbar: {view.edl_available}")
+    timed("2M set_cloud + erster Render", lambda: view.set_cloud(pts2, colors2, inten2, valid2))
+    view.set_path(path)
+    view.reset_camera()
+    view._renderer.GetActiveCamera().Elevation(-35.0)
+    view.reset_camera()
+    timed("2M Screenshot rgb (01)", lambda: snap("01_rgb.png"))
+
+    cam = view._renderer.GetActiveCamera()
+    cam.Azimuth(25.0)
+    timed("2M Interaktions-Render (Rotation)", view._render)
+
+    timed("Farbmodus hoehe (02)", lambda: (view.set_color_mode("hoehe"), snap("02_hoehe.png")))
+    timed("Farbmodus intensitaet (03)",
+          lambda: (view.set_color_mode("intensitaet"), snap("03_intensitaet.png")))
+    timed("Farbmodus uniform (04)", lambda: (view.set_color_mode("uniform"), snap("04_uniform.png")))
+
+    view.set_color_mode("rgb")
+    timed("Voxel 0.10 m (05)", lambda: (view.set_voxel_display(0.1), snap("05_voxel_0.10.png")))
+    report.append(f"  Punkte nach Voxel 0.10: {view._poly.GetNumberOfPoints():,}")
+    view.set_voxel_display(0.0)
+    timed("Nur eingefärbte Punkte (06)",
+          lambda: (view.set_only_colored(True), snap("06_nur_eingefaerbt.png")))
+    report.append(f"  Punkte nach valid-Maske: {view._poly.GetNumberOfPoints():,} "
+                  f"(erwartet ~{int(valid2.sum()):,})")
+    view.set_only_colored(False)
+    timed("EDL an (07)", lambda: (view.set_eyedome(True), snap("07_edl_an.png")))
+    timed("EDL aus (08)", lambda: (view.set_eyedome(False), snap("08_edl_aus.png")))
+
+    # ---- 9M points, rgb mode -------------------------------------------------
+    N9 = 9_000_000
+    pts9 = rng.uniform(-40.0, 40.0, (N9, 3)).astype(np.float32)
+    pts9[:, 2] *= 0.15
+    colors9 = rng.integers(0, 255, (N9, 3), dtype=np.uint8)
+    timed("9M set_cloud + Render", lambda: view.set_cloud(pts9, colors9))
+    view.reset_camera()
+    timed("9M Screenshot rgb (09)", lambda: snap("09_9mio_rgb.png"))
+    cam = view._renderer.GetActiveCamera()
+    cam.Azimuth(30.0)
+    timed("9M Interaktions-Render (Rotation)", view._render)
+
+    view.close()
+    QtCore.QTimer.singleShot(150, app.quit)
+    app.exec_()
+    print("== CloudView Selbsttest ==")
+    print("\n".join(report))
+    print(f"Screenshots: {ev_dir}")
+    sys.exit(0)
