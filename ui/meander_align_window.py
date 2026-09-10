@@ -16,6 +16,12 @@ Zwei Ansichten, umschaltbar:
   Lage. Damit sieht man, ob die Farben auf den richtigen Strukturen landen.
 
 Gier, X und Y wirken in beiden sofort. Das Hauptfenster bleibt unberuehrt.
+
+Gezeichnet wird als **Bild**, nicht mit einem zweiten 3D-Fenster: zwei
+OpenGL-Kontexte in einer Anwendung sind je nach Grafiktreiber und Sitzung eine
+Quelle schwarzer Fenster, und fuers Ausrichten reicht der Blick von oben. Ein
+Durchlauf ueber 360.000 Punkte kostet wenige Millisekunden, das Bild folgt dem
+Regler also genauso wie eine 3D-Ansicht — nur zuverlaessig.
 """
 
 from __future__ import annotations
@@ -23,15 +29,12 @@ from __future__ import annotations
 import os
 import sys
 import time
+import traceback
 
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
 
-try:  # Paket-Import (App) vs. Direktstart des Selbsttests
-    from ui.cloud_view import CloudView
-except ImportError:  # pragma: no cover
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from ui.cloud_view import CloudView
+from PyQt5 import QtGui
 
 _KARTE_PUNKTE = 300_000      # so viel Karte liegt als Untergrund darunter
 _FOTO_PUNKTE = 60_000        # ... und so viele Fotopunkte darueber. Mehr
@@ -65,8 +68,11 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         self._basis_t = np.asarray(pipe.t, dtype=float).ravel()[:3].copy()
 
         lay = QtWidgets.QVBoxLayout(self)
-        self.view = CloudView(self)
-        lay.addWidget(self.view, 1)
+        self.bild = QtWidgets.QLabel("")
+        self.bild.setAlignment(QtCore.Qt.AlignCenter)
+        self.bild.setMinimumSize(640, 420)
+        self.bild.setStyleSheet("background: #14161c;")
+        lay.addWidget(self.bild, 1)
 
         leiste = QtWidgets.QHBoxLayout()
         self._modus = QtWidgets.QComboBox()
@@ -75,6 +81,12 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         self._modus.currentIndexChanged.connect(lambda *_: self._neu())
         leiste.addWidget(QtWidgets.QLabel("Ansicht:"))
         leiste.addWidget(self._modus, 1)
+        self._richtung = QtWidgets.QComboBox()
+        self._richtung.addItem("von oben", (0, 1))
+        self._richtung.addItem("von vorn", (0, 2))
+        self._richtung.addItem("von der Seite", (1, 2))
+        self._richtung.currentIndexChanged.connect(lambda *_: self._neu())
+        leiste.addWidget(self._richtung)
 
         self._spins: dict = {}
         for key, label, rng, step, suffix in (("yaw", "Gier", 180.0, 0.5, "°"),
@@ -146,16 +158,21 @@ class MeanderAlignWindow(QtWidgets.QDialog):
     # ------------------------------------------------------------- Zeichnen
 
     def _neu(self) -> None:
+        """Ansicht neu aufbauen. Faengt alles ab — ein Fehler in einem
+        Timer-Slot wird von Qt sonst verschluckt und das Fenster bleibt
+        einfach schwarz, ohne dass irgendwo etwas steht."""
         try:
             A, b = self._affin()
+            yaw, t = self.lage()
+            if self._modus.currentData() == "ueber":
+                self._zeige_ueberlagerung(A, b, yaw, t)
+            else:
+                self._zeige_farben(A, b, yaw, t)
         except Exception as exc:  # noqa: BLE001
-            self._lbl.setText(f"Lage nicht berechenbar: {exc}")
+            self._lbl.setText(f"Ansicht nicht aufbaubar: {type(exc).__name__}: {exc}")
+            traceback.print_exc()
             return
-        yaw, t = self.lage()
-        if self._modus.currentData() == "ueber":
-            self._zeige_ueberlagerung(A, b, yaw, t)
-        else:
-            self._zeige_farben(A, b, yaw, t)
+
 
     def _foto_punkte(self, A, b) -> np.ndarray:
         """Fotopunkte des Fluges im Rahmen der Karte.
@@ -182,8 +199,7 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         farben = np.vstack([np.tile(_GRAU, (len(karte), 1)),
                             np.tile(_MAGENTA, (len(foto), 1))]) if len(foto) \
             else np.tile(_GRAU, (len(karte), 1))
-        self.view.set_cloud(pts, farben, None, np.ones(len(pts), bool))
-        self.view.set_color_mode("rgb")
+        self._male(pts, farben)
         if len(foto):
             mitte_k = karte[:, :2].mean(0)
             mitte_f = foto[:, :2].mean(0)
@@ -208,13 +224,49 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         dt = (time.perf_counter() - t0) * 1000.0
         rgb = rgb.copy()
         rgb[~maske] = _UNGETROFFEN
-        self.view.set_cloud(self._stich.astype(np.float32), rgb, None,
-                            np.ones(len(self._stich), bool))
-        self.view.set_color_mode("rgb")
+        self._male(self._stich.astype(np.float32), rgb)
         self._lbl.setText(
             f"Gier {yaw:.2f}°, Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "
             f"{100.0 * maske.mean():.1f} % der {len(self._stich)} Punkte getroffen "
             f"({dt:.0f} ms). Dunkelgrau ist von keinem Bild getroffen.")
+
+    def _male(self, punkte: np.ndarray, farben: np.ndarray) -> None:
+        """Punkte als Bild zeichnen (Parallelprojektion auf zwei Achsen).
+
+        Jeder Bildpunkt bekommt den Mittelwert der Farben, die auf ihn fallen.
+        Bei 360.000 Punkten sind das wenige Millisekunden, das reicht fuer eine
+        Anzeige, die dem Regler folgt.
+        """
+        au, av = self._richtung.currentData()
+        W = max(self.bild.width(), 320)
+        H = max(self.bild.height(), 240)
+        P = np.asarray(punkte, dtype=np.float32)
+        C = np.asarray(farben, dtype=np.float32)
+        if len(P) == 0:
+            self.bild.setPixmap(QtGui.QPixmap())
+            return
+        lo = np.percentile(P[:, [au, av]], 0.5, axis=0)
+        hi = np.percentile(P[:, [au, av]], 99.5, axis=0)
+        spanne = np.maximum(hi - lo, 1e-6)
+        # Seitenverhaeltnis halten, sonst verzerrt die Ansicht
+        s = min((W - 8) / spanne[0], (H - 8) / spanne[1])
+        xi = np.clip(((P[:, au] - lo[0]) * s + 4).astype(np.int32), 0, W - 1)
+        yi = np.clip((H - 5 - (P[:, av] - lo[1]) * s).astype(np.int32), 0, H - 1)
+        summe = np.zeros((H, W, 3), np.float32)
+        anzahl = np.zeros((H, W), np.float32)
+        np.add.at(summe, (yi, xi), C)
+        np.add.at(anzahl, (yi, xi), 1.0)
+        nz = anzahl > 0
+        bild = np.full((H, W, 3), 20, np.uint8)
+        bild[nz] = (summe[nz] / anzahl[nz][:, None]).astype(np.uint8)
+        bild = np.ascontiguousarray(bild)
+        qi = QtGui.QImage(bild.data, W, H, 3 * W, QtGui.QImage.Format_RGB888)
+        self._bildpuffer = bild          # QImage haelt keine Kopie
+        self.bild.setPixmap(QtGui.QPixmap.fromImage(qi))
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt)
+        super().resizeEvent(event)
+        self._timer.start()
 
     # ----------------------------------------------------------------- Ende
 
@@ -226,7 +278,6 @@ class MeanderAlignWindow(QtWidgets.QDialog):
 
     def _erstes_bild(self) -> None:
         self._neu()
-        self.view.reset_camera()
 
     def _uebernehmen(self) -> None:
         yaw, t = self.lage()
@@ -266,6 +317,15 @@ if __name__ == "__main__":
     w._zeige_ueberlagerung(A, b, yaw, t)
     print("Überlagerung:", w._lbl.text()[:96])
     assert "magenta" in w._lbl.text()
+    pm = w.bild.pixmap()
+    assert pm is not None and not pm.isNull(), "kein Bild gezeichnet"
+    img = pm.toImage()
+    px = [img.pixelColor(x, y) for y in range(0, img.height(), 7)
+          for x in range(0, img.width(), 7)]
+    hell = sum(1 for c in px if c.red() + c.green() + c.blue() > 90)
+    print(f"Bild {img.width()}x{img.height()}, {100 * hell / len(px):.0f} % der "
+          f"Stichprobenpixel gezeichnet")
+    assert hell > 0, "Bild ist komplett schwarz"
     w._zuruecksetzen()
     assert abs(w.lage()[0] - 30.0) < 1e-9
     print("zurücksetzen stellt die Basislage wieder her")

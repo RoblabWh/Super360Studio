@@ -169,10 +169,18 @@ unberührt.
 | **Überlagerung** | Karte in Grau, die Fotopunkte des Fluges in Magenta |
 | **Farbvorschau** | die Karte, eingefärbt mit der aktuellen Lage |
 
-Gier, X und Y wirken in beiden sofort (rund 100 ms). Unter dem Bild stehen
-Winkel, Versatz und — je nach Ansicht — der Abstand der Schwerpunkte oder die
+Dazu die Blickrichtung: von oben, von vorn oder von der Seite.
+
+Gier, X und Y wirken in beiden sofort (60–100 ms). Unter dem Bild stehen Winkel,
+Versatz und — je nach Ansicht — der Abstand der Schwerpunkte oder die
 Trefferquote. **Lage übernehmen** schreibt die eingestellte Lage als neue Basis
 zurück ins Hauptfenster, **zurücksetzen** stellt die gefundene Lage wieder her.
+
+Gezeichnet wird als **Bild**, nicht mit einem zweiten 3D-Fenster. Zwei
+OpenGL-Kontexte in einer Anwendung sind je nach Grafiktreiber und Sitzung eine
+Quelle schwarzer Fenster, und fürs Ausrichten reicht der Blick von oben. Der
+Preis ist, dass sich die Ansicht nicht frei drehen lässt; dafür rendert sie
+zuverlässig — geprüft sogar ganz ohne X-Server.
 
 Das ist der Weg, wenn die automatische Ausrichtung danebenliegt: erst in der
 Überlagerung grob schieben, bis Magenta auf Grau liegt, dann in der Farbvorschau
