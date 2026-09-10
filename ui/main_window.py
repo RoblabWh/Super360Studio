@@ -1820,12 +1820,12 @@ class MainWindow(QMainWindow):
             self._live_pts = res["pts"]
             self._log(f"Live-Vorschau bereit: {_fmt_int(len(res['pts']))} "
                       f"Punkte, {len(res['live'].bilder)} verkleinerte Bilder. "
-                      f"Gier, X und Y wirken ab jetzt sofort. Solange die "
-                      f"Vorschau läuft, wird die volle Karte ausgeblendet — "
-                      f"zwei Promille Stichprobe wären darin nicht zu sehen. "
-                      f"Nach dem Einfärben ist sie wieder da.")
+                      f"Sie erscheint beim ersten Zug an Gier, X oder Y und "
+                      f"blendet die Karte dabei aus (Haken darüber schaltet "
+                      f"das ab). Die Karte bleibt bis dahin stehen.")
             self._update_enabled()
-            self._live_update()
+            # Bewusst KEIN _live_update hier: die Karte soll nach dem
+            # Ausrichten stehen bleiben. Wer nichts justiert, will sie sehen.
 
         self._start_worker("Lade Vorschaubilder für die Handjustage …",
                            job, fertig)
@@ -2119,11 +2119,24 @@ class MainWindow(QMainWindow):
         self._log(f"Farbquelle: {self._combo_layer.currentText()}")
 
     def _apply_layer(self) -> None:
-        """Die gewaehlte Ebene in die Ansicht schieben."""
+        """Die gewaehlte Ebene in die Ansicht schieben.
+
+        Fehlt fuer die gewaehlte Quelle eine Einfaerbung, waere "RGB" eine
+        einfarbig graue Wolke — richtig gerechnet, aber nichtssagend. Dann
+        lieber auf Hoehe umschalten und es sagen.
+        """
         paar = self._layers.get(self._layer_key)
         self._colors, self._valid = paar if paar else (None, None)
         if self._world is None:
             return
+        if self._colors is None and self._combo_colormode.currentData() == "rgb":
+            idx = self._combo_colormode.findData("hoehe")
+            if idx >= 0:
+                self._loading_ui = True
+                self._combo_colormode.setCurrentIndex(idx)
+                self._loading_ui = False
+                self._log("Für diese Farbquelle gibt es noch keine Einfärbung — "
+                          "die Ansicht steht auf Höhe statt auf einfarbigem Grau.")
         self._cloud_view.set_cloud(
             self._world, self._colors,
             self._rec.intensity if self._rec is not None else None, self._valid)

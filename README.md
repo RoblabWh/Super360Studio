@@ -156,9 +156,12 @@ erkennen. Allein gezeigt ist die Stichprobe die ganze Ansicht, und jeder
 Reglerzug ist sofort sichtbar.
 
 Der Haken **„Während der Justage nur die Vorschau zeigen"** schaltet das ab;
-dann liegen beide übereinander. Nach dem Einfärben ist die Karte ohnehin wieder
-da, und bei jedem Fehlschlag oder Abbruch wird die Vorschau geräumt — eine
-ausgeblendete Karte soll nie zurückbleiben.
+dann liegen beide übereinander.
+
+Die Vorschau erscheint **erst beim ersten Zug an einem Regler**, nicht schon
+nach dem Ausrichten — wer nichts justiert, soll seine Karte sehen. Und sie
+verschwindet wieder bei jedem Fehlschlag, jedem Abbruch, jedem Wechsel der
+Farbquelle und nach dem Einfärben. Eine ausgeblendete Karte bleibt nie zurück.
 
 Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
 sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X und Y

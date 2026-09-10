@@ -727,9 +727,11 @@ class CloudView(QtWidgets.QWidget):
                 raise ValueError("Gültigkeitsmaske passt nicht zur Punktanzahl.")
         self._points, self._colors = pts, colors
         self._intensity, self._valid = intensity, valid
-        # Eine neue Wolke wird immer gezeigt. Ohne das bliebe die Karte
-        # unsichtbar, wenn zuvor eine Solo-Vorschau lief und der Weg dorthin
-        # ueber einen Fehler verlassen wurde.
+        # Eine neue Wolke raeumt eine alte Farbvorschau weg und wird immer
+        # gezeigt. Die Vorschau gehoert zu einer laufenden Justage; sobald
+        # sich die Wolke darunter aendert, passt sie nicht mehr — und eine
+        # Solo-Vorschau wuerde die neue Wolke sonst weiter verdecken.
+        self.set_color_preview(None)
         self._actor.SetVisibility(True)
         self._refresh_cut_range()
         self._rebuild_geometry()
