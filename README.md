@@ -51,7 +51,8 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 
 FAST-LIO richtet sein Weltsystem an der Sensorlage des ersten Scans aus, nicht an
 der Schwerkraft. Steht der Livox schräg auf der Drohne, kippt die ganze Karte mit.
-Seit dem 08.09.2026 ist er rund 41° gekippt montiert (davor 0,3°–5,6°).
+Seit dem 08.09.2026 ist er rund 40° gekippt montiert (gemessen 40,1° / 39,7° /
+41,5°; davor durchgehend 0,3°–5,6°).
 
 Die GUI misst die Lotrechte deshalb aus dem IMU-Ruhefenster am Bag-Anfang und
 dreht die Karte beim Laden gerade — aber erst ab 10° Schräglage, damit die sauber

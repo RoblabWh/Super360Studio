@@ -95,14 +95,14 @@ def _measure_gravity_level(rec_dir: str, meta: dict, poses: np.ndarray,
         # lazy: zieht cv2/rosbags nur nach, wenn wirklich gemessen wird
         from core.bag_reader import BagReader
         with BagReader(str(bag)) as reader:
-            rest = reader.read_imu_at_rest()
+            rest = reader.read_imu_up()
     except Exception:  # noqa: BLE001 — ohne Messung bleibt die Karte, wie sie ist
         return None
     if rest is None:
         return None
 
     # Lotrechte vom Sensor- ins Weltsystem: mit den Posen der Scans, die noch
-    # ins Ruhefenster fallen. Gibt es keine, ist das Weltsystem laut FAST-LIO
+    # ins Messfenster fallen. Gibt es keine, ist das Weltsystem laut FAST-LIO
     # die Anfangslage des Sensors und der Vektor gilt unveraendert.
     in_rest = stamps <= rest.t_end
     if len(poses) and bool(np.any(in_rest)):
@@ -120,10 +120,10 @@ def _measure_gravity_level(rec_dir: str, meta: dict, poses: np.ndarray,
         "applied": bool(tilt >= LEVEL_MIN_TILT_DEG),
         "up_body": [float(x) for x in rest.up_body],
         "mount_tilt_deg": float(rest.tilt_deg),
-        "rest_window_s": float(rest.window_s),
-        "rest_samples": int(rest.n_samples),
-        "rest_acc_std": float(rest.acc_std),
-        "scans_in_rest": int(np.count_nonzero(in_rest)),
+        "window_s": float(rest.window_s),
+        "samples": int(rest.n_samples),
+        "spread_deg": float(rest.spread_deg),
+        "scans_in_window": int(np.count_nonzero(in_rest)),
     }
     meta["gravity_level"] = level
     try:
@@ -310,8 +310,9 @@ class Recording:
         tilt = float(lvl.get("tilt_deg", 0.0))
         if lvl.get("applied"):
             return (f"Karte lotrecht gedreht: Livox war {tilt:.1f}° schräg montiert "
-                    f"(Ruhefenster {lvl.get('rest_window_s', 0.0):.2f} s, "
-                    f"{lvl.get('rest_samples', 0)} IMU-Samples).")
+                    f"(gemessen über {lvl.get('window_s', 0.0):.2f} s, "
+                    f"{lvl.get('samples', 0)} IMU-Samples, "
+                    f"Streuung {lvl.get('spread_deg', 0.0):.1f}°).")
         return (f"Einbaulage {tilt:.1f}° — unter der Schwelle von "
                 f"{lvl.get('threshold_deg', LEVEL_MIN_TILT_DEG):.0f}°, Karte unverändert.")
 

@@ -26,11 +26,15 @@ _IMU_TYPE = "sensor_msgs/msg/Imu"
 
 _GPS_MERGE_MAX_DT = 0.3  # s: NavSatFix <-> GPSRAW Zuordnung
 
-# Ruhefenster am Bag-Anfang: solange die Drohne steht, ist die Drehrate klein
-# und die Beschleunigung konstant. Nur dann ist der Mittelwert die Lotrechte.
-_REST_GYRO_MAX = 0.10   # rad/s
-_REST_MIN_S = 0.30      # s, kuerzer ist der Mittelwert nicht belastbar
-_REST_MAX_S = 3.00      # s, laenger wird nicht gebraucht
+# Lotrechte aus dem Bag-Anfang. Ein Beschleunigungsmesser misst im Stand UND im
+# Schwebeflug die Gegenkraft zur Schwerkraft, der Vektor zeigt also nach oben —
+# nur waehrend echter Drehungen taugt er nicht. Rotorvibration mittelt sich raus,
+# deshalb wird nicht auf Stille gefiltert, sondern nur auf grobe Drehbewegung.
+_UP_GYRO_QUIET = 0.10   # rad/s, echter Stand am Anfang: wenn lang genug, gewinnt er
+_UP_GYRO_MAX = 0.50     # rad/s, darueber dreht die Drohne wirklich
+_UP_MIN_S = 0.30        # s brauchbare Samples, sonst keine Aussage
+_UP_MAX_S = 3.00        # s Auswertefenster ab Bag-Anfang
+_UP_MAX_SPREAD_DEG = 10.0  # Streuung der Richtungen, darueber unbrauchbar
 
 
 @dataclass
@@ -72,22 +76,22 @@ class GpsFix:
 
 
 @dataclass
-class ImuRest:
-    """Lotrechte im Sensorsystem, gemessen im Stand am Bag-Anfang.
+class ImuUp:
+    """Lotrechte im Sensorsystem, gemessen am Bag-Anfang.
 
-    Ein ruhender Beschleunigungsmesser misst die Gegenkraft zur Schwerkraft,
-    der Vektor zeigt also nach OBEN. ``up_body`` ist dieser Vektor im
-    Sensorsystem, ``tilt_deg`` sein Winkel gegen die Sensor-z-Achse und damit
-    die Schraeglage des Einbaus. Einheiten sind egal, nur die Richtung zaehlt
-    (der Livox meldet die Beschleunigung in g, nicht in m/s^2).
+    ``up_body`` ist der Einheitsvektor, der im Sensorsystem nach OBEN zeigt,
+    ``tilt_deg`` sein Winkel gegen die Sensor-z-Achse und damit die Schraeglage
+    des Einbaus. Einheiten sind egal, nur die Richtung zaehlt (der Livox meldet
+    die Beschleunigung in g, nicht in m/s^2). ``spread_deg`` ist die Streuung
+    der Einzelrichtungen und damit das Guetemass der Messung.
     """
 
     up_body: np.ndarray  # (3,) Einheitsvektor
     tilt_deg: float
-    window_s: float  # ausgewertetes Ruhefenster
+    window_s: float  # Zeitspanne der verwendeten Samples
     n_samples: int
-    acc_std: float  # groesste Achsen-Streuung, auf |a| normiert
-    t_end: float  # Ende des Ruhefensters (Bag-Zeit, s)
+    spread_deg: float  # mittlere Winkelabweichung der Samples
+    t_end: float  # Ende des Fensters (Bag-Zeit, s)
 
 
 def _build_typestore():
@@ -285,14 +289,19 @@ class BagReader:
 
     # ------------------------------------------------------------------- imu
 
-    def read_imu_at_rest(self, max_window_s: float = _REST_MAX_S) -> "ImuRest | None":
-        """Lotrechte im Sensorsystem aus dem Ruhefenster am Bag-Anfang.
+    def read_imu_up(self, max_window_s: float = _UP_MAX_S) -> "ImuUp | None":
+        """Lotrechte im Sensorsystem aus dem Anfang des Bags.
 
-        Gemittelt wird ab dem ersten IMU-Sample, solange die Drehrate unter
-        _REST_GYRO_MAX bleibt, hoechstens ueber ``max_window_s``. Liefert None,
-        wenn es kein IMU-Topic gibt oder die Drohne von Anfang an bewegt wurde
-        (Ruhefenster kuerzer als _REST_MIN_S) — dann laesst sich die Einbaulage
-        aus diesem Bag nicht bestimmen.
+        Gemittelt werden die Richtungen der Beschleunigungsvektoren der ersten
+        ``max_window_s``, ohne die Samples mit einer Drehrate ueber
+        _UP_GYRO_MAX — waehrend einer Drehung misst der Sensor nicht mehr nur
+        die Schwerkraft. Vibration der laufenden Rotoren stoert nicht, sie
+        mittelt sich heraus.
+
+        Liefert None, wenn es kein IMU-Topic gibt, zu wenig brauchbare Samples
+        zusammenkommen oder die Richtungen zu stark streuen (dann war die
+        Drohne von Anfang an in Bewegung und die Einbaulage ist aus diesem Bag
+        nicht bestimmbar).
         """
         info = self.info()
         if info.imu_topic is None:
@@ -301,9 +310,10 @@ class BagReader:
         if not conns:
             return None
 
-        acc: list[tuple[float, float, float]] = []
+        dirs: list[np.ndarray] = []
+        times: list[float] = []
+        gyros: list[float] = []
         t0: float | None = None
-        t_end = 0.0
         for conn, timestamp, rawdata in self._reader.messages(connections=conns):
             msg = self._reader.deserialize(rawdata, conn.msgtype)
             # Header-Stempel, damit t_end in derselben Uhr liegt wie die
@@ -315,27 +325,48 @@ class BagReader:
             if t - t0 > max_window_s:
                 break
             w = msg.angular_velocity
-            if float(np.sqrt(w.x * w.x + w.y * w.y + w.z * w.z)) > _REST_GYRO_MAX:
-                break  # Bewegung: Ruhefenster endet hier
+            if float(np.sqrt(w.x * w.x + w.y * w.y + w.z * w.z)) > _UP_GYRO_MAX:
+                continue  # dreht gerade: dieses Sample nicht verwenden
             a = msg.linear_acceleration
-            acc.append((a.x, a.y, a.z))
-            t_end = t
+            v = np.array([a.x, a.y, a.z], dtype=np.float64)
+            n = float(np.linalg.norm(v))
+            if n < 1e-9:
+                continue
+            dirs.append(v / n)
+            times.append(t)
+            gyros.append(float(np.sqrt(w.x * w.x + w.y * w.y + w.z * w.z)))
 
-        if t0 is None or len(acc) < 2 or (t_end - t0) < _REST_MIN_S:
+        if len(dirs) < 2 or (times[-1] - times[0]) < _UP_MIN_S:
             return None
-        arr = np.asarray(acc, dtype=np.float64)
+        arr = np.asarray(dirs)
+        ts = np.asarray(times)
+        # Steht die Drohne am Anfang wirklich still, ist genau dieser Abschnitt
+        # die beste Messung — er endet beim ersten Sample daraus. Nur der
+        # ZUSAMMENHAENGENDE Anfang zaehlt: wer bloss nach Drehrate filtert, nimmt
+        # auch ruhige Momente aus dem Flug mit, in denen der Sensor beschleunigt
+        # und der Vektor eben nicht mehr die Lotrechte ist. Reicht der Anfang
+        # nicht (Rotoren liefen beim Aufnahmestart schon), bleibt es beim ganzen
+        # Fenster: im Schwebeflug zeigt der Vektor im Mittel weiter nach oben.
+        quiet = np.asarray(gyros) < _UP_GYRO_QUIET
+        n_prefix = int(np.argmin(quiet)) if not quiet.all() else len(quiet)
+        if n_prefix >= 2 and (ts[n_prefix - 1] - ts[0]) >= _UP_MIN_S:
+            arr = arr[:n_prefix]
+            ts = ts[:n_prefix]
         mean = arr.mean(axis=0)
         norm = float(np.linalg.norm(mean))
         if norm < 1e-9:
             return None
         up = mean / norm
-        return ImuRest(
+        spread = float(np.degrees(np.arccos(np.clip(arr @ up, -1.0, 1.0))).mean())
+        if spread > _UP_MAX_SPREAD_DEG:
+            return None
+        return ImuUp(
             up_body=up,
             tilt_deg=float(np.degrees(np.arccos(float(np.clip(up[2], -1.0, 1.0))))),
-            window_s=float(t_end - t0),
-            n_samples=len(acc),
-            acc_std=float(arr.std(axis=0).max() / norm),
-            t_end=float(t_end),
+            window_s=float(ts[-1] - ts[0]),
+            n_samples=int(len(arr)),
+            spread_deg=spread,
+            t_end=float(ts[-1]),
         )
 
     # ------------------------------------------------------------------- gps
@@ -474,6 +505,17 @@ if __name__ == "__main__":
     sentinel = sum(1 for f in fixes if f.cov_east_m > 4.0e6)
     print(f"fixe mit Sentinel-Kovarianz (~4294967.295 m): {sentinel}/{len(fixes)}")
     print(f"fixe mit eph_cm==9999: {sum(1 for f in fixes if f.eph_cm == 9999)}/{len(fixes)}")
+
+    up = reader.read_imu_up()
+    assert up is not None, "read_imu_up() liefert nichts"
+    assert abs(np.linalg.norm(up.up_body) - 1.0) < 1e-9, "up_body nicht normiert"
+    assert 0.0 <= up.tilt_deg <= 180.0 and up.n_samples >= 2
+    assert up.spread_deg <= _UP_MAX_SPREAD_DEG
+    assert up.window_s >= _UP_MIN_S
+    print(f"imu_up: Einbau {up.tilt_deg:.1f} Grad, up_body={np.round(up.up_body, 3)}, "
+          f"Fenster {up.window_s:.2f} s, n={up.n_samples}, Streuung {up.spread_deg:.1f} Grad")
+    assert up.tilt_deg < 10.0, (
+        f"dieser Flug war flach montiert, gemessen {up.tilt_deg:.1f} Grad")
 
     reader.close()
     print("bag_reader SELFTEST OK")

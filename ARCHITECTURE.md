@@ -152,22 +152,37 @@ meta.json        {"bag": ..., "config": "whs_dense.yaml", "n_scans": S, "n_point
 FAST-LIO verankert sein Weltsystem in der IMU-Lage des ersten Scans und richtet
 es **nicht** an der Schwerkraft aus. Ein schräg montierter Livox kippt damit die
 ganze Karte, nicht nur den ersten Scan — der legt die Lage nur fest. Gemessen ab
-2026-09-08: 40,9° / 43,0° / 41,0°, davor durchgehend 0,3°–5,6°.
+2026-09-08: 40,1° / 39,7° / 41,5°, davor durchgehend 0,3°–5,6°.
 
-`Recording.load()` misst die Lotrechte einmal je Aufzeichnung aus dem Ruhefenster
-am Bag-Anfang (`BagReader.read_imu_at_rest()`: mitteln, solange die Drehrate unter
-0,10 rad/s bleibt, mindestens 0,30 s, höchstens 3 s) und dreht das **Weltsystem**
-lotrecht: `T_neu = R_lot · T_alt`. Nur die Posen ändern sich. Punkte im Body-Frame,
-Kamera-Extrinsik und `rec_fingerprint` bleiben unberührt, der Farb-Cache gilt
-weiter. Gedreht wird die kürzeste Drehung, der Gierwinkel bleibt also stehen.
+`BagReader.read_imu_up()` bestimmt die Lotrechte im Sensorsystem aus den ersten 3 s
+des Bags. Der Beschleunigungsmesser misst im Stand **und** im Schwebeflug die
+Gegenkraft zur Schwerkraft, der Vektor zeigt also nach oben; unbrauchbar wird er
+nur während echter Drehungen (Samples über 0,50 rad/s fallen raus). Steht die
+Drohne am Anfang still, zählt nur dieser zusammenhängende Abschnitt (Drehrate
+unter 0,10 rad/s, mindestens 0,30 s) — nach Drehrate allein zu filtern würde auch
+ruhige Momente aus dem Flug mitnehmen, in denen der Sensor beschleunigt. Liefen
+die Rotoren beim Aufnahmestart schon, bleibt es beim ganzen Fenster; Vibration
+mittelt sich heraus. `spread_deg` (mittlere Winkelabweichung der Einzelrichtungen)
+ist das Gütemaß, über 10° gilt die Messung als unbrauchbar.
+
+`Recording.load()` dreht damit das **Weltsystem** lotrecht: `T_neu = R_lot · T_alt`.
+Nur die Posen ändern sich. Punkte im Body-Frame, Kamera-Extrinsik und
+`rec_fingerprint` bleiben unberührt, der Farb-Cache gilt weiter. Gedreht wird die
+kürzeste Drehung, der Gierwinkel bleibt also stehen.
 
 Angewendet erst ab `LEVEL_MIN_TILT_DEG = 10.0`; darunter bleibt die Karte
 bitgleich. Das Ergebnis steht als `gravity_level` in der meta.json:
-`{quat, tilt_deg, threshold_deg, applied, up_body, mount_tilt_deg, rest_window_s,
-rest_samples, rest_acc_std, scans_in_rest}`. Schlägt die Messung fehl (Bag
-verschoben, kein IMU-Topic, Drohne von Anfang an in Bewegung), wird nichts
-geschrieben und die Karte bleibt, wie sie ist. `load(bag_path=...)` übersteuert
-den Pfad aus der meta.json, der nach einem Umbenennen des Bags ins Leere zeigt.
+`{quat, tilt_deg, threshold_deg, applied, up_body, mount_tilt_deg, window_s,
+samples, spread_deg, scans_in_window}`. Schlägt die Messung fehl (Bag verschoben,
+kein IMU-Topic, Drohne von Anfang an in Bewegung), wird nichts geschrieben und die
+Karte bleibt, wie sie ist. `load(bag_path=...)` übersteuert den Pfad aus der
+meta.json, der nach einem Umbenennen des Bags ins Leere zeigt.
+
+Nachgemessen an den drei September-Flügen: die größte Ebene der ersten acht Scans
+(der Boden) steht roh 37,1° / 39,3° / 40,4° schief und nach der Korrektur 5,1° /
+2,2° / 0,9°. Die Drohnenlage aus der lotrechten Karte stimmt dann im Median auf
+1,8°–2,3° mit `/mavros/local_position/odom` überein, genauso gut wie bei den
+sauber montierten Flügen (1,7°–2,4°).
 ```python
 class Recording:
     points: np.ndarray; intensity: np.ndarray; offsets: np.ndarray
