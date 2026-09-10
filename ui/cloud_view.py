@@ -252,6 +252,9 @@ class CutBar(QtWidgets.QWidget):
 class CloudView(QtWidgets.QWidget):
     """VTK-Punktwolken-Viewer (Trackball-Kamera, EDL optional)."""
 
+    #: (A, B) in Weltkoordinaten; B ist None, solange nur A gesetzt ist
+    measured = QtCore.pyqtSignal(object, object)
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout(self)
@@ -337,6 +340,11 @@ class CloudView(QtWidgets.QWidget):
         self._vtk_refs: list = []  # keep numpy buffers alive for deep=False arrays
         self._initialized = False
         self._had_cloud = False
+        # Messen: zwei Marken, Linie dazwischen, Abstand am Mittelpunkt
+        self._measure_on = False
+        self._meas: list[np.ndarray] = []
+        self._meas_actors: list = []
+        self._vtkw.installEventFilter(self)
 
     # ------------------------------------------------------------- Hoehenschnitt
 
@@ -367,6 +375,151 @@ class CloudView(QtWidgets.QWidget):
             return
         z = self._points[:, 2]
         self.cut_bar.set_range(float(z.min()), float(z.max()))
+
+    # --------------------------------------------------------------- Messen
+
+    def set_measure(self, on: bool) -> None:
+        """Messmodus schalten; beim Ausschalten wird die Messung verworfen."""
+        on = bool(on)
+        if on == self._measure_on:
+            return
+        self._measure_on = on
+        self._vtkw.setCursor(QtCore.Qt.CrossCursor if on else QtCore.Qt.ArrowCursor)
+        if not on:
+            self.clear_measure()
+
+    def measure_enabled(self) -> bool:
+        return self._measure_on
+
+    def clear_measure(self) -> None:
+        self._meas = []
+        for a in self._meas_actors:
+            self._renderer.RemoveActor(a)
+        self._meas_actors = []
+        self.measured.emit(None, None)
+        self._render()
+
+    def pick_point(self, x: int, y: int, radius_px: float = 14.0) -> np.ndarray | None:
+        """Sichtbaren Punkt nahe (x, y) in Widget-Koordinaten suchen.
+
+        Genommen wird der Punkt, welcher dem Klick am naechsten liegt und dabei
+        der Kamera am naechsten steht — sonst greift man durch eine Wand
+        hindurch. Gesucht wird nur unter den ANGEZEIGTEN Punkten und, bei
+        aktivem Hoehenschnitt, nur innerhalb der sichtbaren Schicht: was
+        weggeschnitten ist, laesst sich auch nicht anklicken.
+        """
+        P = self._disp_points
+        if P is None or len(P) == 0 or not self._initialized:
+            return None
+        w = max(self._vtkw.width(), 1)
+        h = max(self._vtkw.height(), 1)
+        cam = self._renderer.GetActiveCamera()
+        m = cam.GetCompositeProjectionTransformMatrix(w / h, -1.0, 1.0)
+        M = np.array([[m.GetElement(i, j) for j in range(4)] for i in range(4)])
+
+        pts = P.astype(np.float64)
+        keep = np.ones(len(pts), dtype=bool)
+        schnitt = self.cut_planes()
+        if schnitt is not None:
+            keep &= (pts[:, 2] >= schnitt[0]) & (pts[:, 2] <= schnitt[1])
+        if not keep.any():
+            return None
+        idx = np.flatnonzero(keep)
+        Q = pts[idx]
+        clip = Q @ M[:3, :3].T + M[:3, 3]
+        wq = Q @ M[3, :3] + M[3, 3]
+        gut = wq > 1e-9
+        if not gut.any():
+            return None
+        idx, clip, wq = idx[gut], clip[gut], wq[gut]
+        ndc = clip / wq[:, None]
+        sx = (ndc[:, 0] * 0.5 + 0.5) * w
+        sy = (1.0 - (ndc[:, 1] * 0.5 + 0.5)) * h      # Qt zaehlt von oben
+        d2 = (sx - x) ** 2 + (sy - y) ** 2
+        nah = d2 <= radius_px * radius_px
+        if not nah.any():
+            return None
+        kand = idx[nah]
+        tiefe = ndc[nah][:, 2]
+        return np.array(pts[kand[int(np.argmin(tiefe))]], dtype=np.float64)
+
+    def _add_measure_point(self, p: np.ndarray) -> None:
+        if len(self._meas) >= 2:      # dritter Klick faengt neu an
+            self.clear_measure()
+        self._meas.append(p)
+        self._rebuild_measure()
+        a = self._meas[0]
+        b = self._meas[1] if len(self._meas) > 1 else None
+        self.measured.emit(a, b)
+
+    def _rebuild_measure(self) -> None:
+        for a in self._meas_actors:
+            self._renderer.RemoveActor(a)
+        self._meas_actors = []
+        if not self._meas:
+            self._render()
+            return
+        pts = vtk.vtkPoints()
+        for p in self._meas:
+            pts.InsertNextPoint(*p)
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(pts)
+        verts = vtk.vtkCellArray()
+        for i in range(len(self._meas)):
+            verts.InsertNextCell(1)
+            verts.InsertCellPoint(i)
+        poly.SetVerts(verts)
+        mk = vtk.vtkPolyDataMapper()
+        mk.SetInputData(poly)
+        ak = vtk.vtkActor()
+        ak.SetMapper(mk)
+        pr = ak.GetProperty()
+        pr.SetPointSize(13)
+        pr.SetColor(1.0, 0.85, 0.2)
+        if hasattr(pr, "RenderPointsAsSpheresOn"):
+            pr.RenderPointsAsSpheresOn()
+        self._renderer.AddActor(ak)
+        self._meas_actors.append(ak)
+
+        if len(self._meas) == 2:
+            a, b = self._meas
+            line = vtk.vtkLineSource()
+            line.SetPoint1(*a)
+            line.SetPoint2(*b)
+            ml = vtk.vtkPolyDataMapper()
+            ml.SetInputConnection(line.GetOutputPort())
+            al = vtk.vtkActor()
+            al.SetMapper(ml)
+            al.GetProperty().SetColor(1.0, 0.85, 0.2)
+            al.GetProperty().SetLineWidth(2)
+            self._renderer.AddActor(al)
+            self._meas_actors.append(al)
+            txt = vtk.vtkBillboardTextActor3D()
+            txt.SetPosition(*((a + b) / 2.0))
+            txt.SetInput(f"{float(np.linalg.norm(b - a)):.3f} m")
+            tp = txt.GetTextProperty()
+            tp.SetFontSize(17)
+            tp.SetColor(1.0, 0.9, 0.35)
+            tp.SetJustificationToCentered()
+            tp.SetBold(True)
+            self._renderer.AddActor(txt)
+            self._meas_actors.append(txt)
+        self._render()
+
+    def eventFilter(self, obj, event):  # noqa: N802 (Qt)
+        """Klicks im Messmodus abfangen, damit sie die Kamera nicht drehen."""
+        if obj is self._vtkw and self._measure_on:
+            et = event.type()
+            if et == QtCore.QEvent.MouseButtonPress and event.button() == QtCore.Qt.LeftButton:
+                p = self.pick_point(event.x(), event.y())
+                if p is not None:
+                    self._add_measure_point(p)
+                return True
+            if et in (QtCore.QEvent.MouseButtonRelease,
+                      QtCore.QEvent.MouseButtonDblClick) and \
+                    event.button() == QtCore.Qt.LeftButton:
+                return True
+        return super().eventFilter(obj, event)
 
     # ------------------------------------------------------------- Vorschau
 

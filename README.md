@@ -24,6 +24,17 @@ Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
 5. **Export** — PLY/PCD (lokal) und LAS (georeferenziert in UTM, falls GPS
    brauchbar; exakte pyproj-Projektion).
 
+## Bedienung im Überblick
+
+Oben die Menüleiste (**Datei**, **Ändern**, **Ansicht**, **Werkzeuge**, **Hilfe**),
+rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
+klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. `Strg+B`
+blendet die Leiste ganz aus, der Trenner dazwischen lässt sich ziehen. Welche
+Abschnitte offen sind, merkt sich das Projekt.
+
+Kurzbefehle: `Strg+O` öffnen, `F5` Karte, `F6` einfärben, `F7` Mäander,
+`M` messen, `R` Kamera zurück, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
+
 ## Start
 
 ```bash
@@ -48,6 +59,19 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 5. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 6. **Export** — berücksichtigt „Nur eingefärbte Punkte".
 
+## Messen
+
+`M` oder **Werkzeuge → Messen** schaltet um. Zwei Klicks in die Wolke setzen die
+Marken, dazwischen liegt eine Linie mit dem Abstand in Metern. Unter der
+3D-Ansicht stehen beide Punkte in Originalkoordinaten, dazu Abstand, waagerechter
+Anteil, Höhenunterschied und die Differenz je Achse. Ein dritter Klick fängt neu
+an.
+
+Genommen wird der Punkt, welcher dem Klick am nächsten liegt und dabei der
+Kamera am nächsten steht — sonst greift man durch eine Wand hindurch. Gesucht
+wird nur unter den **sichtbaren** Punkten: ein aktiver Höhenschnitt schließt
+alles Weggeschnittene aus.
+
 ## Höhenschnitt
 
 Rechts am Viewer liegt eine Leiste mit zwei Griffen, die die sichtbare
@@ -64,6 +88,59 @@ hineinschauen. Die Höhen stehen in Metern an den Griffen.
 Geschnitten wird über Clipping-Ebenen auf der Grafikkarte, die Geometrie bleibt
 also unberührt und das Ziehen ist auch bei Millionen Punkten flüssig. Die
 Trajektorie hängt an einem eigenen Mapper und bleibt sichtbar.
+
+## Mäander-Einfärbung
+
+Zweite Art, die Wolke einzufärben: mit den Nadirbildern eines DJI-Kartierungs-
+fluges statt aus der 360°-Kamera an Bord. Der Weg dahinter kommt aus dem Repo
+[PointCloudMerger](https://github.com/LenaKremer98/PointCloudMerger) und läuft
+hier ohne Eingriff durch:
+
+```
+Bilder ──► COLMAP ──► Kameraposen im willkürlichen Rahmen
+                          │
+   RTK-Geotags ───────────┤ Umeyama          → metrisch in ENU
+                          ▼
+   LiDAR-Karte ───────────┤ Drehung um die Hochachse + Verschiebung
+                          ▼
+   jeder Punkt ──► in das nadirnächste Bild ──► RGB
+```
+
+Zwischen ENU und der Karte bleibt nur eine Drehung um die Hochachse, weil beide
+Rahmen lotrecht sind — das ENU per Definition, die Karte seit der Kippkorrektur
+über die IMU. Vier Freiheitsgrade statt sieben, und die lassen sich suchen: grob
+per Kreuzkorrelation über den Gierwinkel, fein über den Höhenunterschied zum
+Rastermodell. Kein ICP über sechs Freiheitsgrade — das verkippt an Gebäudekanten
+und zerstört die Lotrechte, die man geschenkt bekommt.
+
+Ablauf: **Mäanderflug wählen** (Ordner mit den `_V.JPG`), **Ausrichten**,
+Ergebnis im Viewer prüfen, dann **Einfärben**. Ist noch kein COLMAP-Modell da,
+wird vorher gefragt — bei 255 Bildern dauert die Rekonstruktion etwa eine halbe
+Stunde und liegt danach im Arbeitsordner des Projekts.
+
+**Thermal** braucht keine zweite Rekonstruktion: beide Optiken sitzen auf
+derselben Gimbal und lösen zusammen aus, nur die Brennweite ist eine andere.
+
+Die beiden Kästen **RGB-Optik** und **Thermal-Optik** verschieben den
+Bildhauptpunkt in Pixeln. Das wirkt wie eine Verkippung der Kamera gegen die
+Achse, die COLMAP angenommen hat, und die Verschiebung am Boden wächst mit dem
+Abstand — anders als die Regler für X und Y darüber, die starr schieben. Getrennt
+je Optik, weil es zwei Objektive sind. Bewusst ohne Automatik: eine
+Kennzahl dafür ist nicht zu finden, ein sonnenwarmes Dach ist thermisch
+gleichmäßig und optisch strukturiert, ein Schatten umgekehrt.
+
+## Farbquellen
+
+Drei Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
+**Ansicht → Farbquelle** oder in der Seitenleiste sofort umschalten:
+
+| Quelle | woher |
+|---|---|
+| **Onboard RGB** | 360°-Kamera an der Super-Drohne, `colors/` |
+| **Mäander RGB** | `_V.JPG` des DJI-Fluges, `colors_meander_rgb/` |
+| **Mäander Thermal** | `_T.JPG` desselben Fluges, `colors_meander_thermal/` |
+
+Angeboten wird nur, was berechnet ist. Der Export schreibt die angezeigte Ebene.
 
 ## Zusammenführen
 

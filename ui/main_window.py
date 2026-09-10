@@ -32,6 +32,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFileDialog, QFormLayout,
     QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
     QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea,
+    QSplitter,
     QSlider, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
     QVBoxLayout, QWidget, QApplication,
 )
@@ -51,6 +52,8 @@ except ImportError:  # direkter Skript-Start: Paketwurzel nachrüsten
     from core import georef
 
 from ui.cloud_view import CloudView
+from ui.collapsible import SectionStack
+from ui import menubar as menubar_mod
 from ui.gps_panel import GpsPanel
 from ui.pano_view import PanoView, StitchingPanoSource
 
@@ -69,6 +72,13 @@ _CALIB_CANDIDATES = (
     "/home/lena/RosBagSuper_Gui/Super360_Stitcher_rosbag/work/calib_new_refined/calibration.json",
 )
 
+#: Farbebenen fuer die Auswahl — Reihenfolge wie in Project.LAYERS
+_LAYER_LABELS = (
+    ("onboard", "Onboard RGB (360°-Kamera)"),
+    ("meander_rgb", "Mäander RGB (DJI)"),
+    ("meander_thermal", "Mäander Thermal (DJI)"),
+)
+
 _DEFAULT_SETTINGS: dict = {
     "pano_width": 1920,
     "config": "whs_dense.yaml",
@@ -79,6 +89,7 @@ _DEFAULT_SETTINGS: dict = {
     "sky_grow": 4,
     "point_size": 2,
     "color_mode": "rgb",
+    "layer": "onboard",
     "only_colored": True,
     "voxel": 0.0,
     "background": "dunkel",
@@ -299,6 +310,12 @@ class MainWindow(QMainWindow):
         self._merge_T = np.eye(4)
         self._merge_center = np.zeros(3)
         self._parts: Optional[list] = None
+        # Farbebenen: Schluessel -> (rgb, maske). 'onboard' kommt aus der
+        # 360-Kamera, die beiden anderen aus dem Maeanderflug.
+        self._layers: dict = {}
+        self._layer_key = "onboard"
+        self._meander_pipe = None
+        self._meander_dir: Optional[str] = None
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -349,19 +366,36 @@ class MainWindow(QMainWindow):
         root.setSpacing(6)
 
         sidebar = self._build_sidebar()
-        scroll = QScrollArea(self)
-        scroll.setWidget(sidebar)
-        scroll.setWidgetResizable(True)
+        self._sidebar_scroll = QScrollArea(self)
+        self._sidebar_scroll.setWidget(sidebar)
+        self._sidebar_scroll.setWidgetResizable(True)
         # Soll ~360-400 px; bei großen Systemfonts (Hi-DPI) so weit aufweiten,
         # dass nichts abgeschnitten wird (Fontbreiten skalieren die Minima).
-        need = (sidebar.minimumSizeHint().width()
-                + scroll.verticalScrollBar().sizeHint().width() + 10)
-        scroll.setFixedWidth(max(400, min(600, need)))
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        root.addWidget(scroll)
+        # Breite am BREITESTEN Abschnitt messen, nicht am Stapel: dessen
+        # sizeHint bleibt hinter seinen Kindern zurueck (die Kopfzeilen duerfen
+        # sich dehnen), und die Leiste waere dann zu schmal. Zugeklappte
+        # Abschnitte zaehlen mit, sonst haengt die Breite davon ab, was beim
+        # Start zufaellig offen ist.
+        need = 0
+        for sec in self._sections._sections.values():
+            need = max(need, sec.content().sizeHint().width())
+        need += self._sidebar_scroll.verticalScrollBar().sizeHint().width() + 26
+        self._sidebar_breite = max(400, min(720, need))
+        self._sidebar_scroll.setMinimumWidth(300)
+        self._sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         self._tabs = QTabWidget(self)
         self._cloud_view = CloudView(self)
+        # 3D-Ansicht plus Auslese-Zeile fuers Messen darunter
+        karte = QWidget(self)
+        karte_lay = QVBoxLayout(karte)
+        karte_lay.setContentsMargins(0, 0, 0, 0)
+        karte_lay.setSpacing(2)
+        karte_lay.addWidget(self._cloud_view, 1)
+        self._mess_lbl = QLabel("", self)
+        self._mess_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self._mess_lbl.setStyleSheet("padding: 2px 6px;")
+        karte_lay.addWidget(self._mess_lbl, 0)
         # EDL-Verfügbarkeit lässt sich erst mit existierender CloudView bestimmen
         # (die Sidebar samt Checkbox wird oben vor der CloudView gebaut).
         if not self._cloud_view.edl_available:
@@ -373,12 +407,26 @@ class MainWindow(QMainWindow):
         self._log_edit = QPlainTextEdit(self)
         self._log_edit.setReadOnly(True)
         self._log_edit.setMaximumBlockCount(20000)
-        self._tabs.addTab(self._cloud_view, "3D-Karte")
+        self._tabs.addTab(karte, "3D-Karte")
         self._tabs.addTab(self._pano_view, "360°-Video")
         self._tabs.addTab(self._gps_panel, "GPS")
         self._tabs.addTab(self._log_edit, "Protokoll")
-        root.addWidget(self._tabs, 1)
+        # Arbeitsfläche links, Bedienung rechts — der Splitter lässt die
+        # Seitenleiste in der Breite ziehen, Ctrl+B blendet sie ganz aus.
+        self._splitter = QSplitter(Qt.Horizontal, self)
+        self._splitter.addWidget(self._tabs)
+        self._splitter.addWidget(self._sidebar_scroll)
+        self._splitter.setStretchFactor(0, 1)
+        self._splitter.setStretchFactor(1, 0)
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setSizes([1200, self._sidebar_breite])
+        root.addWidget(self._splitter, 1)
         self.setCentralWidget(central)
+
+        # ------------------------------------------------------- Menüleiste
+        self._actions = menubar_mod.build(self)
+        self._fill_view_menus()
+        self._refresh_layer_combo()   # ohne Projekt: 'keine Einfärbung'
 
         # ------------------------------------------------------ Statusleiste
         sb = self.statusBar()
@@ -395,26 +443,33 @@ class MainWindow(QMainWindow):
         self._btn_cancel.clicked.connect(self._on_cancel)
         sb.addPermanentWidget(self._btn_cancel)
 
+        self._cloud_view.measured.connect(self._on_measured)
         self._pano_view.frameChanged.connect(self._on_pano_frame)
         self._gps_panel.georefReady.connect(self._on_georef_ready)
 
-    def _build_sidebar(self) -> QWidget:
-        panel = QWidget()
-        lay = QVBoxLayout(panel)
-        lay.setContentsMargins(4, 4, 4, 4)
-        lay.setSpacing(8)
-        lay.addWidget(self._group_rosbag())
-        lay.addWidget(self._group_fastlio())
-        lay.addWidget(self._group_colorize())
-        lay.addWidget(self._group_merge())
-        lay.addWidget(self._group_display())
-        lay.addWidget(self._group_rviz())
-        lay.addWidget(self._group_export())
-        lay.addStretch(1)
-        return panel
+    # Reihenfolge der Seitenleiste: der Arbeitsablauf von oben nach unten,
+    # nicht die Reihenfolge, in der die Teile entstanden sind.
+    _SECTIONS = (
+        ("aufnahme", "1 · Aufnahme", "_group_rosbag", True),
+        ("karte", "2 · Karte (FAST-LIO2)", "_group_fastlio", True),
+        ("einfaerbung", "3 · Einfärbung (360°-Kamera)", "_group_colorize", True),
+        ("maeander", "4 · Mäander-Einfärbung", "_group_meander", False),
+        ("zusammen", "5 · Zusammenführen", "_group_merge", False),
+        ("anzeige", "6 · Anzeige", "_group_display", True),
+        ("wiedergabe", "7 · Wiedergabe (RViz)", "_group_rviz", False),
+        ("export", "8 · Export", "_group_export", True),
+    )
 
-    def _group_rosbag(self) -> QGroupBox:
-        box = QGroupBox("1. Rosbag")
+    def _build_sidebar(self) -> QWidget:
+        self._sections = SectionStack()
+        for key, titel, bauen, offen in self._SECTIONS:
+            self._sections.add(key, titel, getattr(self, bauen)(), offen)
+        self._sections.finish()
+        self._sections.toggled.connect(lambda *_: self._on_setting_changed())
+        return self._sections
+
+    def _group_rosbag(self) -> QWidget:
+        box = QWidget()
         lay = QVBoxLayout(box)
         self._btn_open = QPushButton("Bag öffnen…")
         self._btn_open.clicked.connect(self._on_open_clicked)
@@ -431,8 +486,8 @@ class MainWindow(QMainWindow):
         lay.addWidget(self._info_table)
         return box
 
-    def _group_fastlio(self) -> QGroupBox:
-        box = QGroupBox("2. Punktwolke (FAST-LIO2)")
+    def _group_fastlio(self) -> QWidget:
+        box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._combo_config = _compact_combo(QComboBox())
         for label, data in _CONFIG_ITEMS:
@@ -473,8 +528,8 @@ class MainWindow(QMainWindow):
         lay.addWidget(lbl)
         return slider, lbl, holder
 
-    def _group_colorize(self) -> QGroupBox:
-        box = QGroupBox("3. Einfärbung")
+    def _group_colorize(self) -> QWidget:
+        box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._sld_bmin, _, row_min = self._slider_row(0, 255, 20)
         self._sld_bmax, _, row_max = self._slider_row(0, 255, 235)
@@ -532,8 +587,89 @@ class MainWindow(QMainWindow):
         form.addRow(self._btn_colorize)
         return box
 
-    def _group_merge(self) -> QGroupBox:
-        box = QGroupBox("4. Zusammenführen")
+    def _group_meander(self) -> QWidget:
+        box = QWidget()
+        form = _wrappable(QFormLayout(box))
+        self._btn_meander_pick = QPushButton("Mäanderflug wählen …")
+        self._btn_meander_pick.setToolTip(
+            "Ordner mit den Bildern eines DJI-Kartierungsfluges.\n"
+            "Gesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.")
+        self._btn_meander_pick.clicked.connect(self._on_meander_pick)
+        form.addRow(self._btn_meander_pick)
+        self._lbl_meander = QLabel("Kein Mäanderflug geladen.")
+        self._lbl_meander.setWordWrap(True)
+        form.addRow(self._lbl_meander)
+
+        self._chk_thermal = QCheckBox("Thermalbilder mitrechnen")
+        self._chk_thermal.setToolTip(
+            "Färbt ein zweites Mal mit den _T.JPG und legt eine eigene Ebene an.\n"
+            "Eine zweite Rekonstruktion braucht es nicht — beide Optiken sitzen\n"
+            "auf derselben Gimbal und lösen zusammen aus.")
+        self._chk_thermal.stateChanged.connect(self._on_setting_changed)
+        form.addRow(self._chk_thermal)
+
+        row = QWidget()
+        hl = QHBoxLayout(row)
+        hl.setContentsMargins(0, 0, 0, 0)
+        self._btn_meander_align = QPushButton("Ausrichten")
+        self._btn_meander_align.setToolTip(
+            "Grob per Kreuzkorrelation über den Gierwinkel, fein über den\n"
+            "Höhenunterschied zum Rastermodell der Wolke. Kein ICP — das würde\n"
+            "an Gebäudekanten verkippen und die Lotrechte zerstören.")
+        self._btn_meander_align.clicked.connect(self._on_meander_align)
+        self._btn_meander_run = QPushButton("Einfärben")
+        self._btn_meander_run.clicked.connect(self._on_meander_run)
+        hl.addWidget(self._btn_meander_align)
+        hl.addWidget(self._btn_meander_run)
+        form.addRow(row)
+
+        # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke
+        grid_holder = QWidget()
+        grid = QGridLayout(grid_holder)
+        grid.setContentsMargins(0, 0, 0, 0)
+        self._spin_meander = {}
+        for col, (key, label, rng, step, suffix) in enumerate((
+                ("yaw", "Gier", 180.0, 0.5, "°"),
+                ("x", "X", 500.0, 0.5, " m"),
+                ("y", "Y", 500.0, 0.5, " m"))):
+            sp = QDoubleSpinBox()
+            sp.setRange(-rng, rng)
+            sp.setSingleStep(step)
+            sp.setDecimals(2)
+            sp.setSuffix(suffix)
+            sp.valueChanged.connect(self._on_meander_manual)
+            grid.addWidget(QLabel(label), 0, col)
+            grid.addWidget(sp, 1, col)
+            self._spin_meander[key] = sp
+        form.addRow("Lage von Hand:", grid_holder)
+
+        # Hauptpunkt-Versatz je Optik: wirkt wie eine Verkippung der Kamera
+        # gegen die Achse, die COLMAP angenommen hat, und waechst mit dem
+        # Abstand — anders als die Regler darueber, die starr schieben.
+        self._spin_optik = {}
+        for optik, titel, tip in (
+                ("rgb", "RGB-Optik", "Versatz des Bildhauptpunkts in Pixeln des RGB-Bildes."),
+                ("thermal", "Thermal-Optik", "Dasselbe für die Thermaloptik — eigener Wert, "
+                                             "es ist ein zweites Objektiv.")):
+            holder = QWidget()
+            g = QGridLayout(holder)
+            g.setContentsMargins(0, 0, 0, 0)
+            for col, (achse, label) in enumerate((("u", "rechts"), ("v", "unten"))):
+                sp = QDoubleSpinBox()
+                sp.setRange(-400.0, 400.0)
+                sp.setSingleStep(1.0)
+                sp.setDecimals(1)
+                sp.setSuffix(" px")
+                sp.setToolTip(tip)
+                sp.valueChanged.connect(self._on_setting_changed)
+                g.addWidget(QLabel(label), 0, col)
+                g.addWidget(sp, 1, col)
+                self._spin_optik[(optik, achse)] = sp
+            form.addRow(f"{titel}:", holder)
+        return box
+
+    def _group_merge(self) -> QWidget:
+        box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._btn_merge_pick = QPushButton("Zweiten Flug wählen …")
         self._btn_merge_pick.setToolTip(
@@ -594,8 +730,8 @@ class MainWindow(QMainWindow):
         form.addRow(row2)
         return box
 
-    def _group_display(self) -> QGroupBox:
-        box = QGroupBox("4. Anzeige")
+    def _group_display(self) -> QWidget:
+        box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._spin_pointsize = QSpinBox()
         self._spin_pointsize.setRange(1, 8)
@@ -607,6 +743,13 @@ class MainWindow(QMainWindow):
             self._combo_colormode.addItem(label, data)
         self._combo_colormode.currentIndexChanged.connect(self._on_display_changed)
         form.addRow("Farbmodus:", self._combo_colormode)
+        self._combo_layer = _compact_combo(QComboBox())
+        self._combo_layer.setToolTip(
+            "Welche Einfärbung gezeigt wird. Angeboten wird, was berechnet ist.")
+        for data, label in _LAYER_LABELS:
+            self._combo_layer.addItem(label, data)
+        self._combo_layer.currentIndexChanged.connect(self._on_layer_changed)
+        form.addRow("Farbquelle:", self._combo_layer)
         self._chk_only_colored = QCheckBox("Nur eingefärbte Punkte")
         self._chk_only_colored.toggled.connect(self._on_display_changed)
         form.addRow(self._chk_only_colored)
@@ -629,8 +772,8 @@ class MainWindow(QMainWindow):
         form.addRow(self._chk_path)
         return box
 
-    def _group_rviz(self) -> QGroupBox:
-        box = QGroupBox("5. RViz-Wiedergabe")
+    def _group_rviz(self) -> QWidget:
+        box = QWidget()
         lay = QVBoxLayout(box)
         lay.addWidget(QLabel("Spielt den geöffneten Bag in RViz ab."))
         row = QHBoxLayout()
@@ -693,8 +836,8 @@ class MainWindow(QMainWindow):
         self._rviz_job("Wiederhole (Anzeige wird geleert) …",
                        lambda: self._rviz_player.replay())
 
-    def _group_export(self) -> QGroupBox:
-        box = QGroupBox("5. Export")
+    def _group_export(self) -> QWidget:
+        box = QWidget()
         lay = QVBoxLayout(box)
         self._btn_export_plypcd = QPushButton("PLY/PCD speichern…")
         self._btn_export_plypcd.clicked.connect(self._on_export_plypcd)
@@ -838,6 +981,20 @@ class MainWindow(QMainWindow):
             self._combo_bg.setCurrentIndex(max(0, idx))
             self._chk_edl.setChecked(bool(s.get("edl", False)) and self._chk_edl.isEnabled())
             self._chk_path.setChecked(bool(s.get("show_path", False)))
+            self._chk_thermal.setChecked(bool(s.get("meander_thermal", False)))
+            for optik, key in (("rgb", "rgb_versatz"),
+                               ("thermal", "thermal_versatz")):
+                v = s.get(key) or [0.0, 0.0]
+                self._spin_optik[(optik, "u")].setValue(float(v[0]))
+                self._spin_optik[(optik, "v")].setValue(float(v[1]))
+            d = s.get("meander_dir") or ""
+            if d and os.path.isdir(d):
+                self._meander_dir = d
+                self._lbl_meander.setText(f"{os.path.basename(d)} (aus den "
+                                          f"Einstellungen)")
+            self._layer_key = s.get("layer", "onboard")
+            self._sections.set_states(s.get("sections") or {})
+            self._set_sidebar_visible(bool(s.get("sidebar", True)))
         finally:
             self._loading_ui = False
         self._push_display_settings()
@@ -853,11 +1010,18 @@ class MainWindow(QMainWindow):
             "sky_grow": int(self._spin_sky.value()),
             "point_size": int(self._spin_pointsize.value()),
             "color_mode": self._combo_colormode.currentData(),
+            "layer": self._layer_key,
+            "meander_dir": self._meander_dir or "",
+            "meander_thermal": bool(self._chk_thermal.isChecked()),
+            "rgb_versatz": self._meander_versatz("rgb"),
+            "thermal_versatz": self._meander_versatz("thermal"),
             "only_colored": bool(self._chk_only_colored.isChecked()),
             "voxel": float(self._combo_voxel.currentData()),
             "background": self._combo_bg.currentData(),
             "edl": bool(self._chk_edl.isChecked()),
             "show_path": bool(self._chk_path.isChecked()),
+            "sections": self._sections.states(),
+            "sidebar": bool(self._sidebar_scroll.isVisible()),
         }
 
     def _save_settings(self) -> None:
@@ -871,6 +1035,10 @@ class MainWindow(QMainWindow):
 
     def _on_setting_changed(self, *_a) -> None:
         self._save_settings()
+
+    def _sync_after_display(self) -> None:
+        if hasattr(self, "_actions"):
+            self._sync_menu_state()
 
     def _push_display_settings(self) -> None:
         cv = self._cloud_view
@@ -889,6 +1057,7 @@ class MainWindow(QMainWindow):
         if self._loading_ui:
             return
         self._push_display_settings()
+        self._sync_after_display()
         self._save_settings()
 
     # ============================================================== Extrinsik
@@ -985,6 +1154,8 @@ class MainWindow(QMainWindow):
         self._cloud_view.set_cloud(None)
         self._cloud_view.set_path(None)
         self._parts = None
+        self._layers = {}
+        self._meander_pipe = None
         self._merge_reset_state()
         self._gps_panel.set_quality(None, None, None)
         self._info_table.setRowCount(0)
@@ -1132,6 +1303,7 @@ class MainWindow(QMainWindow):
         self._world = res["world"]
         self._colors = res["colors"]
         self._valid = res["valid"]
+        self._reload_layers()
         if self._colors is None and self._combo_colormode.currentData() == "rgb":
             # ohne Farben wäre "rgb" einfarbig — Höhe ist die aussagekräftige Ansicht
             idx = self._combo_colormode.findData("hoehe")
@@ -1206,6 +1378,460 @@ class MainWindow(QMainWindow):
         self._colors = None
         self._valid = None
         self._start_recording_load()
+
+    # ================================================= Mäander-Einfärbung
+
+    def _meander_versatz(self, optik: str) -> list:
+        return [float(self._spin_optik[(optik, "u")].value()),
+                float(self._spin_optik[(optik, "v")].value())]
+
+    def _on_meander_pick(self) -> None:
+        if self._rec is None or self._project is None:
+            QMessageBox.information(
+                self, "Mäander-Einfärbung",
+                "Erst einen Flug öffnen und seine Karte berechnen — sie ist die "
+                "Wolke, die eingefärbt wird.")
+            return
+        start = self._meander_dir or os.path.expanduser("~")
+        path = QFileDialog.getExistingDirectory(
+            self, "Ordner mit den Bildern des Mäanderfluges", start)
+        if not path:
+            return
+        n_v = len([f for f in os.listdir(path) if f.upper().endswith("_V.JPG")])
+        n_t = len([f for f in os.listdir(path) if f.upper().endswith("_T.JPG")])
+        if n_v == 0:
+            n_v = len([f for f in os.listdir(path)
+                       if f.upper().endswith((".JPG", ".JPEG"))
+                       and not f.upper().endswith("_T.JPG")])
+        if n_v == 0:
+            self._show_error("Mäander-Einfärbung",
+                             f"In '{os.path.basename(path)}' liegen keine JPEGs.")
+            return
+        self._meander_dir = path
+        self._meander_pipe = None      # Pipeline wird beim nächsten Lauf neu gebaut
+        self._chk_thermal.setEnabled(n_t > 0)
+        if n_t == 0:
+            self._chk_thermal.setChecked(False)
+        self._lbl_meander.setText(
+            f"{os.path.basename(path)}: {n_v} RGB-Bilder"
+            + (f", {n_t} Thermalbilder" if n_t else ", keine Thermalbilder"))
+        self._log(f"Mäanderflug gewählt: {path} — {n_v} RGB, {n_t} Thermal.")
+        self._save_settings()
+        self._update_enabled()
+
+    def _meander_build(self, log_cb):
+        """Pipeline aufsetzen; die Arbeitswolke geht als cloud.npy hinein."""
+        from core import meander as meander_mod
+        return meander_mod.build_pipeline(
+            self._world, self._meander_dir, self._project.meander_work_dir(),
+            thermal=bool(self._chk_thermal.isChecked()),
+            rgb_versatz=self._meander_versatz("rgb"),
+            thermal_versatz=self._meander_versatz("thermal"),
+            log=log_cb)
+
+    def _meander_ask_colmap(self) -> bool:
+        """Vor einer Rekonstruktion fragen — die dauert eine halbe Stunde."""
+        work = self._project.meander_work_dir()
+        if os.path.exists(os.path.join(work, "cameras.npz")):
+            return True
+        if os.path.exists(os.path.join(work, "sparse", "0", "cameras.bin")):
+            return True
+        from core import meander as meander_mod
+        if meander_mod.find_colmap_python() is None:
+            self._show_error(
+                "Mäander-Einfärbung",
+                "Für die Rekonstruktion wird ein Interpreter mit pycolmap "
+                "gebraucht, es ist keiner gefunden worden. Entweder pycolmap "
+                "installieren oder ein fertiges COLMAP-Modell als sparse/0 in "
+                f"'{work}' ablegen.")
+            return False
+        n = len([f for f in os.listdir(self._meander_dir)
+                 if f.upper().endswith((".JPG", ".JPEG"))
+                 and not f.upper().endswith("_T.JPG")])
+        return QMessageBox.question(
+            self, "Rekonstruktion nötig",
+            f"Für diesen Flug gibt es noch kein COLMAP-Modell.\n\n"
+            f"Die Rekonstruktion von {n} Bildern dauert etwa eine halbe Stunde. "
+            f"Danach liegt sie im Arbeitsordner und wird wiederverwendet.\n\n"
+            f"Jetzt rechnen?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
+
+    def _on_meander_align(self) -> None:
+        if not self._meander_dir or self._world is None:
+            QMessageBox.information(self, "Mäander-Einfärbung",
+                                    "Erst einen Mäanderflug wählen.")
+            return
+        if not self._meander_ask_colmap():
+            return
+        bauen = self._meander_build
+
+        def job(progress_cb, cancel, log_cb):
+            from core import meander as meander_mod
+            pipe = bauen(log_cb)
+            pipe._cancel = lambda: cancel.is_set()
+            vor = meander_mod.prepare(
+                pipe, progress_cb=lambda f, m: progress_cb(0.05 + 0.7 * f, m))
+            k = meander_mod.align(
+                pipe, progress=lambda f, m: progress_cb(0.75 + 0.25 * f, m))
+            return {"pipe": pipe, "vor": vor, "kennwerte": k}
+
+        self._start_worker("Richte den Mäanderflug aus …", job,
+                           self._on_meander_aligned)
+
+    def _on_meander_aligned(self, res: dict) -> None:
+        self._meander_pipe = res["pipe"]
+        v, k = res["vor"], res["kennwerte"]
+        anteil = k.get("anteil_auf_flaeche")
+        med = k.get("median_abweichung")
+        self._lbl_meander.setText(
+            f"Ausgerichtet: {k['yaw_deg']:.2f}°"
+            + (f", {anteil * 100:.0f} % der Fotopunkte auf der Oberfläche "
+               f"(Median {med:.2f} m)" if anteil is not None else ""))
+        self._log(f"Mäander: {v['kameras']} Kameras, Maßstab {v['massstab']:.3f}, "
+                  f"GPS-Residuum {v['gps_residuum']:.2f} m.")
+        self._log(f"Ausrichtung: {k['yaw_deg']:.2f}°, Versatz "
+                  f"{np.round(k['t'], 2).tolist()} m.")
+        if anteil is not None and anteil < 0.4:
+            self._log("WARNUNG: weniger als 40 % der Fotopunkte liegen auf der "
+                      "Oberfläche — die Ausrichtung sitzt vermutlich falsch. "
+                      "Gier von Hand nachziehen und erneut ausrichten.")
+        for key in ("yaw", "x", "y"):
+            sp = self._spin_meander[key]
+            sp.blockSignals(True)
+            sp.setValue(0.0)
+            sp.blockSignals(False)
+        self._update_enabled()
+
+    def _on_meander_manual(self) -> None:
+        """Handjustage auf die vorhandene Ausrichtung aufaddieren."""
+        pipe = self._meander_pipe
+        if pipe is None or pipe.yaw is None:
+            return
+        from core import meander as meander_mod
+        basis_yaw = float(np.degrees(pipe.yaw))
+        t = np.asarray(pipe.t, dtype=float).ravel()
+        meander_mod.set_manual(
+            pipe,
+            basis_yaw + float(self._spin_meander["yaw"].value()),
+            t[0] + float(self._spin_meander["x"].value()),
+            t[1] + float(self._spin_meander["y"].value()))
+
+    def _on_meander_run(self) -> None:
+        if not self._meander_dir or self._world is None or self._project is None:
+            QMessageBox.information(self, "Mäander-Einfärbung",
+                                    "Erst einen Mäanderflug wählen.")
+            return
+        if not self._meander_ask_colmap():
+            return
+        pipe = self._meander_pipe
+        bauen = self._meander_build
+        welt = self._world
+        thermal = bool(self._chk_thermal.isChecked())
+        proj = self._project
+
+        def job(progress_cb, cancel, log_cb):
+            from core import meander as meander_mod
+            p = pipe
+            if p is None:
+                p = bauen(log_cb)
+                p._cancel = lambda: cancel.is_set()
+                meander_mod.prepare(
+                    p, progress_cb=lambda f, m: progress_cb(0.02 + 0.38 * f, m))
+                meander_mod.align(
+                    p, progress=lambda f, m: progress_cb(0.40 + 0.10 * f, m))
+            p._cancel = lambda: cancel.is_set()
+            A, b = p.affine()
+            ergebnis = {"pipe": p, "ebenen": {}}
+            progress_cb(0.52, "Färbe die volle Wolke aus den RGB-Bildern …")
+            rgb, maske = meander_mod.colorize_points(
+                welt, p.rgb_cams(), p._p("images"), A, b,
+                progress=lambda f, m: progress_cb(0.52 + 0.28 * f, m),
+                cancel=lambda: cancel.is_set())
+            meander_mod.save_layer(
+                proj.layer_dir("meander_rgb"), rgb, maske,
+                {"quelle": "meander_rgb", "flug": p.photo_dir,
+                 "yaw_deg": float(np.degrees(p.yaw)),
+                 "anteil": float(maske.mean()),
+                 "rgb_versatz": [float(x) for x in p.rgb_versatz]})
+            ergebnis["ebenen"]["meander_rgb"] = float(maske.mean())
+            if thermal and p.thermal_cams() is not None:
+                progress_cb(0.82, "Färbe aus den Thermalbildern …")
+                trgb, tmaske = meander_mod.colorize_points(
+                    welt, p.thermal_cams(), p._p("thermal"), A, b,
+                    progress=lambda f, m: progress_cb(0.82 + 0.16 * f, m),
+                    cancel=lambda: cancel.is_set())
+                meander_mod.save_layer(
+                    proj.layer_dir("meander_thermal"), trgb, tmaske,
+                    {"quelle": "meander_thermal", "flug": p.photo_dir,
+                     "anteil": float(tmaske.mean()),
+                     "thermal_versatz": [float(x) for x in p.thermal_versatz]})
+                ergebnis["ebenen"]["meander_thermal"] = float(tmaske.mean())
+            elif thermal:
+                log_cb("Thermal übersprungen: die Optik fehlt (keine Brennweite "
+                       "im EXIF der _T.JPG).")
+            progress_cb(1.0, "Mäander-Einfärbung fertig")
+            return ergebnis
+
+        self._start_worker("Mäander-Einfärbung läuft …", job, self._on_meander_done)
+
+    def _on_meander_done(self, res: dict) -> None:
+        self._meander_pipe = res["pipe"]
+        for key, anteil in res["ebenen"].items():
+            self._log(f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte "
+                      f"eingefärbt.")
+        if res["ebenen"].get("meander_thermal", 1.0) < 0.9:
+            self._log("Der Rest liegt außerhalb der Thermalbilder — die sehen "
+                      "einen schmaleren Ausschnitt als die RGB-Kamera.")
+        self._reload_layers()
+        if "meander_rgb" in self._layers:
+            idx = self._combo_layer.findData("meander_rgb")
+            if idx >= 0:
+                self._combo_layer.setCurrentIndex(idx)
+        self._update_enabled()
+
+    # ======================================================== Farbebenen
+
+    def _reload_layers(self) -> None:
+        """Alle vorhandenen Farbebenen des Projekts einlesen.
+
+        Jede Ebene wird gegen die Punktzahl geprueft; was nicht passt, faellt
+        weg statt die Anzeige zu verfaelschen. Die Auswahlliste zeigt danach
+        nur, was wirklich da ist.
+        """
+        self._layers = {}
+        if self._project is None or self._rec is None:
+            self._refresh_layer_combo()
+            return
+        from core import meander as meander_mod
+        n = int(self._rec.n_points)
+        for key in Project.LAYERS:
+            if not self._project.has_layer(key):
+                continue
+            if key == "onboard":
+                try:
+                    from core.colorizer import rec_fingerprint
+                    fp = rec_fingerprint(self._rec)
+                except Exception:  # noqa: BLE001
+                    fp = None
+                colors, valid, err = _load_color_files(
+                    self._project.layer_dir(key), n, expected_fingerprint=fp,
+                    log_cb=self._log)
+                if err:
+                    self._log(err)
+                    continue
+                paar = (colors, valid)
+            else:
+                paar = meander_mod.load_layer(self._project.layer_dir(key), n)
+                if paar is None:
+                    self._log(f"Farbebene '{key}' passt nicht zur Wolke — ignoriert.")
+                    continue
+            self._layers[key] = paar
+        self._refresh_layer_combo()
+
+    def _refresh_layer_combo(self) -> None:
+        """Auswahlliste auf die vorhandenen Ebenen setzen."""
+        alt = self._layer_key
+        self._loading_ui = True
+        try:
+            self._combo_layer.clear()
+            for data, label in _LAYER_LABELS:
+                if data in self._layers:
+                    self._combo_layer.addItem(label, data)
+            if self._combo_layer.count() == 0:
+                self._combo_layer.addItem("keine Einfärbung", "onboard")
+                self._combo_layer.setEnabled(False)
+            else:
+                self._combo_layer.setEnabled(True)
+            idx = self._combo_layer.findData(alt)
+            if idx < 0:
+                idx = 0
+            self._combo_layer.setCurrentIndex(idx)
+            self._layer_key = self._combo_layer.currentData() or "onboard"
+        finally:
+            self._loading_ui = False
+        self._apply_layer()
+        if hasattr(self, "_actions"):
+            self._fill_layer_menu()
+
+    def _fill_layer_menu(self) -> None:
+        menubar_mod.fill_radio_menu(
+            self._actions["menu_farbquelle"], self,
+            [(self._combo_layer.itemData(i), self._combo_layer.itemText(i))
+             for i in range(self._combo_layer.count())],
+            self._on_menu_layer, self._layer_key)
+
+    def _on_menu_layer(self, data) -> None:
+        idx = self._combo_layer.findData(data)
+        if idx >= 0:
+            self._combo_layer.setCurrentIndex(idx)
+
+    def _on_layer_changed(self, *_a) -> None:
+        if self._loading_ui:
+            return
+        self._layer_key = self._combo_layer.currentData() or "onboard"
+        self._apply_layer()
+        self._save_settings()
+        self._log(f"Farbquelle: {self._combo_layer.currentText()}")
+
+    def _apply_layer(self) -> None:
+        """Die gewaehlte Ebene in die Ansicht schieben."""
+        paar = self._layers.get(self._layer_key)
+        self._colors, self._valid = paar if paar else (None, None)
+        if self._world is None:
+            return
+        self._cloud_view.set_cloud(
+            self._world, self._colors,
+            self._rec.intensity if self._rec is not None else None, self._valid)
+        self._push_display_settings()
+
+    # =============================================================== Menü
+
+    def _fill_view_menus(self) -> None:
+        """Die drei Auswahl-Untermenues fuellen und mit der Sidebar gleichziehen."""
+        self._fill_layer_menu()
+        menubar_mod.fill_radio_menu(
+            self._actions["menu_hintergrund"], self,
+            [(self._combo_bg.itemData(i), self._combo_bg.itemText(i))
+             for i in range(self._combo_bg.count())],
+            self._on_menu_background, self._combo_bg.currentData())
+        menubar_mod.fill_radio_menu(
+            self._actions["menu_tab"], self,
+            [(i, self._tabs.tabText(i)) for i in range(self._tabs.count())],
+            self._tabs.setCurrentIndex, self._tabs.currentIndex())
+        self._actions["edl"].setChecked(self._chk_edl.isChecked())
+        self._actions["edl"].setEnabled(self._chk_edl.isEnabled())
+        self._actions["sidebar"].setChecked(self._sidebar_scroll.isVisible())
+
+    def _sync_menu_state(self) -> None:
+        """Haken im Menue an die Seitenleiste angleichen (ohne Rueckkopplung)."""
+        for key, combo, handler in (("menu_farbquelle", self._combo_colormode, None),
+                                    ("menu_hintergrund", self._combo_bg, None)):
+            menu = self._actions.get(key)
+            if menu is None:
+                continue
+            for act in menu.actions():
+                act.setChecked(act.data() == combo.currentData())
+        edl = self._actions.get("edl")
+        if edl is not None:
+            edl.blockSignals(True)
+            edl.setChecked(self._chk_edl.isChecked())
+            edl.blockSignals(False)
+
+    def _on_menu_colormode(self, data) -> None:
+        idx = self._combo_colormode.findData(data)
+        if idx >= 0:
+            self._combo_colormode.setCurrentIndex(idx)
+
+    def _on_menu_background(self, data) -> None:
+        idx = self._combo_bg.findData(data)
+        if idx >= 0:
+            self._combo_bg.setCurrentIndex(idx)
+
+    def _on_menu_edl(self, on: bool) -> None:
+        if self._chk_edl.isEnabled():
+            self._chk_edl.setChecked(bool(on))
+
+    def _set_sidebar_visible(self, on: bool) -> None:
+        self._sidebar_scroll.setVisible(bool(on))
+        act = self._actions.get("sidebar") if hasattr(self, "_actions") else None
+        if act is not None:
+            act.blockSignals(True)
+            act.setChecked(bool(on))
+            act.blockSignals(False)
+
+    def _on_toggle_sidebar(self) -> None:
+        self._set_sidebar_visible(not self._sidebar_scroll.isVisible())
+        self._save_settings()
+
+    def _on_expand_all(self) -> None:
+        self._sections.set_all(True)
+        self._save_settings()
+
+    def _on_collapse_all(self) -> None:
+        self._sections.set_all(False)
+        self._save_settings()
+
+    def _on_toggle_measure(self) -> None:
+        an = not self._cloud_view.measure_enabled()
+        self._cloud_view.set_measure(an)
+        act = self._actions.get("measure")
+        if act is not None:
+            act.blockSignals(True)
+            act.setChecked(an)
+            act.blockSignals(False)
+        self._tabs.setCurrentIndex(0)
+        self._status_lbl.setText(
+            "Messen: zwei Klicks in die Wolke setzen die Marken (Esc verwirft)."
+            if an else "Bereit")
+        if not an:
+            self._mess_lbl.setText("")
+
+    def _on_measured(self, a, b) -> None:
+        """Auslese unter der 3D-Ansicht; Werte in Originalkoordinaten."""
+        if a is None:
+            self._mess_lbl.setText("")
+            return
+        if b is None:
+            self._mess_lbl.setText(
+                f"A = ({a[0]:.3f}  {a[1]:.3f}  {a[2]:.3f}) m — zweiten Punkt wählen")
+            return
+        d = np.asarray(b) - np.asarray(a)
+        strecke = float(np.linalg.norm(d))
+        waagerecht = float(np.linalg.norm(d[:2]))
+        self._mess_lbl.setText(
+            f"A = ({a[0]:.3f}  {a[1]:.3f}  {a[2]:.3f})    "
+            f"B = ({b[0]:.3f}  {b[1]:.3f}  {b[2]:.3f})    "
+            f"Abstand {strecke:.3f} m    waagerecht {waagerecht:.3f} m    "
+            f"Höhe {d[2]:+.3f} m    ΔX {d[0]:+.3f}  ΔY {d[1]:+.3f}  ΔZ {d[2]:+.3f}")
+        self._log(f"Messung: {strecke:.3f} m (waagerecht {waagerecht:.3f} m, "
+                  f"Höhe {d[2]:+.3f} m)")
+
+    def _on_reset_camera(self) -> None:
+        self._cloud_view.reset_camera()
+
+    def _on_cut_reset(self) -> None:
+        self._cloud_view.cut_bar.reset()
+
+    def _on_screenshot(self) -> None:
+        start = os.path.join(self._project.dir if self._project else "",
+                             "ansicht.png")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Ansicht speichern", start, "PNG-Datei (*.png)")
+        if not path:
+            return
+        if not path.lower().endswith(".png"):
+            path += ".png"
+        try:
+            self._cloud_view.screenshot(path)
+        except RuntimeError as exc:
+            self._show_error("Screenshot", str(exc))
+            return
+        self._log(f"Ansicht gespeichert: {path}")
+
+    def _on_extrinsic_reset(self) -> None:
+        self._spins_from_extrinsic(np.eye(4))
+        self._log("Extrinsik auf Identität zurückgesetzt.")
+
+    def _on_settings_reset(self) -> None:
+        if QMessageBox.question(
+                self, "Einstellungen zurücksetzen",
+                "Alle Einstellungen dieses Projekts auf die Vorgabe setzen?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+            return
+        self._settings = dict(_DEFAULT_SETTINGS)
+        self._apply_settings_to_widgets()
+        self._save_settings()
+        self._log("Einstellungen auf Vorgabe gesetzt.")
+
+    def _on_about(self) -> None:
+        QMessageBox.about(
+            self, "Über Super360 Studio",
+            "<b>Super360 Studio</b><br><br>"
+            "Rosbag → FAST-LIO2-Punktwolke, 360°-Video, Einfärbung, "
+            "Zusammenführen und Export.<br>"
+            "Bis 2026-09 hieß das Programm „RosBag Suite 360\".<br><br>"
+            "<a href='https://github.com/LenaKremer98/Super360Studio'>"
+            "github.com/LenaKremer98/Super360Studio</a>")
 
     # ========================================================= Zusammenführen
 

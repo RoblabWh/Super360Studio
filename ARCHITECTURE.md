@@ -23,6 +23,7 @@ Super360Studio/
     colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye, Helligkeits- und Himmelsfilter
     georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU
     merge.py             # zwei Aufzeichnungen ausrichten (FGR+ICP) und zusammenschreiben
+    meander.py           # Hülle um colorize_pipeline: DJI-Mäanderflug → Farbebene
     project.py           # Session/Cache-Verwaltung pro Bag
   scripts/
     record_fastlio.py    # Standalone rclpy-Recorder (läuft in ROS-Umgebung als Subprozess)
@@ -425,6 +426,45 @@ der Kamera seines eigenen Bags eingefärbt. `gravity_level.applied` steht auf
 `false`, denn beide Teile kamen bereits lotrecht herein.
 
 Grenzen: das 360°-Video und die GPS-Prüfung hängen weiter am führenden Bag.
+
+## core/meander.py
+
+Hülle um `colorize_pipeline` aus dem Repo PointCloudMerger. Das Verfahren selbst
+bleibt dort, hier stehen nur die drei Anpassungen für Super360 Studio.
+
+```python
+def find_pipeline()                       # colorize_pipeline importieren
+def find_colmap_python() -> str | None    # Interpreter mit pycolmap
+def build_pipeline(points, photo_dir, work_dir, thermal=False, ...) -> Pipeline
+def prepare(pipe, progress=None) -> dict  # Fotos, COLMAP, Georeferenzierung
+def align(pipe, progress=None) -> dict    # Gierwinkel + Verschiebung
+def colorize_points(points, cams, image_dir, A, b, ...) -> (rgb, maske)
+def save_layer(dir, rgb, maske, meta) / load_layer(dir, n_points)
+```
+
+1. **Wolke hineinreichen ohne Datei.** `Pipeline.load_cloud` liest ihren
+   Zwischenstand aus `work/cloud.npy` und überspringt das Einlesen, wenn er da
+   ist. `build_pipeline` legt die (ausgedünnte) Arbeitswolke genau dort ab — der
+   Umweg über eine PCD- oder PLY-Datei entfällt.
+2. **Volle Wolke einfärben.** Die Pipeline färbt die ausgedünnte Wolke für ihren
+   PLY-Export; Super360 Studio braucht je Punkt eine Farbe. `colorize_points`
+   macht dasselbe über alle Punkte und gibt zusätzlich eine **Maske** zurück
+   statt nur einer Quote.
+3. **Ebenen im Projektformat**, gleiche Dateien wie `colors/`.
+
+Externe Abhängigkeit: das Paket muss unter einem der Pfade in
+`PIPELINE_CANDIDATES` liegen (Vorgabe `~/PointCloudMerger`). Fehlt es, sagt die
+Fehlermeldung wo gesucht wurde. Für die Rekonstruktion wird ein Interpreter mit
+`pycolmap` gebraucht; `sfm.find_python()` kennt die venv im DRZ-Datensatz.
+
+### Farbebenen
+
+`Project.LAYERS` bildet Schlüssel auf Unterordner ab: `onboard` → `colors/`
+(Name aus Kompatibilität), `meander_rgb` → `colors_meander_rgb/`,
+`meander_thermal` → `colors_meander_thermal/`. Jede Ebene ist `colors.bin`
+(uint8 N×3 RGB) + `valid.bin` (uint8 N) + `meta.json`, alle gegen die Punktzahl
+geprüft. Die UI hält sie in `_layers` und schiebt beim Umschalten nur die
+Referenz in die `CloudView` — kein Neuladen.
 
 ## core/georef.py
 

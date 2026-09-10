@@ -79,8 +79,39 @@ class Project:
     def recording_dir(self) -> str:
         return self._subdir("recording")
 
+    #: Farbebenen: Schluessel -> Unterordner. "onboard" ist die Einfaerbung
+    #: aus der 360-Kamera und heisst aus Kompatibilitaet weiter "colors".
+    LAYERS = {
+        "onboard": "colors",
+        "meander_rgb": "colors_meander_rgb",
+        "meander_thermal": "colors_meander_thermal",
+    }
+
     def colors_dir(self) -> str:
         return self._subdir("colors")
+
+    def layer_dir(self, key: str) -> str:
+        """Ordner einer Farbebene; legt ihn an."""
+        name = self.LAYERS.get(str(key))
+        if name is None:
+            raise RuntimeError(f"Unbekannte Farbebene: {key}")
+        return self._subdir(name)
+
+    def has_layer(self, key: str) -> bool:
+        name = self.LAYERS.get(str(key))
+        if name is None:
+            return False
+        d = os.path.join(self.dir, name)
+        return all(os.path.isfile(os.path.join(d, f))
+                   for f in ("colors.bin", "valid.bin", "meta.json"))
+
+    def available_layers(self) -> list:
+        """Vorhandene Farbebenen in fester Reihenfolge."""
+        return [k for k in self.LAYERS if self.has_layer(k)]
+
+    def meander_work_dir(self) -> str:
+        """Arbeitsordner der Maeander-Pipeline (COLMAP-Modell, Bilder, Lage)."""
+        return self._subdir("meander")
 
     def pano_dir(self, width: int) -> str:
         return self._subdir(f"pano_{int(width)}")
