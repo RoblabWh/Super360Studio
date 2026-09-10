@@ -135,6 +135,18 @@ mit im Protokoll) und erneut ausrichten.
 **Thermal** braucht keine zweite Rekonstruktion: beide Optiken sitzen auf
 derselben Gimbal und lösen zusammen aus, nur die Brennweite ist eine andere.
 
+**Die Handjustage wirkt live.** Nach dem Ausrichten lädt das Programm die
+Bilder einmal stark verkleinert in den Speicher (255 Stück in gut drei
+Sekunden, rund 40 MB) und färbt damit eine Stichprobe von 50.000 Punkten. Jeder
+Zug an Gier, X oder Y färbt diese Stichprobe neu ein und legt sie über die
+Karte — ein Durchlauf dauert etwa 90 ms, die Wolke folgt dem Regler also ohne
+Verzögerung. In der Statuszeile stehen dabei Winkel, Versatz und wie viel
+Prozent der Stichprobe getroffen wurde. Beim Einfärben wird die eingestellte
+Lage übernommen und die Vorschau geräumt.
+
+Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
+sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück.
+
 Die beiden Kästen **RGB-Optik** und **Thermal-Optik** verschieben den
 Bildhauptpunkt in Pixeln. Das wirkt wie eine Verkippung der Kamera gegen die
 Achse, die COLMAP angenommen hat, und die Verschiebung am Boden wächst mit dem

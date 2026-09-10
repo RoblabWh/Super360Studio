@@ -440,7 +440,28 @@ def prepare(pipe, progress=None) -> dict  # Fotos, COLMAP, Georeferenzierung
 def align(pipe, progress=None) -> dict    # Gierwinkel + Verschiebung
 def colorize_points(points, cams, image_dir, A, b, ...) -> (rgb, maske)
 def save_layer(dir, rgb, maske, meta) / load_layer(dir, n_points)
+
+class LivePreview:                        # Handjustage in Echtzeit
+    def __init__(self, cams, image_dir, scale=1/6, progress=None, cancel=None)
+    def colorize(self, points, A, b) -> (rgb, maske)
 ```
+
+**LivePreview** ist der volle Weg in klein. Der teure Teil beim Einfärben ist
+nicht die Rechnung, sondern das Laden von 255 Bildern je Durchlauf. Also einmal
+alle Bilder verkleinert in den Speicher (Faktor 1/6 ⇒ ~40 MB, 3,2 s) und statt
+aller Punkte eine Stichprobe. Gemessen an den 255 M4T-Bildern:
+
+| Stichprobe | Dauer je Durchlauf |
+|---|---|
+| 10.000 Punkte | 21 ms |
+| 25.000 | 46 ms |
+| **50.000** (Vorgabe) | **84 ms** |
+| 100.000 | 161 ms |
+
+Die Projektion ist dieselbe wie im vollen Lauf; nur die Bildkoordinaten werden
+am Ende mit dem Faktor multipliziert. Intrinsik und Verzeichnung gelten weiter
+für das Originalbild, damit die Vorschau nicht woanders sitzt als das Ergebnis —
+bei Faktor 1 ist sie bitgleich mit `colorize_points`, das prüft der Selbsttest.
 
 1. **Wolke hineinreichen ohne Datei.** `Pipeline.load_cloud` liest ihren
    Zwischenstand aus `work/cloud.npy` und überspringt das Einlesen, wenn er da

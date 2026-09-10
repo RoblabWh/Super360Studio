@@ -79,6 +79,10 @@ _LAYER_LABELS = (
     ("meander_thermal", "Mäander Thermal (DJI)"),
 )
 
+#: So viele Punkte gehen in die Live-Vorschau der Handjustage. Bei 50.000
+#: dauert ein Durchlauf rund 80 ms — schnell genug, um dem Regler zu folgen.
+_LIVE_PUNKTE = 50_000
+
 _DEFAULT_SETTINGS: dict = {
     "pano_width": 1920,
     "config": "whs_dense.yaml",
@@ -316,6 +320,15 @@ class MainWindow(QMainWindow):
         self._layer_key = "onboard"
         self._meander_pipe = None
         self._meander_dir: Optional[str] = None
+        # Live-Vorschau der Handjustage: verkleinerte Bilder im Speicher
+        # plus eine Stichprobe der Wolke. Ein Durchlauf kostet damit rund
+        # 80 ms statt Minuten, die Wolke folgt dem Regler.
+        self._live = None
+        self._live_pts: Optional[np.ndarray] = None
+        self._live_timer = QTimer(self)
+        self._live_timer.setSingleShot(True)
+        self._live_timer.setInterval(120)
+        self._live_timer.timeout.connect(self._live_update)
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -1179,6 +1192,7 @@ class MainWindow(QMainWindow):
         self._parts = None
         self._layers = {}
         self._meander_pipe = None
+        self._live_clear()
         self._merge_reset_state()
         self._gps_panel.set_quality(None, None, None)
         self._info_table.setRowCount(0)
@@ -1631,6 +1645,7 @@ class MainWindow(QMainWindow):
             return
         self._meander_dir = path
         self._meander_pipe = None      # Pipeline wird beim nächsten Lauf neu gebaut
+        self._live_clear()
         self._chk_thermal.setEnabled(n_t > 0)
         if n_t == 0:
             self._chk_thermal.setChecked(False)
@@ -1742,20 +1757,105 @@ class MainWindow(QMainWindow):
             sp.setValue(0.0)
             sp.blockSignals(False)
         self._update_enabled()
+        self._start_live_preview()
+
+    def _start_live_preview(self) -> None:
+        """Verkleinerte Bilder laden, damit die Handjustage live wirkt."""
+        pipe = self._meander_pipe
+        if pipe is None or pipe.cams is None or self._world is None:
+            return
+        welt = self._world
+        n = len(welt)
+        schritt = max(1, n // _LIVE_PUNKTE)
+        stich = np.ascontiguousarray(welt[::schritt][:_LIVE_PUNKTE],
+                                     dtype=np.float64)
+        cams = pipe.rgb_cams()
+        bilder = pipe._p("images")
+
+        def job(progress_cb, cancel, log_cb):
+            from core import meander as meander_mod
+            live = meander_mod.LivePreview(
+                cams, bilder, progress=progress_cb,
+                cancel=lambda: cancel.is_set())
+            return {"live": live, "pts": stich}
+
+        def fertig(res: dict) -> None:
+            self._live = res["live"]
+            self._live_pts = res["pts"]
+            self._log(f"Live-Vorschau bereit: {_fmt_int(len(res['pts']))} "
+                      f"Punkte, {len(res['live'].bilder)} verkleinerte Bilder. "
+                      f"Gier, X und Y wirken ab jetzt sofort in der Wolke.")
+            self._live_update()
+
+        self._start_worker("Lade Vorschaubilder für die Handjustage …",
+                           job, fertig)
+
+    def _meander_lage(self) -> tuple:
+        """Ausgerichtete Lage plus Handjustage: (yaw_grad, tx, ty)."""
+        pipe = self._meander_pipe
+        basis_yaw = float(np.degrees(pipe.yaw))
+        t = np.asarray(pipe.t, dtype=float).ravel()
+        return (basis_yaw + float(self._spin_meander["yaw"].value()),
+                float(t[0]) + float(self._spin_meander["x"].value()),
+                float(t[1]) + float(self._spin_meander["y"].value()))
 
     def _on_meander_manual(self) -> None:
-        """Handjustage auf die vorhandene Ausrichtung aufaddieren."""
+        """Handjustage anwenden und die Vorschau nachziehen.
+
+        Die Basislage bleibt stehen, die Regler sind ein Zuschlag darauf —
+        sonst wuerde jeder Reglerzug auf dem vorigen aufbauen und man kaeme nie
+        zurueck. Neu gerechnet wird erst nach kurzer Ruhe (Timer), damit ein
+        Ziehen nicht Dutzende Durchlaeufe ausloest.
+        """
+        if self._meander_pipe is None or self._meander_pipe.yaw is None:
+            return
+        self._live_timer.start()
+
+    def _live_update(self) -> None:
+        """Stichprobe mit der aktuellen Lage einfaerben und anzeigen."""
+        pipe = self._meander_pipe
+        if pipe is None or pipe.yaw is None or self._live is None \
+                or self._live_pts is None:
+            return
+        from core import meander as meander_mod
+        yaw, tx, ty = self._meander_lage()
+        # Lage in der Pipeline setzen, damit affine() sie sieht; die Basis
+        # steht in _meander_lage schon drin, hier wird nur uebernommen.
+        alt_yaw, alt_t = pipe.yaw, np.asarray(pipe.t, dtype=float).copy()
+        try:
+            pipe.yaw = float(np.radians(yaw))
+            pipe.t = np.array([tx, ty])
+            A, b = pipe.affine()
+        finally:
+            pipe.yaw, pipe.t = alt_yaw, alt_t
+        t0 = time.perf_counter()
+        rgb, maske = self._live.colorize(self._live_pts, A, b)
+        rgb = rgb.copy()
+        rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
+        self._cloud_view.set_color_preview(self._live_pts, rgb)
+        self._status_lbl.setText(
+            f"Vorschau: Gier {yaw:.2f}°, Versatz {tx:+.1f}/{ty:+.1f} m — "
+            f"{100.0 * maske.mean():.0f} % getroffen "
+            f"({(time.perf_counter() - t0) * 1000:.0f} ms)")
+
+    def _meander_apply_manual(self) -> None:
+        """Handjustage endgueltig in die Pipeline schreiben (vor dem Einfaerben)."""
         pipe = self._meander_pipe
         if pipe is None or pipe.yaw is None:
             return
         from core import meander as meander_mod
-        basis_yaw = float(np.degrees(pipe.yaw))
-        t = np.asarray(pipe.t, dtype=float).ravel()
-        meander_mod.set_manual(
-            pipe,
-            basis_yaw + float(self._spin_meander["yaw"].value()),
-            t[0] + float(self._spin_meander["x"].value()),
-            t[1] + float(self._spin_meander["y"].value()))
+        yaw, tx, ty = self._meander_lage()
+        meander_mod.set_manual(pipe, yaw, tx, ty)
+        for sp in self._spin_meander.values():   # Zuschlag ist verrechnet
+            sp.blockSignals(True)
+            sp.setValue(0.0)
+            sp.blockSignals(False)
+
+    def _live_clear(self) -> None:
+        self._live = None
+        self._live_pts = None
+        self._live_timer.stop()
+        self._cloud_view.set_color_preview(None)
 
     def _on_meander_run(self) -> None:
         if not self._meander_dir or self._world is None or self._project is None:
@@ -1764,6 +1864,7 @@ class MainWindow(QMainWindow):
             return
         if not self._meander_ask_colmap():
             return
+        self._meander_apply_manual()
         pipe = self._meander_pipe
         args = self._meander_args()
         bauen = self._meander_build
@@ -1830,6 +1931,7 @@ class MainWindow(QMainWindow):
         if res["ebenen"].get("meander_thermal", 1.0) < 0.9:
             self._log("Der Rest liegt außerhalb der Thermalbilder — die sehen "
                       "einen schmaleren Ausschnitt als die RGB-Kamera.")
+        self._live_clear()
         self._reload_layers()
         if "meander_rgb" in self._layers:
             idx = self._combo_layer.findData("meander_rgb")

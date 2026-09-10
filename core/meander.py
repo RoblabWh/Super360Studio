@@ -232,6 +232,77 @@ def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
     return col, maske
 
 
+class LivePreview:
+    """Einfaerbung fuer die Handjustage: klein, aber sofort.
+
+    Der volle Lauf laedt fuer jede der 255 Kameras ihr Bild von der Platte —
+    Sekunden, und bei jedem Reglerzug von vorn. Fuer eine Vorschau reicht viel
+    weniger: die Bilder einmal stark verkleinert in den Speicher (255 Stueck bei
+    Faktor 1/6 sind rund 20 MB) und eine Stichprobe der Wolke statt aller
+    Punkte. Danach ist ein Durchlauf reine Rechnung und dauert Millisekunden,
+    die Wolke folgt dem Regler also ohne Verzoegerung.
+
+    Die Projektion bleibt dieselbe wie beim vollen Lauf; nur die Bildkoordinaten
+    werden am Ende mit dem Verkleinerungsfaktor multipliziert. Intrinsik und
+    Verzeichnung gelten weiter fuer das Originalbild, damit die Vorschau nicht
+    an einer anderen Stelle sitzt als das Ergebnis.
+    """
+
+    def __init__(self, cams, image_dir: str, scale: float = 1.0 / 6.0,
+                 progress=None, cancel=None):
+        find_pipeline()
+        from colorize_pipeline import colorize as cz  # noqa: PLC0415
+        from PIL import Image  # noqa: PLC0415
+
+        self._cz = cz
+        self.scale = float(scale)
+        self.names = list(cams["names"])
+        self.Rcw = np.asarray(cams["Rcw"], dtype=np.float64)
+        self.tcw = np.asarray(cams["tcw"], dtype=np.float64)
+        self.size = np.asarray(cams["size"])
+        self.params = np.asarray(cams["params"])
+        self.model = (cams["model"].item()
+                      if getattr(cams["model"], "shape", None) == ()
+                      else str(cams["model"]))
+        self.bilder: list = []
+        n = len(self.names)
+        for i, name in enumerate(self.names):
+            if cancel is not None and cancel():
+                raise RuntimeError("Abgebrochen")
+            with Image.open(os.path.join(image_dir, str(name))) as im:
+                im = im.convert("RGB")
+                klein = im.resize((max(int(im.width * self.scale), 1),
+                                   max(int(im.height * self.scale), 1)),
+                                  Image.BILINEAR)
+                self.bilder.append(np.asarray(klein))
+            if progress is not None and (i % 20 == 0 or i == n - 1):
+                progress((i + 1) / n, f"Lade Vorschaubild {i + 1}/{n} …")
+
+    def colorize(self, points: np.ndarray, A, b) -> tuple[np.ndarray, np.ndarray]:
+        """Wie :func:`colorize_points`, nur auf den verkleinerten Bildern."""
+        P = np.asarray(points, dtype=np.float64)
+        N = len(P)
+        Ainv = np.linalg.inv(np.asarray(A, dtype=np.float64))
+        PT = np.ascontiguousarray(((Ainv @ (P - np.asarray(b, float)).T).T).T)
+        best = np.full(N, np.inf, dtype=np.float32)
+        col = np.empty((N, 3), dtype=np.uint8)
+        col[:] = _FALLBACK
+        for i, img in enumerate(self.bilder):
+            pc = (self.Rcw[i] @ PT).T + self.tcw[i]
+            u, v, front, rad = self._cz._project(pc, self.size[i],
+                                                 self.params[i], self.model)
+            W, H = self.size[i]
+            gilt = front & (u >= 0) & (u < W) & (v >= 0) & (v < H) & (rad < best)
+            if not gilt.any():
+                continue
+            ih, iw = img.shape[:2]
+            ui = np.clip((u[gilt] * self.scale).astype(np.int32), 0, iw - 1)
+            vi = np.clip((v[gilt] * self.scale).astype(np.int32), 0, ih - 1)
+            col[gilt] = img[vi, ui]
+            best[gilt] = rad[gilt].astype(np.float32)
+        return col, np.isfinite(best)
+
+
 # ------------------------------------------------------------------ Ebenen
 
 def save_layer(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict) -> None:
@@ -308,7 +379,23 @@ if __name__ == "__main__":
     assert schlecht and "2.5 %" in schlecht and "154.53" in schlecht, schlecht
     print(f"  {schlecht[:78]}…")
 
-    print("== Test 5: Ebene schreiben und lesen ==")
+    print("== Test 5: LivePreview liefert dasselbe wie der volle Lauf ==")
+    lp = LivePreview(cams, tmp, scale=1.0, progress=None)   # Faktor 1 = kein Verlust
+    rgb_l, maske_l = lp.colorize(pts, np.eye(3), np.zeros(3))
+    assert np.array_equal(maske_l, maske), (maske_l, maske)
+    assert np.array_equal(rgb_l, rgb), (rgb_l, rgb)
+    lp2 = LivePreview(cams, tmp, scale=0.5)
+    rgb2, maske2 = lp2.colorize(pts, np.eye(3), np.zeros(3))
+    assert np.array_equal(maske2, maske)
+    print(f"  Faktor 1 bitgleich, Faktor 0.5 gleiche Maske, "
+          f"Bildgroesse {lp2.bilder[0].shape[:2]}")
+    # eine verschobene Lage muss andere Farben ergeben
+    b_weg = np.array([100.0, 0.0, 0.0])
+    _, maske_weg = lp.colorize(pts, np.eye(3), b_weg)
+    assert not maske_weg.any(), "verschobene Lage trifft immer noch"
+    print("  verschobene Lage trifft nichts mehr — die Vorschau reagiert")
+
+    print("== Test 6: Ebene schreiben und lesen ==")
     lay = os.path.join(tmp, "ebene")
     save_layer(lay, rgb, maske, {"quelle": "selbsttest"})
     zurueck = load_layer(lay, len(pts))

@@ -311,6 +311,18 @@ class CloudView(QtWidgets.QWidget):
         self._prev_actor.GetProperty().SetOpacity(0.55)
         self._prev_actor.SetVisibility(False)
         self._prev_wanted = False   # vom Anwender gewuenscht (Ansicht-Menue)
+        # Zweite, eingefaerbte Vorschau: die Stichprobe der Maeander-
+        # Handjustage. Eigener Actor, damit sie sich mit der orangen
+        # Merge-Vorschau nicht ins Gehege kommt. Groessere Punkte als die
+        # Karte, damit sie darauf sichtbar bleibt.
+        self._cprev_mapper = vtk.vtkPolyDataMapper()
+        self._cprev_mapper.SetColorModeToDirectScalars()
+        self._cprev_actor = vtk.vtkActor()
+        self._cprev_actor.SetMapper(self._cprev_mapper)
+        self._cprev_actor.GetProperty().SetPointSize(4)
+        self._cprev_actor.SetVisibility(False)
+        self._renderer.AddActor(self._cprev_actor)
+        self._cprev_refs: list = []
         self._renderer.AddActor(self._prev_actor)
         self._prev_refs: list = []
 
@@ -359,11 +371,11 @@ class CloudView(QtWidgets.QWidget):
         self._plane_lo.SetOrigin(0.0, 0.0, lo)
         self._plane_hi.SetOrigin(0.0, 0.0, hi)
         if aktiv and not self._cut_active:
-            for m in (self._mapper, self._prev_mapper):
+            for m in (self._mapper, self._prev_mapper, self._cprev_mapper):
                 m.AddClippingPlane(self._plane_lo)
                 m.AddClippingPlane(self._plane_hi)
         elif not aktiv and self._cut_active:
-            for m in (self._mapper, self._prev_mapper):
+            for m in (self._mapper, self._prev_mapper, self._cprev_mapper):
                 m.RemoveClippingPlane(self._plane_lo)
                 m.RemoveClippingPlane(self._plane_hi)
         self._cut_active = aktiv
@@ -527,6 +539,74 @@ class CloudView(QtWidgets.QWidget):
         return super().eventFilter(obj, event)
 
     # ------------------------------------------------------------- Vorschau
+
+    def _point_poly(self, pts: np.ndarray) -> tuple:
+        """vtkPolyData aus einer Punktliste; gibt (poly, refs) zurueck.
+
+        Die numpy-Puffer muessen am Leben bleiben, solange VTK sie benutzt —
+        deshalb wandern sie als refs mit zurueck und werden am Widget gehalten.
+        """
+        n = len(pts)
+        vtk_pts = vtk.vtkPoints()
+        vtk_pts.SetData(_strip_numpy_ref(
+            numpy_to_vtk(pts, deep=False, array_type=vtk.VTK_FLOAT)))
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(vtk_pts)
+        verts = vtk.vtkCellArray()
+        refs: list = [pts]
+        try:
+            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
+            conn = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
+                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
+            refs += [offsets, conn]
+        except (AttributeError, TypeError):  # pre-9.0 fallback
+            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
+            legacy[0::2] = 1
+            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
+            refs.append(legacy)
+        poly.SetVerts(verts)
+        return poly, refs
+
+    def set_color_preview(self, points: np.ndarray | None,
+                          rgb: np.ndarray | None = None) -> None:
+        """Eingefaerbte Stichprobe ueber die Karte legen (Maeander-Handjustage).
+
+        Damit folgt die Wolke dem Regler: die Stichprobe wird bei jeder
+        Aenderung neu eingefaerbt und hier ersetzt. ``None`` raeumt sie weg.
+        """
+        if points is None or len(points) == 0:
+            self._cprev_actor.SetVisibility(False)
+            self._cprev_mapper.SetInputData(vtk.vtkPolyData())
+            self._cprev_refs = []
+            self._render()
+            return
+        pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
+        poly, refs = self._point_poly(pts)
+        if rgb is not None:
+            farben = np.ascontiguousarray(np.asarray(rgb).reshape(-1, 3), dtype=np.uint8)
+            if len(farben) != len(pts):
+                raise ValueError("Farben passen nicht zur Punktanzahl.")
+            arr = _strip_numpy_ref(numpy_to_vtk(farben, deep=False,
+                                                array_type=vtk.VTK_UNSIGNED_CHAR))
+            arr.SetName("vorschau")
+            poly.GetPointData().SetScalars(arr)
+            refs.append(farben)
+            self._cprev_mapper.ScalarVisibilityOn()
+        else:
+            self._cprev_mapper.ScalarVisibilityOff()
+        self._cprev_refs = refs
+        self._cprev_mapper.SetInputData(poly)
+        self._cprev_actor.SetVisibility(True)
+        if self._cut_active:
+            self._cprev_mapper.RemoveAllClippingPlanes()
+            self._cprev_mapper.AddClippingPlane(self._plane_lo)
+            self._cprev_mapper.AddClippingPlane(self._plane_hi)
+        self._render()
+
+    def has_color_preview(self) -> bool:
+        return bool(self._cprev_actor.GetVisibility())
 
     def set_preview_cloud(self, points: np.ndarray | None,
                           color: tuple[float, float, float] = (1.0, 0.55, 0.20)) -> None:
