@@ -225,6 +225,36 @@ ein Fehlgriff:
 Was das nicht repariert: die 360°-Kamera belichtet im Gegenlicht die ganze Szene
 über, nicht nur den Himmel. Kronen bleiben dadurch blasser als in Wirklichkeit.
 
+## Projekt mitnehmen
+
+**Datei → Projekt exportieren …** (`Strg+Umschalt+E`) kopiert alles Berechnete in
+einen Ordner, den du weiterreichen kannst. Der Dialog zeigt je Teil die Größe,
+weil der Unterschied zwischen mit und ohne Rosbag schnell 24 GB ausmacht:
+
+```
+<ziel>/
+  super360.json      Manifest: was drin ist, woher es kommt, Kennzahlen
+  projekt/           recording/, colors*/, pano_*/, meander/, gps/extrinsic/settings
+  bags/              nur wenn angehakt
+  kalibrierung/      die verwendete calibration.json
+```
+
+Die Punktwolke ist immer dabei, ohne sie gibt es kein Projekt. Das **Rosbag ist
+per Vorgabe nicht dabei** — es ist der Eingang, nicht das Ergebnis. Ohne Bag
+bleiben Karte, Farben, Messen, Höhenschnitt und Export erhalten; das 360°-Video
+und ein erneutes Einfärben brauchen es.
+
+**Datei → Projekt importieren …** (`Strg+I`) liest so einen Ordner wieder ein und
+legt ihn im lokalen Cache ab. Mitgenommene Bags bleiben im Exportordner liegen
+und werden von dort referenziert — sie ein zweites Mal zu kopieren wäre bei
+24 GB Verschwendung. Die Bagpfade in der `meta.json` werden dabei auf den Ort
+gezogen, an dem sie jetzt wirklich liegen. Fehlt ein Bag, sagt das Protokoll
+welches, und das Projekt öffnet trotzdem — nur eben ohne die Schritte, die es
+braucht.
+
+Ein Zielordner, der nicht leer ist und kein Projekt enthält, wird abgelehnt statt
+zugeschüttet.
+
 ## Cache
 
 Der Cache liegt **außerhalb** des Repos, per Default unter

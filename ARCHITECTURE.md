@@ -466,6 +466,36 @@ Fehlermeldung wo gesucht wurde. Für die Rekonstruktion wird ein Interpreter mit
 geprüft. Die UI hält sie in `_layers` und schiebt beim Umschalten nur die
 Referenz in die `CloudView` — kein Neuladen.
 
+## core/bundle.py
+
+Ein Projekt lebt im Cache unter einem Namen aus einem Pfad-Hash — von außen nicht
+zu finden und nicht mitzunehmen. `bundle` macht daraus einen Ordner und zurück.
+
+```python
+TEILE = {"recording": (…, Pflicht), "colors", "panos", "meander", "bags"}
+
+def describe(project, bag_paths=None) -> dict      # was da ist, wie groß
+def export_project(project, dest, teile, bag_paths=None, calib_path=None,
+                   meta_extra=None, progress=None, cancel=None) -> dict
+def read_manifest(src) -> dict
+def bag_paths_after_import(src, manifest) -> list
+def import_project(src, project, progress=None, cancel=None) -> dict
+```
+
+Entscheidungen dahinter:
+
+* **Das Bag ist optional und per Vorgabe nicht dabei.** Es ist der Eingang, nicht
+  das Ergebnis, und mit 24 GB der große Brocken. Ohne Bag bleibt alles erhalten,
+  was aus dem Cache lebt.
+* **Mitgenommene Bags bleiben im Exportordner** und werden von dort referenziert;
+  ein zweites Mal 24 GB zu kopieren wäre Verschwendung.
+  `import_project` zieht die Pfade in `recording/meta.json` (auch die in
+  `sources` einer zusammengeführten Aufzeichnung) auf den Ort nach, an dem sie
+  jetzt wirklich liegen — sonst zeigt der Import ins Leere des fremden Rechners.
+* **Ein nicht leerer fremder Zielordner wird abgelehnt**, sonst schüttet der
+  Export fremde Daten zu.
+* `recording` ist Pflicht, alles andere wählbar.
+
 ## core/georef.py
 
 ```python

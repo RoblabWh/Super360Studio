@@ -875,6 +875,28 @@ class MainWindow(QMainWindow):
             b.setEnabled(not busy and has_bag and has_rec and bool(self._calib))
         for b in (self._btn_export_plypcd, self._btn_export_las):
             b.setEnabled(not busy and has_world)
+        # Schritte, die nur die Karte brauchen und ohne Bag weiterlaufen
+        for b in (self._btn_merge_pick, self._btn_meander_pick,
+                  self._btn_meander_align, self._btn_meander_run,
+                  self._btn_merge_auto, self._btn_merge_icp,
+                  self._btn_merge_apply, self._btn_merge_drop):
+            b.setEnabled(not busy and has_rec)
+        if hasattr(self, "_actions"):
+            for key, an in (("project_export", not busy and has_rec),
+                            ("project_import", not busy),
+                            ("measure", not busy and has_world),
+                            ("fastlio", not busy and has_bag),
+                            ("colorize", not busy and has_bag and has_rec
+                             and bool(self._calib)),
+                            ("meander_run", not busy and has_rec),
+                            ("meander", not busy and has_rec),
+                            ("merge", not busy and has_rec),
+                            ("merge_apply", not busy and has_rec),
+                            ("export_ply", not busy and has_world),
+                            ("export_las", not busy and has_world)):
+                act = self._actions.get(key)
+                if act is not None:
+                    act.setEnabled(bool(an))
         can_cancel = busy and (self._worker is None or self._worker.cancellable)
         self._btn_cancel.setEnabled(can_cancel)
         self._btn_cancel.setToolTip(
@@ -1378,6 +1400,134 @@ class MainWindow(QMainWindow):
         self._colors = None
         self._valid = None
         self._start_recording_load()
+
+    # ========================================== Projekt aus- und einpacken
+
+    def _bag_paths(self) -> list:
+        """Alle Bags, aus denen das offene Projekt stammt (bei Fusion mehrere)."""
+        if self._parts:
+            return [p[0].bag_path for p in self._parts]
+        return [self._bag.bag_path] if self._bag is not None else []
+
+    def _on_export_project(self) -> None:
+        if self._project is None or not self._project.has_recording():
+            QMessageBox.information(
+                self, "Projekt exportieren",
+                "Es ist noch keine Karte berechnet — ohne sie gibt es kein "
+                "Projekt zum Mitnehmen.")
+            return
+        from core import bundle
+        from ui.bundle_dialog import ExportDialog
+        info = bundle.describe(self._project, self._bag_paths())
+        vorschlag = os.path.join(os.path.expanduser("~"),
+                                 f"{self._project.bag_name}_projekt")
+        dlg = ExportDialog(self._project.bag_name, info, vorschlag, self)
+        if dlg.exec_() != QDialog.Accepted:
+            return
+        ziel, wahl = dlg.ziel(), dlg.auswahl()
+        proj, bags, calib = self._project, self._bag_paths(), self._calib
+        extra = {"kennzahlen": {
+            "n_scans": int(self._rec.n_scans) if self._rec else None,
+            "n_points": int(self._rec.n_points) if self._rec else None,
+            "ebenen": sorted(self._layers),
+        }}
+
+        def job(progress_cb, cancel, log_cb):
+            return bundle.export_project(
+                proj, ziel, wahl, bag_paths=bags, calib_path=calib,
+                meta_extra=extra, progress=progress_cb,
+                cancel=lambda: cancel.is_set())
+
+        def fertig(manifest: dict) -> None:
+            drin = [k for k, v in manifest["inhalt"].items() if v]
+            self._log(f"Projekt exportiert nach {ziel} "
+                      f"({bundle.fmt_size(manifest['bytes'])}): "
+                      + ", ".join(drin) + ".")
+            if not manifest["inhalt"].get("bags"):
+                self._log("Ohne Rosbag — auf einem anderen Rechner fehlen damit "
+                          "360°-Video und erneutes Einfärben; Karte, Farben, "
+                          "Messen und Export bleiben.")
+
+        self._start_worker(f"Exportiere das Projekt nach {os.path.basename(ziel)} …",
+                           job, fertig)
+
+    def _on_import_project(self) -> None:
+        if self._busy:
+            QMessageBox.information(self, "Beschäftigt",
+                                    "Es läuft noch ein Arbeitsschritt.")
+            return
+        src = QFileDialog.getExistingDirectory(
+            self, "Ordner eines exportierten Projekts", os.path.expanduser("~"))
+        if not src:
+            return
+        from core import bundle
+        try:
+            manifest = bundle.read_manifest(src)
+        except RuntimeError as exc:
+            self._show_error("Projekt importieren", str(exc))
+            return
+        bags = bundle.bag_paths_after_import(src, manifest)
+        ziel_bag = bags[0] if bags else manifest["projekt"]["bag"]
+        try:
+            project = Project(ziel_bag)
+        except RuntimeError as exc:
+            self._show_error("Projekt importieren", str(exc))
+            return
+        if project.has_recording():
+            frage = QMessageBox.question(
+                self, "Projekt bereits vorhanden",
+                f"Für '{project.bag_name}' liegt hier schon ein Projekt im "
+                f"Cache. Soll es durch das importierte ersetzt werden?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if frage != QMessageBox.Yes:
+                return
+
+        def job(progress_cb, cancel, log_cb):
+            return bundle.import_project(
+                src, project, progress=progress_cb,
+                cancel=lambda: cancel.is_set())
+
+        self._start_worker(f"Importiere Projekt aus {os.path.basename(src)} …",
+                           job, self._on_project_imported)
+
+    def _on_project_imported(self, res: dict) -> None:
+        from core import bundle
+        m = res["manifest"]
+        self._log(f"Projekt importiert ({bundle.fmt_size(res['bytes'])}), "
+                  f"exportiert am {m.get('erstellt', '?')}.")
+        bags = [b for b in res["bags"] if b]
+        fehlt = res["fehlende_bags"]
+        if fehlt:
+            for b in fehlt:
+                self._log(f"Rosbag nicht am Ort: {b}")
+            self._log("Ohne Bag: 360°-Video und erneutes Einfärben stehen nicht "
+                      "zur Verfügung. Karte, Farben, Messen und Export schon.")
+            self._open_project_only(res["project"])
+        else:
+            self._open_bag(bags[0])
+
+    def _open_project_only(self, project) -> None:
+        """Projekt ohne Bag oeffnen — nur, was aus dem Cache lebt."""
+        self._clear_bag_state()
+        self._project = project
+        self._bag = None
+        self._bag_info = None
+        self._settings = dict(_DEFAULT_SETTINGS)
+        try:
+            self._settings.update(project.load_settings())
+        except RuntimeError as exc:
+            self._log(str(exc))
+        self._apply_settings_to_widgets()
+        T = None
+        try:
+            T = project.load_extrinsic()
+        except RuntimeError as exc:
+            self._log(str(exc))
+        self._spins_from_extrinsic(T if T is not None else np.eye(4))
+        self.setWindowTitle(f"Super360 Studio — {project.bag_name} (ohne Bag)")
+        self._update_enabled()
+        if project.has_recording():
+            self._start_recording_load()
 
     # ================================================= Mäander-Einfärbung
 
