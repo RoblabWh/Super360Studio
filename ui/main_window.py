@@ -656,6 +656,9 @@ class MainWindow(QMainWindow):
             grid.addWidget(sp, 1, col)
             self._spin_meander[key] = sp
         form.addRow("Lage von Hand:", grid_holder)
+        self._lbl_meander_lage = QLabel("")
+        self._lbl_meander_lage.setWordWrap(True)
+        form.addRow(self._lbl_meander_lage)
 
         # Hauptpunkt-Versatz je Optik: wirkt wie eine Verkippung der Kamera
         # gegen die Achse, die COLMAP angenommen hat, und waechst mit dem
@@ -891,10 +894,28 @@ class MainWindow(QMainWindow):
             b.setEnabled(not busy and has_world)
         # Schritte, die nur die Karte brauchen und ohne Bag weiterlaufen
         for b in (self._btn_merge_pick, self._btn_meander_pick,
-                  self._btn_meander_align, self._btn_meander_run,
                   self._btn_merge_auto, self._btn_merge_icp,
                   self._btn_merge_apply, self._btn_merge_drop):
             b.setEnabled(not busy and has_rec)
+        # Maeander: erst mit gewaehltem Flug, und die Handregler erst, wenn
+        # es eine Lage gibt, auf die sie sich beziehen koennen. Ein Regler,
+        # der stillschweigend nichts tut, ist schlimmer als ein grauer.
+        hat_flug = bool(self._meander_dir)
+        for b in (self._btn_meander_align, self._btn_meander_run):
+            b.setEnabled(not busy and has_rec and hat_flug)
+            b.setToolTip(b.toolTip() if hat_flug else
+                         "Erst einen Mäanderflug wählen.")
+        hat_lage = (self._meander_pipe is not None
+                    and getattr(self._meander_pipe, "yaw", None) is not None)
+        for key, sp in self._spin_meander.items():
+            sp.setEnabled(not busy and hat_lage)
+            sp.setToolTip(
+                "Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke."
+                if hat_lage else
+                "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, "
+                "auf die sich die Regler beziehen könnten.")
+        if hasattr(self, "_lbl_meander_lage"):
+            self._lbl_meander_lage.setText(self._meander_zustand_text())
         if hasattr(self, "_actions"):
             for key, an in (("project_export", not busy and has_rec),
                             ("project_import", not busy),
@@ -1785,10 +1806,25 @@ class MainWindow(QMainWindow):
             self._log(f"Live-Vorschau bereit: {_fmt_int(len(res['pts']))} "
                       f"Punkte, {len(res['live'].bilder)} verkleinerte Bilder. "
                       f"Gier, X und Y wirken ab jetzt sofort in der Wolke.")
+            self._update_enabled()
             self._live_update()
 
         self._start_worker("Lade Vorschaubilder für die Handjustage …",
                            job, fertig)
+
+    def _meander_zustand_text(self) -> str:
+        """Was die Handregler gerade koennen — und was fehlt, wenn nicht."""
+        if not self._meander_dir:
+            return "Noch kein Mäanderflug gewählt."
+        pipe = self._meander_pipe
+        if pipe is None or getattr(pipe, "yaw", None) is None:
+            return ("Noch nicht ausgerichtet — die Regler brauchen eine Lage, "
+                    "auf die sie sich beziehen. Erst „Ausrichten“.")
+        if self._live is None:
+            return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. "
+                    f"Vorschaubilder werden noch geladen …")
+        return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°, Live-Vorschau "
+                f"mit {_fmt_int(len(self._live_pts))} Punkten aktiv.")
 
     def _meander_lage(self) -> tuple:
         """Ausgerichtete Lage plus Handjustage: (yaw_grad, t als 3er-Vektor).
@@ -1814,6 +1850,12 @@ class MainWindow(QMainWindow):
         Ziehen nicht Dutzende Durchlaeufe ausloest.
         """
         if self._meander_pipe is None or self._meander_pipe.yaw is None:
+            self._log("Handjustage ohne Wirkung: es gibt noch keine "
+                      "Ausrichtung. Erst „Ausrichten“ laufen lassen.")
+            return
+        if self._live is None:
+            self._log("Die Vorschaubilder sind noch nicht geladen — die "
+                      "Regler wirken, sobald sie da sind.")
             return
         self._live_timer.start()
 
@@ -1863,11 +1905,16 @@ class MainWindow(QMainWindow):
             sp.setValue(0.0)
             sp.blockSignals(False)
 
+    def _live_hide(self) -> None:
+        """Nur die Anzeige raeumen; die geladenen Bilder bleiben im Speicher,
+        damit ein Nachjustieren danach weiter sofort wirkt."""
+        self._live_timer.stop()
+        self._cloud_view.set_color_preview(None)
+
     def _live_clear(self) -> None:
         self._live = None
         self._live_pts = None
-        self._live_timer.stop()
-        self._cloud_view.set_color_preview(None)
+        self._live_hide()
 
     def _on_meander_run(self) -> None:
         if not self._meander_dir or self._world is None or self._project is None:
@@ -1943,8 +1990,10 @@ class MainWindow(QMainWindow):
         if res["ebenen"].get("meander_thermal", 1.0) < 0.9:
             self._log("Der Rest liegt außerhalb der Thermalbilder — die sehen "
                       "einen schmaleren Ausschnitt als die RGB-Kamera.")
-        self._live_clear()
+        self._live_hide()
         self._reload_layers()
+        if self._live is None and self._meander_pipe is not None:
+            self._start_live_preview()   # Nachjustieren soll sofort wirken
         if "meander_rgb" in self._layers:
             idx = self._combo_layer.findData("meander_rgb")
             if idx >= 0:

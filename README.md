@@ -135,6 +135,11 @@ mit im Protokoll) und erneut ausrichten.
 **Thermal** braucht keine zweite Rekonstruktion: beide Optiken sitzen auf
 derselben Gimbal und lösen zusammen aus, nur die Brennweite ist eine andere.
 
+**Die Handjustage wirkt erst nach dem Ausrichten.** Die Regler sind ein Zuschlag
+auf die gefundene Lage — solange es keine gibt, sind sie ausgegraut, und unter
+ihnen steht, was fehlt. Reihenfolge also: Flug wählen → **Ausrichten** →
+justieren → **Einfärben**.
+
 **Die Handjustage wirkt live.** Nach dem Ausrichten lädt das Programm die
 Bilder einmal stark verkleinert in den Speicher (255 Stück in gut drei
 Sekunden, rund 40 MB) und färbt damit eine Stichprobe von 50.000 Punkten. Jeder
