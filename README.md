@@ -145,7 +145,10 @@ Prozent der Stichprobe getroffen wurde. Beim Einfärben wird die eingestellte
 Lage übernommen und die Vorschau geräumt.
 
 Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
-sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück.
+sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X und Y
+sind Meter, die Schrittweite ist 0,5 m; das reicht: beim DRZ-Datensatz deckt ein
+RGB-Pixel 5,2 cm Boden ab, ein halber Meter verschiebt also um rund zehn Pixel
+und ändert die Farbe von 60 % der Stichprobe sichtbar.
 
 Die beiden Kästen **RGB-Optik** und **Thermal-Optik** verschieben den
 Bildhauptpunkt in Pixeln. Das wirkt wie eine Verkippung der Kamera gegen die

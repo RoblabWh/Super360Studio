@@ -1791,13 +1791,19 @@ class MainWindow(QMainWindow):
                            job, fertig)
 
     def _meander_lage(self) -> tuple:
-        """Ausgerichtete Lage plus Handjustage: (yaw_grad, tx, ty)."""
+        """Ausgerichtete Lage plus Handjustage: (yaw_grad, t als 3er-Vektor).
+
+        Die Hoehe bleibt stehen — geregelt werden nur Gier, X und Y. Sie muss
+        aber mitgeführt werden: ``register.affine`` rechnet mit drei
+        Komponenten, ein 2er-Vektor bricht dort ab.
+        """
+        from core import meander as meander_mod
         pipe = self._meander_pipe
-        basis_yaw = float(np.degrees(pipe.yaw))
-        t = np.asarray(pipe.t, dtype=float).ravel()
-        return (basis_yaw + float(self._spin_meander["yaw"].value()),
-                float(t[0]) + float(self._spin_meander["x"].value()),
-                float(t[1]) + float(self._spin_meander["y"].value()))
+        t = meander_mod.as_t3(pipe.t)
+        t[0] += float(self._spin_meander["x"].value())
+        t[1] += float(self._spin_meander["y"].value())
+        return (float(np.degrees(pipe.yaw)) + float(self._spin_meander["yaw"].value()),
+                t)
 
     def _on_meander_manual(self) -> None:
         """Handjustage anwenden und die Vorschau nachziehen.
@@ -1817,24 +1823,30 @@ class MainWindow(QMainWindow):
         if pipe is None or pipe.yaw is None or self._live is None \
                 or self._live_pts is None:
             return
-        from core import meander as meander_mod
-        yaw, tx, ty = self._meander_lage()
-        # Lage in der Pipeline setzen, damit affine() sie sieht; die Basis
-        # steht in _meander_lage schon drin, hier wird nur uebernommen.
+        yaw, t = self._meander_lage()
+        # Lage in der Pipeline setzen, damit affine() sie sieht, und danach
+        # zuruecklegen — die Basis bleibt, die Regler sind nur ein Zuschlag.
         alt_yaw, alt_t = pipe.yaw, np.asarray(pipe.t, dtype=float).copy()
         try:
             pipe.yaw = float(np.radians(yaw))
-            pipe.t = np.array([tx, ty])
+            pipe.t = t
             A, b = pipe.affine()
+            t0 = time.perf_counter()
+            rgb, maske = self._live.colorize(self._live_pts, A, b)
+        except Exception as exc:  # noqa: BLE001
+            # Ohne diesen Fang verschluckt Qt den Fehler im Timer-Slot und der
+            # Regler sieht aus, als bewirke er nichts.
+            self._log(f"Live-Vorschau fehlgeschlagen: {exc}")
+            self._log(traceback.format_exc())
+            self._live_timer.stop()
+            return
         finally:
             pipe.yaw, pipe.t = alt_yaw, alt_t
-        t0 = time.perf_counter()
-        rgb, maske = self._live.colorize(self._live_pts, A, b)
         rgb = rgb.copy()
         rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
         self._cloud_view.set_color_preview(self._live_pts, rgb)
         self._status_lbl.setText(
-            f"Vorschau: Gier {yaw:.2f}°, Versatz {tx:+.1f}/{ty:+.1f} m — "
+            f"Vorschau: Gier {yaw:.2f}°, Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "
             f"{100.0 * maske.mean():.0f} % getroffen "
             f"({(time.perf_counter() - t0) * 1000:.0f} ms)")
 
@@ -1844,8 +1856,8 @@ class MainWindow(QMainWindow):
         if pipe is None or pipe.yaw is None:
             return
         from core import meander as meander_mod
-        yaw, tx, ty = self._meander_lage()
-        meander_mod.set_manual(pipe, yaw, tx, ty)
+        yaw, t = self._meander_lage()
+        meander_mod.set_manual(pipe, yaw, t)
         for sp in self._spin_meander.values():   # Zuschlag ist verrechnet
             sp.blockSignals(True)
             sp.setValue(0.0)

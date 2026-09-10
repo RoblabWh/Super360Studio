@@ -164,13 +164,26 @@ def pruefe_ausrichtung(kennwerte: dict) -> str | None:
             f"beieinander. Gier von Hand nachziehen und erneut ausrichten.")
 
 
-def set_manual(pipe, yaw_deg: float, tx: float, ty: float) -> None:
-    """Handjustage uebernehmen (Gier in Grad, Versatz in Metern)."""
+def as_t3(t) -> np.ndarray:
+    """Verschiebung als 3er-Vektor, wie ``register.affine`` sie braucht.
+
+    ``fit_to_dsm`` liefert drei Komponenten (x, y **und z**). Wer daraus einen
+    2er macht, bekommt in ``affine`` einen Broadcast-Fehler — und wenn der in
+    einem Qt-Slot passiert, verschluckt Qt ihn und es sieht so aus, als taete
+    der Regler einfach nichts.
+    """
+    v = np.asarray(t, dtype=float).ravel()
+    if v.size >= 3:
+        return v[:3].copy()
+    out = np.zeros(3)
+    out[:v.size] = v
+    return out
+
+
+def set_manual(pipe, yaw_deg: float, t) -> None:
+    """Handjustage uebernehmen (Gier in Grad, Versatz als 3er in Metern)."""
     pipe.yaw = float(np.radians(yaw_deg))
-    t = np.asarray(pipe.t, dtype=float).ravel()
-    if t.size < 2:
-        t = np.zeros(2)
-    pipe.t = np.array([float(tx), float(ty)])
+    pipe.t = as_t3(t)
     pipe.save_align()
 
 
@@ -395,7 +408,24 @@ if __name__ == "__main__":
     assert not maske_weg.any(), "verschobene Lage trifft immer noch"
     print("  verschobene Lage trifft nichts mehr — die Vorschau reagiert")
 
-    print("== Test 6: Ebene schreiben und lesen ==")
+    print("== Test 6: Verschiebung bleibt ein 3er-Vektor ==")
+    assert as_t3([1.0, 2.0, 3.0]).tolist() == [1.0, 2.0, 3.0]
+    assert as_t3([1.0, 2.0]).tolist() == [1.0, 2.0, 0.0], "2er nicht aufgefuellt"
+    assert as_t3(np.array([[4.0, 5.0, 6.0, 7.0]])).tolist() == [4.0, 5.0, 6.0]
+    assert as_t3([]).tolist() == [0.0, 0.0, 0.0]
+    # und genau so muss register.affine sie nehmen — ein 2er bricht dort ab
+    find_pipeline()
+    from colorize_pipeline import register as reg
+    A_, b_ = reg.affine(0.5, as_t3([1.0, 2.0]), 1.0, np.eye(3), np.zeros(3))
+    assert b_.shape == (3,), b_.shape
+    try:
+        reg.affine(0.5, np.array([1.0, 2.0]), 1.0, np.eye(3), np.zeros(3))
+    except ValueError:
+        print("  2er-Vektor bricht in register.affine ab — genau deshalb as_t3")
+    else:
+        raise AssertionError("2er-Vektor haette abbrechen muessen")
+
+    print("== Test 7: Ebene schreiben und lesen ==")
     lay = os.path.join(tmp, "ebene")
     save_layer(lay, rgb, maske, {"quelle": "selbsttest"})
     zurueck = load_layer(lay, len(pts))
