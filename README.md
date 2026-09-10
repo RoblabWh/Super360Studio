@@ -44,8 +44,53 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
    werden vorher beendet.
 3. **Einfärben** — erst ggf. „Auto-Kalibrierung (grob)", Overlay-Vorschau
    prüfen, dann „Einfärben".
-4. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
-5. **Export** — berücksichtigt „Nur eingefärbte Punkte".
+4. **Zusammenführen** — zweiten Flug dazuladen und beide Karten zu einer machen.
+5. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
+6. **Export** — berücksichtigt „Nur eingefärbte Punkte".
+
+## Höhenschnitt
+
+Rechts am Viewer liegt eine Leiste mit zwei Griffen, die die sichtbare
+Höhenschicht aufspannen — damit lässt sich das Dach abnehmen und in ein Gebäude
+hineinschauen. Die Höhen stehen in Metern an den Griffen.
+
+| Eingabe | Wirkung |
+|---|---|
+| Griff ziehen | obere oder untere Schnittebene setzen |
+| auf die Leiste klicken | den näher liegenden Griff dorthin holen |
+| Mausrad über der Leiste | die ganze Schicht nach oben oder unten schieben |
+| Doppelklick oder „alles" | Schnitt aufheben |
+
+Geschnitten wird über Clipping-Ebenen auf der Grafikkarte, die Geometrie bleibt
+also unberührt und das Ziehen ist auch bei Millionen Punkten flüssig. Die
+Trajektorie hängt an einem eigenen Mapper und bleibt sichtbar.
+
+## Zusammenführen
+
+Jeder Flug bekommt von FAST-LIO ein eigenes Weltsystem, verankert im ersten
+Scan. Zwei Karten liegen darum beliebig zueinander, auch wenn sie dasselbe
+Gebäude zeigen. Der Ablauf in der Sidebar:
+
+1. **Zweiten Flug wählen** — dessen Karte muss berechnet sein; ist sie es nicht,
+   wird mit der zu erwartenden Dauer gefragt und FAST-LIO läuft direkt hier.
+   Die zweite Wolke erscheint orange im Viewer.
+2. **Auto-Ausrichten** — globale Suche (FGR über FPFH) plus ICP von grob nach
+   fein. Dauert Sekunden bis Minuten. **Nur ICP** verfeinert stattdessen die
+   aktuelle Lage, was nach einer Handjustage reicht.
+3. **X/Y/Z/Gier** schieben und drehen die zweite Wolke von Hand, mit sofortiger
+   Vorschau. Gedreht wird um ihren eigenen Schwerpunkt.
+4. **Übernehmen** schreibt eine gemeinsame Aufzeichnung und öffnet sie als
+   Arbeitswolke. Sie lässt sich danach als Ganzes einfärben und exportieren;
+   jeder Abschnitt wird mit der Kamera seines eigenen Bags eingefärbt.
+
+Nach dem Ausrichten stehen Trefferquote und Restfehler im Protokoll. Unter 0,3
+Trefferquote überlappen die Wolken zu wenig — dann von Hand grob zusammenschieben
+und „Nur ICP" nachlaufen lassen. Ein Restfehler über 0,3 m heißt: die Lage stimmt
+grob, sitzt aber nicht sauber.
+
+Grenzen: das 360°-Video und die GPS-Prüfung zeigen weiter den zeitlich ersten
+Flug. Zeitlich überlappende Aufnahmen werden abgelehnt, weil die Scan-Reihenfolge
+dann nicht mehr eindeutig wäre.
 
 ## Kippkorrektur
 
@@ -128,6 +173,8 @@ Erfolg).
   Farbschlieren bekommen.
 - Der obere Polbereich (~5 %) des Panos ist physikalisch von keiner Linse
   abgedeckt (Sensor beschneidet die Fisheye-Kreise).
+- Beim Zusammenführen wird nur eine starre Transformation gesucht. Driftet eine
+  der beiden LIO-Karten in sich, lässt sich das damit nicht geradebiegen.
 
 ## Architektur
 

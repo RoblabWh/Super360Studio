@@ -291,6 +291,14 @@ class MainWindow(QMainWindow):
         # ------------------------------------------------------------ Zustand
         self._bag: Optional[ThreadLocalBag] = None
         self._bag_info: Optional[BagInfo] = None
+        # Zusammenfuehren: zweiter Flug, seine Lage und die Quellen-Abschnitte
+        # einer bereits zusammengefuehrten Aufzeichnung (fuer die Einfaerbung).
+        self._merge_bag: Optional[ThreadLocalBag] = None
+        self._merge_rec = None
+        self._merge_cloud: Optional[np.ndarray] = None
+        self._merge_T = np.eye(4)
+        self._merge_center = np.zeros(3)
+        self._parts: Optional[list] = None
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -398,6 +406,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self._group_rosbag())
         lay.addWidget(self._group_fastlio())
         lay.addWidget(self._group_colorize())
+        lay.addWidget(self._group_merge())
         lay.addWidget(self._group_display())
         lay.addWidget(self._group_rviz())
         lay.addWidget(self._group_export())
@@ -521,6 +530,68 @@ class MainWindow(QMainWindow):
         form.addRow(self._btn_autocal)
         form.addRow(self._btn_overlay)
         form.addRow(self._btn_colorize)
+        return box
+
+    def _group_merge(self) -> QGroupBox:
+        box = QGroupBox("4. Zusammenführen")
+        form = _wrappable(QFormLayout(box))
+        self._btn_merge_pick = QPushButton("Zweiten Flug wählen …")
+        self._btn_merge_pick.setToolTip(
+            "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\n"
+            "sonst wird gefragt, ob sie jetzt berechnet werden soll.")
+        self._btn_merge_pick.clicked.connect(self._on_merge_pick)
+        form.addRow(self._btn_merge_pick)
+        self._lbl_merge = QLabel("Kein zweiter Flug geladen.")
+        self._lbl_merge.setWordWrap(True)
+        form.addRow(self._lbl_merge)
+
+        grid_holder = QWidget()
+        grid = QGridLayout(grid_holder)
+        grid.setContentsMargins(0, 0, 0, 0)
+        self._spin_merge = {}
+        for col, (key, label, rng, step, suffix) in enumerate((
+                ("x", "X", 500.0, 0.1, " m"), ("y", "Y", 500.0, 0.1, " m"),
+                ("z", "Z", 500.0, 0.1, " m"), ("yaw", "Gier", 180.0, 1.0, "°"))):
+            sp = QDoubleSpinBox()
+            sp.setRange(-rng, rng)
+            sp.setSingleStep(step)
+            sp.setDecimals(2)
+            sp.setSuffix(suffix)
+            sp.valueChanged.connect(self._on_merge_manual)
+            grid.addWidget(QLabel(label), 0, col)
+            grid.addWidget(sp, 1, col)
+            self._spin_merge[key] = sp
+        form.addRow(grid_holder)
+
+        row = QWidget()
+        hl = QHBoxLayout(row)
+        hl.setContentsMargins(0, 0, 0, 0)
+        self._btn_merge_auto = QPushButton("Auto-Ausrichten")
+        self._btn_merge_auto.setToolTip(
+            "Globale Suche (FGR über FPFH) plus ICP von grob nach fein.\n"
+            "Dauert je nach Wolkengröße ein bis mehrere Minuten.")
+        self._btn_merge_auto.clicked.connect(lambda: self._on_merge_align("auto"))
+        self._btn_merge_icp = QPushButton("Nur ICP")
+        self._btn_merge_icp.setToolTip(
+            "Verfeinert nur die aktuelle Lage — nach einer Handjustage genug.")
+        self._btn_merge_icp.clicked.connect(lambda: self._on_merge_align("icp"))
+        hl.addWidget(self._btn_merge_auto)
+        hl.addWidget(self._btn_merge_icp)
+        form.addRow(row)
+
+        row2 = QWidget()
+        hl2 = QHBoxLayout(row2)
+        hl2.setContentsMargins(0, 0, 0, 0)
+        self._btn_merge_apply = QPushButton("Übernehmen")
+        self._btn_merge_apply.setToolTip(
+            "Schreibt eine gemeinsame Aufzeichnung und öffnet sie als Arbeitswolke.\n"
+            "Sie lässt sich danach als Ganzes einfärben und exportieren.")
+        self._btn_merge_apply.clicked.connect(self._on_merge_apply)
+        self._btn_merge_drop = QPushButton("Verwerfen")
+        self._btn_merge_drop.clicked.connect(self._on_merge_discard)
+        hl2.addWidget(self._btn_merge_apply)
+        hl2.addWidget(self._btn_merge_drop)
+        form.addRow(row2)
         return box
 
     def _group_display(self) -> QGroupBox:
@@ -913,6 +984,8 @@ class MainWindow(QMainWindow):
         self._pano_view.set_source(None)
         self._cloud_view.set_cloud(None)
         self._cloud_view.set_path(None)
+        self._parts = None
+        self._merge_reset_state()
         self._gps_panel.set_quality(None, None, None)
         self._info_table.setRowCount(0)
         self._lbl_fastlio.setText("Noch keine Karte berechnet.")
@@ -1134,6 +1207,251 @@ class MainWindow(QMainWindow):
         self._valid = None
         self._start_recording_load()
 
+    # ========================================================= Zusammenführen
+
+    def _merge_reset_state(self) -> None:
+        self._merge_bag = None
+        self._merge_rec = None
+        self._merge_cloud = None
+        self._merge_T = np.eye(4)
+        self._merge_center = np.zeros(3)
+        self._cloud_view.set_preview_cloud(None)
+        if hasattr(self, "_lbl_merge"):
+            self._lbl_merge.setText("Kein zweiter Flug geladen.")
+            for sp in self._spin_merge.values():
+                sp.blockSignals(True)
+                sp.setValue(0.0)
+                sp.blockSignals(False)
+
+    def _merge_T_from_spins(self) -> np.ndarray:
+        """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben."""
+        yaw = np.radians(float(self._spin_merge["yaw"].value()))
+        R = np.eye(4)
+        R[:3, :3] = Rotation.from_euler("z", yaw).as_matrix()
+        hin = np.eye(4)
+        hin[:3, 3] = self._merge_center
+        weg = np.eye(4)
+        weg[:3, 3] = -self._merge_center
+        T = hin @ R @ weg
+        T[:3, 3] += [float(self._spin_merge[k].value()) for k in ("x", "y", "z")]
+        return T
+
+    def _merge_refresh_preview(self) -> None:
+        if self._merge_cloud is None:
+            return
+        pts = (self._merge_cloud @ self._merge_T[:3, :3].T) + self._merge_T[:3, 3]
+        self._cloud_view.set_preview_cloud(pts.astype(np.float32))
+
+    def _on_merge_manual(self) -> None:
+        if self._merge_cloud is None:
+            return
+        self._merge_T = self._merge_T_from_spins()
+        self._merge_refresh_preview()
+
+    def _on_merge_pick(self) -> None:
+        if self._busy or self._rec is None or self._project is None:
+            QMessageBox.information(
+                self, "Zusammenführen",
+                "Erst einen Flug öffnen und seine Karte berechnen — der ist "
+                "dann der Bezug, auf den der zweite gelegt wird.")
+            return
+        start = os.path.dirname(os.path.abspath(self._bag.bag_path))
+        path = QFileDialog.getExistingDirectory(self, "Zweites Rosbag wählen", start)
+        if not path:
+            return
+        path = os.path.abspath(path)
+        if path == os.path.abspath(self._bag.bag_path):
+            QMessageBox.warning(self, "Zusammenführen",
+                                "Das ist derselbe Flug wie der offene.")
+            return
+        try:
+            project_b = Project(path)
+        except RuntimeError as exc:
+            self._show_error("Zusammenführen", str(exc))
+            return
+        if not project_b.has_recording():
+            try:
+                with BagReader(path) as br:
+                    dauer = br.info().duration
+            except Exception as exc:  # noqa: BLE001
+                self._show_error("Zusammenführen", f"Bag nicht lesbar: {exc}")
+                return
+            antwort = QMessageBox.question(
+                self, "Karte fehlt",
+                f"Für '{os.path.basename(path)}' ist noch keine Karte berechnet.\n\n"
+                f"Der FAST-LIO-Lauf dauert ungefähr so lange wie der Flug, hier "
+                f"etwa {dauer / 60.0:.1f} Minuten bei Rate 1×.\n\n"
+                f"Jetzt berechnen?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if antwort != QMessageBox.Yes:
+                self._log(f"Zusammenführen abgebrochen: '{os.path.basename(path)}' "
+                          f"hat keine berechnete Karte.")
+                return
+            self._merge_run_fastlio(path, project_b)
+            return
+        self._merge_load_second(path, project_b)
+
+    def _merge_run_fastlio(self, path: str, project_b) -> None:
+        """FAST-LIO fuer den zweiten Flug, danach direkt weiter im Merge-Ablauf."""
+        config = self._combo_config.currentData()
+        rate = float(self._spin_rate.value())
+        out_dir = project_b.recording_dir()
+
+        def job(progress_cb, cancel, log_cb):
+            from core.fastlio_runner import FastLioRunner
+            runner = FastLioRunner()
+            return runner.run(path, out_dir, config=config, rate=rate,
+                              progress_cb=progress_cb, cancel=cancel, log_cb=log_cb)
+
+        def fertig(result) -> None:
+            self._log(f"Karte für den zweiten Flug fertig: {result.n_scans} Scans, "
+                      f"{_fmt_int(result.n_points)} Punkte.")
+            self._merge_load_second(path, project_b)
+
+        self._start_worker(
+            f"FAST-LIO2 für den zweiten Flug ({os.path.basename(path)}) …",
+            job, fertig)
+
+    def _merge_load_second(self, path: str, project_b) -> None:
+        rec_dir = project_b.recording_dir()
+
+        def job(progress_cb, cancel, log_cb):
+            from core import merge as merge_mod
+            progress_cb(0.1, "Lade zweite Aufzeichnung …")
+            rec_b = Recording.load(rec_dir, bag_path=path)
+            note = rec_b.level_note()
+            if note:
+                log_cb(f"Zweiter Flug — {note}")
+            progress_cb(0.6, "Dünne für die Vorschau aus …")
+            wolke = merge_mod.cloud_for_registration(rec_b)
+            return {"rec": rec_b, "cloud": wolke, "path": path,
+                    "proxy": ThreadLocalBag(path)}
+
+        self._start_worker("Lade zweiten Flug …", job, self._on_merge_loaded)
+
+    def _on_merge_loaded(self, res: dict) -> None:
+        self._merge_rec = res["rec"]
+        self._merge_bag = res["proxy"]
+        self._merge_cloud = res["cloud"]
+        self._merge_center = (self._merge_cloud.mean(axis=0)
+                              if len(self._merge_cloud) else np.zeros(3))
+        self._merge_T = np.eye(4)
+        for sp in self._spin_merge.values():
+            sp.blockSignals(True)
+            sp.setValue(0.0)
+            sp.blockSignals(False)
+        self._merge_refresh_preview()
+        name = os.path.basename(res["path"])
+        self._lbl_merge.setText(
+            f"{name}: {_fmt_int(self._merge_rec.n_points)} Punkte, "
+            f"{self._merge_rec.n_scans} Scans — noch nicht ausgerichtet.")
+        self._log(f"Zweiter Flug geladen: {name} "
+                  f"({_fmt_int(self._merge_rec.n_points)} Punkte). Orange dargestellt.")
+
+    def _on_merge_align(self, mode: str) -> None:
+        if self._merge_rec is None or self._rec is None:
+            QMessageBox.information(self, "Zusammenführen",
+                                    "Erst einen zweiten Flug laden.")
+            return
+        rec_a = self._rec
+        cloud_b = self._merge_cloud
+        T_init = self._merge_T.copy()
+
+        def job(progress_cb, cancel, log_cb):
+            from core import merge as merge_mod
+            progress_cb(0.02, "Dünne die erste Wolke aus …")
+            cloud_a = merge_mod.cloud_for_registration(rec_a)
+            return merge_mod.register(
+                cloud_a, cloud_b, T_init=T_init, mode=mode,
+                progress_cb=lambda f, m: progress_cb(0.05 + 0.95 * f, m),
+                cancel=cancel)
+
+        self._start_worker(
+            "Richte aus (globale Suche + ICP) …" if mode == "auto"
+            else "Verfeinere mit ICP …", job, self._on_merge_aligned)
+
+    def _on_merge_aligned(self, res: dict) -> None:
+        self._merge_T = np.asarray(res["T"], dtype=np.float64)
+        self._merge_refresh_preview()
+        for sp in self._spin_merge.values():   # Handfelder gelten jetzt nicht mehr
+            sp.blockSignals(True)
+            sp.setValue(0.0)
+            sp.blockSignals(False)
+        fit, rmse = res["fitness"], res["rmse"]
+        self._lbl_merge.setText(
+            f"Ausgerichtet über '{res['kandidat']}': Trefferquote {fit:.2f}, "
+            f"Restfehler {rmse:.3f} m.")
+        self._log(f"Ausrichtung: Kandidat '{res['kandidat']}', Trefferquote "
+                  f"{fit:.2f}, Restfehler {rmse:.3f} m.")
+        if fit < 0.3:
+            self._log("WARNUNG: Trefferquote unter 0,3 — die Wolken überlappen "
+                      "vermutlich zu wenig. Von Hand grob zusammenschieben und "
+                      "'Nur ICP' nachlaufen lassen.")
+        elif rmse > 0.30:
+            self._log(f"Hinweis: Restfehler {rmse:.2f} m ist für Innenräume viel. "
+                      f"Die Lage stimmt grob, sitzt aber nicht sauber — vor dem "
+                      f"Übernehmen im Viewer prüfen und ggf. von Hand nachziehen.")
+
+    def _on_merge_discard(self) -> None:
+        if self._merge_rec is None:
+            return
+        self._merge_reset_state()
+        self._log("Zweiter Flug verworfen.")
+
+    def _on_merge_apply(self) -> None:
+        if self._merge_rec is None or self._rec is None or self._project is None:
+            QMessageBox.information(self, "Zusammenführen",
+                                    "Erst einen zweiten Flug laden und ausrichten.")
+            return
+        bag_a = os.path.abspath(self._bag.bag_path)
+        bag_b = os.path.abspath(self._merge_bag.bag_path)
+        ziel = os.path.join(os.path.dirname(bag_a),
+                            f"{os.path.basename(bag_a)}+{os.path.basename(bag_b)}")
+        project_m = Project(ziel)
+        rec_a, rec_b = self._rec, self._merge_rec
+        T = self._merge_T.copy()
+        out_dir = project_m.recording_dir()
+
+        def job(progress_cb, cancel, log_cb):
+            from core import merge as merge_mod
+            meta = merge_mod.merge_recordings(
+                rec_a, rec_b, T, out_dir, bag_a, bag_b,
+                info={"fitness": None}, progress_cb=progress_cb, cancel=cancel)
+            progress_cb(0.99, "Lade zusammengeführte Aufzeichnung …")
+            return {"project": project_m, "meta": meta}
+
+        self._start_worker("Führe die Flüge zusammen …", job, self._on_merge_applied)
+
+    def _on_merge_applied(self, res: dict) -> None:
+        project_m = res["project"]
+        meta = res["meta"]
+        quellen = meta["sources"]
+        # Die zusammengefuehrte Aufzeichnung wird die Arbeitswolke. Der zeitlich
+        # fruehere Flug fuehrt (Pano-Tab und GPS haengen an ihm), die Einfaerbung
+        # bekommt ueber _parts fuer jeden Abschnitt die richtige Kamera.
+        self._merge_reset_state()
+        self._project = project_m
+        self._parts = [(ThreadLocalBag(q["bag"]), q["scan_range"][0], q["scan_range"][1])
+                       for q in quellen]
+        self._bag = self._parts[0][0]
+        try:
+            self._bag_info = self._bag.info()
+        except Exception as exc:  # noqa: BLE001
+            self._log(f"Info des führenden Bags nicht lesbar: {exc}")
+        self._colors = None
+        self._valid = None
+        self._georef = None
+        self._pano_src = None
+        self._pano_view.set_source(None)
+        self.setWindowTitle(f"Super360 Studio — {project_m.bag_name}")
+        self._log(f"Zusammengeführt: {meta['n_scans']} Scans, "
+                  f"{_fmt_int(meta['n_points'])} Punkte aus "
+                  + " + ".join(os.path.basename(q["bag"]) for q in quellen) + ".")
+        self._log("Das 360°-Video und die GPS-Prüfung zeigen weiter den zeitlich "
+                  "ersten Flug; die Einfärbung nutzt für jeden Abschnitt die "
+                  "Kamera seines eigenen Bags.")
+        self._start_recording_load()
+
     # ============================================================== Einfärbung
 
     @staticmethod
@@ -1164,6 +1482,7 @@ class MainWindow(QMainWindow):
             sky_grow=int(self._spin_sky.value()),
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
+        parts = self._parts
         out_dir = self._project.colors_dir()
 
         def job(progress_cb, cancel, log_cb):
@@ -1186,7 +1505,8 @@ class MainWindow(QMainWindow):
                         "Das kostet spürbar Farbqualität — Lauf abbrechen, "
                         "'Auto-Kalibrierung (grob)' starten und neu einfärben.")
             return colorizer.colorize(rec, bag, calib, params, out_dir,
-                                      progress_cb=progress_cb, cancel=cancel)
+                                      progress_cb=progress_cb, cancel=cancel,
+                                      parts=parts)
 
         self._start_worker("Färbe Punktwolke ein …", job, self._on_colorize_done)
 

@@ -278,29 +278,41 @@ class ColorizeParams:
 
 
 def colorize(rec, bag, calib_json: str, params: ColorizeParams,
-             out_dir: str, progress_cb: ProgressCb = None, cancel=None) -> dict:
+             out_dir: str, progress_cb: ProgressCb = None, cancel=None,
+             parts: Sequence[tuple] | None = None) -> dict:
     """Faerbt alle Punkte der Aufzeichnung aus den Kamera-Frames ein.
 
     Je Scan werden bis zu k zeitnaechste Frames plus zwei zeitversetzte
     Konsens-Frames (~+-0,8 s, andere Drohnenpose) gesampelt; je Punkt gewinnt
     der Farb-MEDIAN aller gueltigen Samples (Double-Sphere gueltig, im
     Bildkreis inkl. Randzonen-Guard, Distanz >= min_range, Grauwert im
-    Helligkeitsfenster, ausserhalb des Himmelssaums s. :func:`_blown_mask`). Der Median ueberstimmt einzelne Silhouetten-
-    Fehlgriffe (Baumkrone/Dachkante sampelt Himmel durch Luecken), die beim
-    frueheren Erster-Treffer-Verfahren dauerhaft in der Wolke landeten.
+    Helligkeitsfenster, ausserhalb des Himmelssaums s. :func:`_blown_mask`).
+    Der Median ueberstimmt einzelne Silhouetten-Fehlgriffe (Baumkrone/
+    Dachkante sampelt Himmel durch Luecken), die beim frueheren
+    Erster-Treffer-Verfahren dauerhaft in der Wolke landeten.
     Schreibt colors.bin (uint8 N x 3, RGB!), valid.bin (uint8 N), meta.json.
+
+    ``parts`` bedient zusammengefuehrte Aufzeichnungen (s. core/merge.py):
+    eine Liste ``(bag, scan_von, scan_bis)``, je Abschnitt die Kamera des
+    zugehoerigen Bags. Ohne ``parts`` gilt ``bag`` fuer alle Scans.
     """
     t_start = time.time()
     T = np.asarray(params.T_imu_cam0, dtype=np.float64)
     if T.shape != (4, 4):
         raise RuntimeError(f"T_imu_cam0 muss 4x4 sein, erhalten {T.shape}.")
-    _check_camera_resolution(bag)
+    # Abschnitte: ohne parts ein einziger ueber die ganze Aufzeichnung
+    if parts:
+        teile = [(b, int(v), int(bis)) for b, v, bis in parts]
+    else:
+        teile = [(bag, 0, int(rec.n_scans))]
+    for b, _, _ in teile:
+        _check_camera_resolution(b)
     cam0, cam1, T_cam0_cam1 = DoubleSphereCamera.from_calib(calib_json)
     R01 = np.ascontiguousarray(T_cam0_cam1[:3, :3], dtype=np.float32)
     t01 = T_cam0_cam1[:3, 3].astype(np.float32)
     T_cam0_imu = _inv_rigid(T)
 
-    cam_stamps = bag.camera_stamps()
+    teil_stamps = [t[0].camera_stamps() for t in teile]
     N = rec.n_points
     S = rec.n_scans
     colors = np.zeros((N, 3), dtype=np.uint8)
@@ -320,18 +332,24 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     # kleiner LRU fuer kontiguierliche Frame-Haelften (Dekodierung cacht BagReader)
     halves: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
 
-    def get_halves(fidx: int):
-        """(half0, half1, sky0, sky1) — Bildhaelften plus Himmelssaum-Masken."""
-        if fidx in halves:
-            halves.move_to_end(fidx)
-            return halves[fidx]
-        img = bag.read_camera(fidx)
+    def get_halves(key):
+        """(half0, half1, sky0, sky1) — Bildhaelften plus Himmelssaum-Masken.
+
+        ``key`` ist (Abschnitt, Frame-Index): bei zusammengefuehrten
+        Aufzeichnungen zeigen gleiche Frame-Indizes verschiedener Bags auf
+        verschiedene Bilder.
+        """
+        if key in halves:
+            halves.move_to_end(key)
+            return halves[key]
+        ti_, fidx = key
+        img = teile[ti_][0].read_camera(fidx)
         h0 = np.ascontiguousarray(img[:, :SPLIT_X])
         h1 = np.ascontiguousarray(img[:, SPLIT_X:2 * SPLIT_X])
         pair = (h0, h1,
                 _blown_mask(h0, sky_clip, sky_grow),
                 _blown_mask(h1, sky_clip, sky_grow))
-        halves[fidx] = pair
+        halves[key] = pair
         if len(halves) > _FRAME_LRU:
             halves.popitem(last=False)
         return pair
@@ -339,10 +357,16 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     R_all = Rotation.from_quat(rec.poses[:, 3:7]).as_matrix()
     n_valid = 0
 
+    ti = 0
     for i in range(S):
         _check_cancel(cancel)
         s, e = int(rec.offsets[i]), int(rec.offsets[i + 1])
         if e <= s:
+            continue
+        while ti + 1 < len(teile) and i >= teile[ti][2]:
+            ti += 1
+        cam_stamps = teil_stamps[ti]
+        if len(cam_stamps) == 0:
             continue
         t_scan = float(rec.stamps[i])
         cands = _candidate_frames(cam_stamps, t_scan, params.max_dt,
@@ -379,7 +403,7 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             uv1, geo1 = cam1.project(pc1)
             geo1 &= _in_circle(uv1)
 
-            half0, half1, sky0, sky1 = get_halves(fidx)
+            half0, half1, sky0, sky1 = get_halves((ti, fidx))
             ok = np.zeros(len(p_world), dtype=bool)
             col = np.zeros((len(p_world), 3), dtype=np.float32)
             skyish = np.zeros(len(p_world), dtype=bool)
@@ -460,7 +484,8 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "max_dt": params.max_dt,
         "min_range": params.min_range,
         "calib_json": str(calib_json),
-        "bag": getattr(bag, "bag_path", None),
+        "bag": getattr(teile[0][0], "bag_path", None),
+        "bags": [getattr(b, "bag_path", None) for b, _, _ in teile],
         "rec_fingerprint": rec_fingerprint(rec),
         "n_points": int(N),
         "n_valid": int(n_valid),

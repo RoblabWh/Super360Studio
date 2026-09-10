@@ -22,6 +22,7 @@ Super360Studio/
     stitcher.py          # Double-Sphere-Kamera + Equirect-Stitcher (cv2.remap)
     colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye, Helligkeits- und Himmelsfilter
     georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU
+    merge.py             # zwei Aufzeichnungen ausrichten (FGR+ICP) und zusammenschreiben
     project.py           # Session/Cache-Verwaltung pro Bag
   scripts/
     record_fastlio.py    # Standalone rclpy-Recorder (läuft in ROS-Umgebung als Subprozess)
@@ -384,6 +385,46 @@ def auto_calibrate(rec, bag, calib_json, T_init=None, frames: list[int] = None,
     # über ~5 gleichverteilte Frames. Rückgabe (T_imu_cam0, score). Ehrlich bleiben:
     # score mitliefern, UI zeigt Warnung bei schwachem Score.
 ```
+
+## core/merge.py
+
+Zwei Flüge, zwei Weltsysteme: FAST-LIO verankert jedes in der Sensorlage seines
+ersten Scans. Zusammenführen heißt deshalb, die starre Transformation dazwischen
+zu suchen und die zweite Aufzeichnung umzuhängen.
+
+```python
+def cloud_for_registration(rec, max_points=400_000) -> np.ndarray:
+    # gleichmäßig über alle Scans gegriffene Weltpunkte, float64 (N,3)
+
+def register(points_a, points_b, T_init=None, mode="auto"|"icp",
+             progress_cb=None, cancel=None) -> dict:
+    # auto: Identität + Schwerpunkt + 7 Gier-Startlagen + 10× FGR über FPFH,
+    #       jede mit ICP grob→mittel verfeinert (Punkt zu Ebene), Bewertung
+    #       fitness - rmse/voxel; Sieger bekommt einen Feinschliff auf der
+    #       dichten Wolke. icp: verfeinert nur T_init.
+    # {"T", "fitness", "rmse", "kandidat", "voxel"}; fitness < 0.3 ⇒ nicht trauen
+
+def merge_recordings(rec_a, rec_b, T_ab, out_dir, bag_a, bag_b,
+                     info=None, progress_cb=None, cancel=None) -> dict:
+    # schreibt eine vollwertige Aufzeichnung nach out_dir
+```
+
+Der Kniff beim Schreiben: `points.bin` steht im **Body-Frame** des jeweiligen
+Scans und ist von der Pose unabhängig. Zusammenführen heißt darum, die
+Punktdateien blockweise aneinanderzuhängen und nur die Posen der zweiten
+Aufzeichnung umzurechnen (`T_neu = T_ab · T_alt`). Nichts wird neu berechnet,
+nichts verzerrt, und die Laufzeit ist die eines Dateikopiervorgangs.
+
+Der **zeitlich frühere Flug kommt zuerst**, damit `stamps.npy` aufsteigend
+bleibt — darauf verlässt sich `interpolate_pose` per `searchsorted`.
+Überlappende Zeiträume werden abgelehnt statt still falsch geschrieben.
+
+`meta.json` bekommt `sources` mit Bagpfad, Scan- und Punktbereich je Abschnitt.
+Daraus baut die UI die Liste `parts` für `colorize()`: jeder Abschnitt wird mit
+der Kamera seines eigenen Bags eingefärbt. `gravity_level.applied` steht auf
+`false`, denn beide Teile kamen bereits lotrecht herein.
+
+Grenzen: das 360°-Video und die GPS-Prüfung hängen weiter am führenden Bag.
 
 ## core/georef.py
 

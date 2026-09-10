@@ -5,11 +5,18 @@ direct vertex cell array (no vtkVertexGlyphFilter). Supports color modes
 rgb/hoehe/intensitaet/uniform, a valid mask filter ("nur eingefaerbte
 Punkte"), display voxel downsampling, a trajectory polyline, EDL shading
 (with graceful fallback) and screenshots. All calls GUI-thread only.
+
+Am rechten Rand liegt der Hoehenschnitt (:class:`CutBar`): zwei Griffe
+spannen die sichtbare Schicht auf, so laesst sich das Dach abnehmen und in
+ein Gebaeude hineinschauen. Geschnitten wird ueber vtkPlane am Mapper, also
+auf der Grafikkarte — die Geometrie wird dabei nicht neu aufgebaut, das
+Ziehen bleibt auch bei Millionen Punkten fluessig. Die Trajektorie haengt an
+einem eigenen Mapper und bleibt ungeschnitten sichtbar.
 """
 from __future__ import annotations
 
 import numpy as np
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
@@ -28,6 +35,11 @@ _BG = {"dunkel": (0.102, 0.110, 0.125), "hell": (0.93, 0.94, 0.955)}
 _UNIFORM_COLOR = {"dunkel": (0.80, 0.82, 0.85), "hell": (0.22, 0.25, 0.28)}
 _COLOR_MODES = ("rgb", "hoehe", "intensitaet", "uniform")
 _ID_DTYPE = np.int64 if vtk.vtkIdTypeArray().GetDataTypeSize() == 8 else np.int32
+
+_CUT_W = 62        # px Gesamtbreite der Leiste
+_CUT_TRACK_W = 10  # px Breite der Schiene
+_CUT_PAD = 20      # px oben/unten fuer die Beschriftung
+_CUT_GRIP = 7      # px halbe Hoehe eines Griffs
 
 
 def _turbo_lut() -> np.ndarray:
@@ -88,15 +100,178 @@ def _voxel_first_indices(pts: np.ndarray, voxel: float) -> np.ndarray:
     return np.sort(first)
 
 
+class CutBar(QtWidgets.QWidget):
+    """Senkrechte Leiste mit zwei Griffen: die sichtbare Hoehenschicht.
+
+    Vorbild ist die Leiste des VS-Code-Punktwolken-Viewers aus PointCloudMerger.
+    Der obere Griff setzt die obere Schnittebene, der untere die untere; die
+    Werte stehen in Metern in den Koordinaten der Wolke. Ziehen bewegt einen
+    Griff, ein Klick auf die Schiene holt den naeheren Griff dorthin, das
+    Mausrad schiebt die ganze Schicht.
+    """
+
+    changed = QtCore.pyqtSignal(float, float)  # untere, obere Ebene in Metern
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setFixedWidth(_CUT_W)
+        self.setCursor(QtCore.Qt.SizeVerCursor)
+        self.setToolTip(
+            "Höhenschnitt: Griffe ziehen, auf die Schiene klicken holt den\n"
+            "näheren Griff, Mausrad verschiebt die ganze Schicht.")
+        self._min = 0.0
+        self._max = 1.0
+        self._lo = 0.0   # Anteil 0..1, unten
+        self._hi = 1.0   # Anteil 0..1, oben
+        self._drag: str | None = None
+        self._enabled = False
+
+    # ------------------------------------------------------------- Zustand
+
+    def set_range(self, zmin: float, zmax: float) -> None:
+        """Hoehenbereich der Wolke setzen; der Schnitt geht dabei auf ganz auf."""
+        if not np.isfinite(zmin) or not np.isfinite(zmax) or zmax - zmin < 1e-6:
+            self._enabled = False
+            self._min, self._max = 0.0, 1.0
+        else:
+            self._enabled = True
+            self._min, self._max = float(zmin), float(zmax)
+        self._lo, self._hi = 0.0, 1.0
+        self.update()
+        self.changed.emit(*self.planes())
+
+    def planes(self) -> tuple[float, float]:
+        """Aktuelle Schnittebenen in Metern (untere, obere)."""
+        span = self._max - self._min
+        return self._min + self._lo * span, self._min + self._hi * span
+
+    def is_cut(self) -> bool:
+        return self._enabled and (self._lo > 0.0 or self._hi < 1.0)
+
+    def reset(self) -> None:
+        if self._lo == 0.0 and self._hi == 1.0:
+            return
+        self._lo, self._hi = 0.0, 1.0
+        self.update()
+        self.changed.emit(*self.planes())
+
+    # -------------------------------------------------------------- Geometrie
+
+    def _track(self) -> QtCore.QRect:
+        x = (self.width() - _CUT_TRACK_W) // 2
+        return QtCore.QRect(x, _CUT_PAD, _CUT_TRACK_W,
+                            max(self.height() - 2 * _CUT_PAD, 1))
+
+    def _y(self, frac: float) -> int:
+        """Anteil -> y (0 unten, 1 oben)."""
+        tr = self._track()
+        return int(round(tr.bottom() - frac * (tr.height() - 1)))
+
+    def _frac(self, y: int) -> float:
+        tr = self._track()
+        return float(np.clip((tr.bottom() - y) / max(tr.height() - 1, 1), 0.0, 1.0))
+
+    # ---------------------------------------------------------------- Malen
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt)
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        tr = self._track()
+        an = QtGui.QColor(*[int(c * 255) for c in _ACCENT])
+        if not self._enabled:
+            an.setAlpha(70)
+        p.setPen(QtCore.Qt.NoPen)
+        p.setBrush(QtGui.QColor(255, 255, 255, 28))
+        p.drawRoundedRect(tr, 5, 5)
+        y_lo, y_hi = self._y(self._lo), self._y(self._hi)
+        band = QtCore.QRect(tr.left(), y_hi, tr.width(), max(y_lo - y_hi, 1))
+        p.setBrush(an)
+        p.drawRoundedRect(band, 5, 5)
+        gw = self.width() - 12
+        for y in (y_hi, y_lo):
+            g = QtCore.QRect(6, y - _CUT_GRIP // 2, gw, _CUT_GRIP)
+            p.setBrush(QtGui.QColor(240, 244, 250) if self._enabled
+                       else QtGui.QColor(150, 155, 165))
+            p.drawRoundedRect(g, 3, 3)
+        lo_m, hi_m = self.planes()
+        f = p.font()
+        f.setPointSizeF(max(f.pointSizeF() - 1.5, 6.5))
+        p.setFont(f)
+        p.setPen(QtGui.QColor(215, 220, 230) if self._enabled
+                 else QtGui.QColor(130, 135, 145))
+        txt = ("—", "—") if not self._enabled else (f"{hi_m:.1f} m", f"{lo_m:.1f} m")
+        p.drawText(QtCore.QRect(0, 2, self.width(), _CUT_PAD - 4),
+                   QtCore.Qt.AlignCenter, txt[0])
+        p.drawText(QtCore.QRect(0, self.height() - _CUT_PAD + 2, self.width(),
+                                _CUT_PAD - 4), QtCore.Qt.AlignCenter, txt[1])
+        p.end()
+
+    # ---------------------------------------------------------------- Maus
+
+    def _nearest(self, y: int) -> str:
+        return "hi" if abs(y - self._y(self._hi)) <= abs(y - self._y(self._lo)) else "lo"
+
+    def _move_to(self, which: str, y: int) -> None:
+        f = self._frac(y)
+        if which == "hi":
+            self._hi = max(f, self._lo)
+        else:
+            self._lo = min(f, self._hi)
+        self.update()
+        self.changed.emit(*self.planes())
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt)
+        if not self._enabled or event.button() != QtCore.Qt.LeftButton:
+            return
+        self._drag = self._nearest(event.y())
+        self._move_to(self._drag, event.y())
+
+    def mouseMoveEvent(self, event) -> None:  # noqa: N802 (Qt)
+        if self._drag is not None:
+            self._move_to(self._drag, event.y())
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802 (Qt)
+        self._drag = None
+
+    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 (Qt)
+        self.reset()
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 (Qt)
+        """Die ganze Schicht verschieben, Dicke bleibt."""
+        if not self._enabled:
+            return
+        step = (event.angleDelta().y() / 120.0) * 0.02
+        d = self._hi - self._lo
+        lo = float(np.clip(self._lo + step, 0.0, 1.0 - d))
+        self._lo, self._hi = lo, lo + d
+        self.update()
+        self.changed.emit(*self.planes())
+        event.accept()
+
+
 class CloudView(QtWidgets.QWidget):
     """VTK-Punktwolken-Viewer (Trackball-Kamera, EDL optional)."""
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         self._vtkw = QVTKRenderWindowInteractor(self)
-        layout.addWidget(self._vtkw)
+        layout.addWidget(self._vtkw, 1)
+
+        side = QtWidgets.QVBoxLayout()
+        side.setContentsMargins(2, 4, 4, 4)
+        side.setSpacing(4)
+        self.cut_bar = CutBar(self)
+        side.addWidget(self.cut_bar, 1)
+        self._cut_reset = QtWidgets.QPushButton("alles")
+        self._cut_reset.setToolTip("Höhenschnitt aufheben")
+        self._cut_reset.setFixedWidth(_CUT_W)
+        self._cut_reset.clicked.connect(self.cut_bar.reset)
+        side.addWidget(self._cut_reset, 0)
+        layout.addLayout(side, 0)
+        self.cut_bar.changed.connect(self._on_cut_changed)
 
         self._renderer = vtk.vtkRenderer()
         self._background = "dunkel"
@@ -112,7 +287,24 @@ class CloudView(QtWidgets.QWidget):
         self._actor.SetMapper(self._mapper)
         self._actor.GetProperty().SetPointSize(2)
         self._renderer.AddActor(self._actor)
+        # Hoehenschnitt auf der Grafikkarte: nur am Wolken-Mapper, damit die
+        # Trajektorie ungeschnitten sichtbar bleibt.
+        self._plane_lo = vtk.vtkPlane()
+        self._plane_lo.SetNormal(0.0, 0.0, 1.0)
+        self._plane_hi = vtk.vtkPlane()
+        self._plane_hi.SetNormal(0.0, 0.0, -1.0)
+        self._cut_active = False
         self._path_actor: vtk.vtkActor | None = None
+        # Zweite Wolke fuer die Merge-Vorschau: eigener Mapper, einfarbig,
+        # damit sich beim Ausrichten sofort sehen laesst, was wohin wandert.
+        self._prev_mapper = vtk.vtkPolyDataMapper()
+        self._prev_actor = vtk.vtkActor()
+        self._prev_actor.SetMapper(self._prev_mapper)
+        self._prev_actor.GetProperty().SetPointSize(2)
+        self._prev_actor.GetProperty().SetColor(1.0, 0.55, 0.20)
+        self._prev_actor.SetVisibility(False)
+        self._renderer.AddActor(self._prev_actor)
+        self._prev_refs: list = []
 
         # EDL (eye-dome lighting) — availability exposed as attribute.
         self.edl_available: bool = False
@@ -146,6 +338,86 @@ class CloudView(QtWidgets.QWidget):
         self._initialized = False
         self._had_cloud = False
 
+    # ------------------------------------------------------------- Hoehenschnitt
+
+    def _on_cut_changed(self, lo: float, hi: float) -> None:
+        """Schnittebenen am Mapper nachziehen (kein Geometrie-Neuaufbau)."""
+        aktiv = self.cut_bar.is_cut()
+        self._plane_lo.SetOrigin(0.0, 0.0, lo)
+        self._plane_hi.SetOrigin(0.0, 0.0, hi)
+        if aktiv and not self._cut_active:
+            for m in (self._mapper, self._prev_mapper):
+                m.AddClippingPlane(self._plane_lo)
+                m.AddClippingPlane(self._plane_hi)
+        elif not aktiv and self._cut_active:
+            for m in (self._mapper, self._prev_mapper):
+                m.RemoveClippingPlane(self._plane_lo)
+                m.RemoveClippingPlane(self._plane_hi)
+        self._cut_active = aktiv
+        self._render()
+
+    def cut_planes(self) -> tuple[float, float] | None:
+        """Aktive Schnittebenen (unten, oben) oder None, wenn nicht geschnitten."""
+        return self.cut_bar.planes() if self.cut_bar.is_cut() else None
+
+    def _refresh_cut_range(self) -> None:
+        """Hoehenbereich aus der geladenen Wolke uebernehmen."""
+        if self._points is None or len(self._points) == 0:
+            self.cut_bar.set_range(0.0, 0.0)
+            return
+        z = self._points[:, 2]
+        self.cut_bar.set_range(float(z.min()), float(z.max()))
+
+    # ------------------------------------------------------------- Vorschau
+
+    def set_preview_cloud(self, points: np.ndarray | None,
+                          color: tuple[float, float, float] = (1.0, 0.55, 0.20)) -> None:
+        """Zweite Wolke einfarbig darueberlegen (Merge-Vorschau); None entfernt sie.
+
+        Der Hoehenschnitt gilt auch hier, sonst haenge die Vorschau ueber einer
+        aufgeschnittenen Karte.
+        """
+        if points is None or len(points) == 0:
+            self._prev_actor.SetVisibility(False)
+            self._prev_mapper.SetInputData(vtk.vtkPolyData())
+            self._prev_refs = []
+            self._render()
+            return
+        pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
+        n = len(pts)
+        vtk_pts = vtk.vtkPoints()
+        vtk_pts.SetData(_strip_numpy_ref(
+            numpy_to_vtk(pts, deep=False, array_type=vtk.VTK_FLOAT)))
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(vtk_pts)
+        verts = vtk.vtkCellArray()
+        refs: list = [pts]
+        try:
+            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
+            conn = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
+                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
+            refs += [offsets, conn]
+        except (AttributeError, TypeError):  # pre-9.0 fallback
+            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
+            legacy[0::2] = 1
+            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
+            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
+            refs.append(legacy)
+        poly.SetVerts(verts)
+        self._prev_refs = refs
+        self._prev_mapper.SetInputData(poly)
+        self._prev_actor.GetProperty().SetColor(*color)
+        self._prev_actor.SetVisibility(True)
+        if self._cut_active:
+            self._prev_mapper.RemoveAllClippingPlanes()
+            self._prev_mapper.AddClippingPlane(self._plane_lo)
+            self._prev_mapper.AddClippingPlane(self._plane_hi)
+        self._render()
+
+    def has_preview(self) -> bool:
+        return bool(self._prev_actor.GetVisibility())
+
     # ------------------------------------------------------------------ data
 
     def set_cloud(self, points: np.ndarray, colors: np.ndarray | None = None,
@@ -162,6 +434,7 @@ class CloudView(QtWidgets.QWidget):
             self._rgb_np = None
             self._vtk_refs = []
             self._had_cloud = False  # naechste Wolke passt die Kamera neu ein
+            self._refresh_cut_range()
             self._render()
             return
         pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
@@ -185,6 +458,7 @@ class CloudView(QtWidgets.QWidget):
                 raise ValueError("Gültigkeitsmaske passt nicht zur Punktanzahl.")
         self._points, self._colors = pts, colors
         self._intensity, self._valid = intensity, valid
+        self._refresh_cut_range()
         self._rebuild_geometry()
         if not self._had_cloud:
             self._had_cloud = True
