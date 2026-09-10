@@ -41,6 +41,12 @@ PIPELINE_CANDIDATES = (
 _ALIGN_TARGET_PTS = 400_000   # so viel Wolke sieht die Ausrichtung
 _FALLBACK = (107, 107, 107)   # Grau fuer nicht getroffene Punkte
 
+#: Unter diesem Anteil sitzt die Ausrichtung falsch. Bei einer Nadir-
+#: befliegung liegen die Fotopunkte auf genau der Oberflaeche, die das
+#: Lidar von oben sieht — stimmt der Winkel, sind es 70 % und mehr
+#: innerhalb eines halben Meters. Ein gemessener Fehlgriff lag bei 2,5 %.
+MIN_AUF_FLAECHE = 0.40
+
 
 def find_pipeline():
     """``colorize_pipeline`` importieren; klare Meldung, wenn es fehlt."""
@@ -125,7 +131,13 @@ def prepare(pipe, progress=None) -> dict:
 
 
 def align(pipe, progress=None) -> dict:
-    """Gierwinkel und Verschiebung suchen (grob per FFT, fein am Rastermodell)."""
+    """Gierwinkel und Verschiebung suchen (grob per FFT, fein am Rastermodell).
+
+    ``anteil_auf_flaeche`` in der Rueckgabe ist das Guetemass, nicht die
+    spaetere Trefferquote beim Einfaerben: die liegt auch bei einer voellig
+    verdrehten Lage nahe 100 %, weil fast jeder Punkt in IRGENDEIN Bild
+    faellt. Wer den Erfolg daran misst, merkt den Fehlgriff nie.
+    """
     if progress is not None:
         progress(0.05, "Suche Gierwinkel und Verschiebung …")
     pipe.align()
@@ -135,6 +147,21 @@ def align(pipe, progress=None) -> dict:
     if progress is not None:
         progress(1.0, f"Ausgerichtet: {k['yaw_deg']:.2f}°")
     return k
+
+
+def pruefe_ausrichtung(kennwerte: dict) -> str | None:
+    """Meldung, wenn die Ausrichtung nicht zu trauen ist; sonst None."""
+    anteil = kennwerte.get("anteil_auf_flaeche")
+    if anteil is None or anteil >= MIN_AUF_FLAECHE:
+        return None
+    med = kennwerte.get("median_abweichung")
+    return (f"Die Ausrichtung sitzt nicht: nur {anteil * 100:.1f} % der "
+            f"Fotopunkte liegen auf der Oberfläche der Wolke"
+            + (f" (Median {med:.2f} m)" if med is not None else "")
+            + f", erwartet sind über {MIN_AUF_FLAECHE * 100:.0f} %. Der "
+            f"gefundene Gierwinkel {kennwerte.get('yaw_deg', 0.0):.2f}° ist "
+            f"vermutlich falsch — die Bewertung der Kandidaten liegt eng "
+            f"beieinander. Gier von Hand nachziehen und erneut ausrichten.")
 
 
 def set_manual(pipe, yaw_deg: float, tx: float, ty: float) -> None:
@@ -272,7 +299,16 @@ if __name__ == "__main__":
     assert rgb[1][2] > rgb[1][0], "rechter Punkt ist nicht blau"
     assert tuple(rgb[3]) == _FALLBACK, "Punkt ausserhalb wurde eingefaerbt"
 
-    print("== Test 4: Ebene schreiben und lesen ==")
+    print("== Test 4: Guetepruefung der Ausrichtung ==")
+    assert pruefe_ausrichtung({"anteil_auf_flaeche": 0.73}) is None
+    assert pruefe_ausrichtung({}) is None            # ohne Kennwert kein Urteil
+    schlecht = pruefe_ausrichtung({"anteil_auf_flaeche": 0.025,
+                                   "median_abweichung": 5.84,
+                                   "yaw_deg": 154.53})
+    assert schlecht and "2.5 %" in schlecht and "154.53" in schlecht, schlecht
+    print(f"  {schlecht[:78]}…")
+
+    print("== Test 5: Ebene schreiben und lesen ==")
     lay = os.path.join(tmp, "ebene")
     save_layer(lay, rgb, maske, {"quelle": "selbsttest"})
     zurueck = load_layer(lay, len(pts))

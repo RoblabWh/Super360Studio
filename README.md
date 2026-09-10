@@ -118,6 +118,20 @@ Ergebnis im Viewer prüfen, dann **Einfärben**. Ist noch kein COLMAP-Modell da,
 wird vorher gefragt — bei 255 Bildern dauert die Rekonstruktion etwa eine halbe
 Stunde und liegt danach im Arbeitsordner des Projekts.
 
+**Auf die Gütezahl achten, nicht auf die Trefferquote.** Nach dem Ausrichten
+steht im Protokoll, wie viele Fotopunkte auf der Oberfläche der Wolke liegen.
+Bei einer Nadirbefliegung gehören sie dorthin, stimmt der Winkel sind es 70 %
+und mehr. Liegt der Wert unter 40 %, sitzt die Ausrichtung falsch und das
+Einfärben bricht mit einer Meldung ab, statt Minuten in eine verdrehte Lage zu
+stecken. Die Trefferquote beim Einfärben taugt dafür nicht: sie liegt auch bei
+einer um 60° verdrehten Lage bei 99,8 %, weil fast jeder Punkt in *irgendein*
+Bild fällt.
+
+Die Bewertung der Kandidaten liegt eng beieinander — in einem gemessenen Fall
+gewann 154,53° mit 0,291 gegen die richtigen 92,35° mit 0,289. Wenn das
+passiert: den Gierwinkel von Hand auf den Wert der Grobsuche ziehen (der steht
+mit im Protokoll) und erneut ausrichten.
+
 **Thermal** braucht keine zweite Rekonstruktion: beide Optiken sitzen auf
 derselben Gimbal und lösen zusammen aus, nur die Brennweite ist eine andere.
 

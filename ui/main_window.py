@@ -1641,10 +1641,13 @@ class MainWindow(QMainWindow):
                   f"GPS-Residuum {v['gps_residuum']:.2f} m.")
         self._log(f"Ausrichtung: {k['yaw_deg']:.2f}°, Versatz "
                   f"{np.round(k['t'], 2).tolist()} m.")
-        if anteil is not None and anteil < 0.4:
-            self._log("WARNUNG: weniger als 40 % der Fotopunkte liegen auf der "
-                      "Oberfläche — die Ausrichtung sitzt vermutlich falsch. "
-                      "Gier von Hand nachziehen und erneut ausrichten.")
+        from core import meander as meander_mod
+        schlecht = meander_mod.pruefe_ausrichtung(k)
+        if schlecht:
+            self._log("WARNUNG: " + schlecht)
+            self._lbl_meander.setText(
+                f"Ausrichtung fraglich: {k['yaw_deg']:.2f}°, nur "
+                f"{anteil * 100:.1f} % auf der Oberfläche.")
         for key in ("yaw", "x", "y"):
             sp = self._spin_meander[key]
             sp.blockSignals(True)
@@ -1687,8 +1690,14 @@ class MainWindow(QMainWindow):
                 p._cancel = lambda: cancel.is_set()
                 meander_mod.prepare(
                     p, progress_cb=lambda f, m: progress_cb(0.02 + 0.38 * f, m))
-                meander_mod.align(
+                k = meander_mod.align(
                     p, progress=lambda f, m: progress_cb(0.40 + 0.10 * f, m))
+                # Lieber hier abbrechen als Minuten in eine falsche Lage
+                # stecken: die Trefferquote beim Einfaerben merkt den
+                # Fehlgriff nicht, sie liegt auch dann nahe 100 %.
+                schlecht = meander_mod.pruefe_ausrichtung(k)
+                if schlecht:
+                    raise RuntimeError(schlecht)
             p._cancel = lambda: cancel.is_set()
             A, b = p.affine()
             ergebnis = {"pipe": p, "ebenen": {}}
