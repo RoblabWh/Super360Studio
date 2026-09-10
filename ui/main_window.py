@@ -325,6 +325,7 @@ class MainWindow(QMainWindow):
         # 80 ms statt Minuten, die Wolke folgt dem Regler.
         self._live = None
         self._live_pts: Optional[np.ndarray] = None
+        self._live_gemeckert = False   # Warnung bei 0 % nur einmal je Sitzung
         self._live_timer = QTimer(self)
         self._live_timer.setSingleShot(True)
         self._live_timer.setInterval(120)
@@ -1853,7 +1854,8 @@ class MainWindow(QMainWindow):
                   else "über der vollen Karte")
             return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. Gezeigt wird "
                     f"die Vorschau aus {_fmt_int(len(self._live_pts))} Punkten, "
-                    f"{wo}.")
+                    f"{wo}. Magenta sind die Kamerastandorte, Grau ist von "
+                    f"keinem Bild getroffen.")
         return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°, Live-Vorschau "
                 f"mit {_fmt_int(len(self._live_pts))} Punkten bereit.")
 
@@ -1917,8 +1919,46 @@ class MainWindow(QMainWindow):
             pipe.yaw, pipe.t = alt_yaw, alt_t
         rgb = rgb.copy()
         rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
+        anteil = float(maske.mean())
+
+        # Kamerastandorte mit einzeichnen. Sieht man nur graue Punkte, ist die
+        # erste Frage, ob der Flug ueberhaupt ueber dieser Wolke lag — und das
+        # beantwortet ein Blick auf die Standorte sofort.
+        punkte, farben = self._live_pts, rgb
+        try:
+            C = np.asarray(self._meander_pipe.cams["C"], dtype=np.float64)
+            C_welt = (np.asarray(A) @ C.T).T + np.asarray(b)
+            punkte = np.vstack([self._live_pts, C_welt])
+            farben = np.vstack([rgb, np.tile(np.array([255, 0, 200], np.uint8),
+                                             (len(C_welt), 1))])
+        except Exception:  # noqa: BLE001 — ohne Kameras eben nur die Punkte
+            C_welt = None
         self._cloud_view.set_color_preview(
-            self._live_pts, rgb, solo=bool(self._chk_solo.isChecked()))
+            punkte, farben, solo=bool(self._chk_solo.isChecked()))
+
+        if anteil < 0.05 and not self._live_gemeckert:
+            self._live_gemeckert = True
+            hinweis = ("Die Vorschau trifft fast nichts: nur "
+                       f"{100.0 * anteil:.1f} % der Punkte liegen in einem Bild. "
+                       "Alles Graue ist ungetroffen.")
+            if C_welt is not None and len(self._live_pts):
+                mitte_w = self._live_pts.mean(axis=0)
+                mitte_c = C_welt.mean(axis=0)
+                abstand = float(np.linalg.norm(mitte_c[:2] - mitte_w[:2]))
+                ausdehnung = float(np.linalg.norm(
+                    self._live_pts[:, :2].max(0) - self._live_pts[:, :2].min(0)))
+                hinweis += (f" Die Kameras (magenta) liegen im Mittel {abstand:.0f} m "
+                            f"von der Wolkenmitte entfernt, die Wolke selbst misst "
+                            f"{ausdehnung:.0f} m.")
+                if abstand > ausdehnung:
+                    hinweis += (" Das ist weiter weg als die Wolke breit ist — "
+                                "entweder deckt der Mäanderflug dieses Gebiet gar "
+                                "nicht ab, oder die Ausrichtung sitzt völlig falsch.")
+                else:
+                    hinweis += (" Die Kameras liegen über der Wolke; dann fehlt es "
+                                "an der Ausrichtung — Gier grob durchdrehen und "
+                                "auf die Trefferquote schauen.")
+            self._log("WARNUNG: " + hinweis)
         if hasattr(self, "_lbl_meander_lage"):
             self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._status_lbl.setText(
@@ -1948,6 +1988,7 @@ class MainWindow(QMainWindow):
     def _live_clear(self) -> None:
         self._live = None
         self._live_pts = None
+        self._live_gemeckert = False
         self._live_hide()
 
     def _on_meander_run(self) -> None:

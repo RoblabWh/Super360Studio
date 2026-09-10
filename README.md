@@ -158,6 +158,13 @@ Reglerzug ist sofort sichtbar.
 Der Haken **„Während der Justage nur die Vorschau zeigen"** schaltet das ab;
 dann liegen beide übereinander.
 
+In der Vorschau bedeutet **Grau: von keinem Bild getroffen**, und **Magenta** sind
+die Kamerastandorte des Fluges. Sieht man nur Grau, beantwortet ein Blick auf die
+magentafarbenen Punkte die erste Frage sofort — liegen sie weit neben der Wolke,
+deckt der Mäanderflug dieses Gebiet nicht ab; liegen sie darüber, stimmt die
+Ausrichtung nicht. Unter 5 % Trefferquote schreibt das Protokoll beides mit
+Zahlen hin: Abstand der Kameras zur Wolkenmitte gegen die Ausdehnung der Wolke.
+
 Die Vorschau erscheint **erst beim ersten Zug an einem Regler**, nicht schon
 nach dem Ausrichten — wer nichts justiert, soll seine Karte sehen. Und sie
 verschwindet wieder bei jedem Fehlschlag, jedem Abbruch, jedem Wechsel der
