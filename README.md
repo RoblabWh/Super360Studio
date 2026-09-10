@@ -154,6 +154,11 @@ Drei Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
 | **Mäander RGB** | `_V.JPG` des DJI-Fluges, `colors_meander_rgb/` |
 | **Mäander Thermal** | `_T.JPG` desselben Fluges, `colors_meander_thermal/` |
 
+Nach dem Einfärben einer zusammengeführten Karte steht im Protokoll die Quote je
+Abschnitt, nicht nur eine Gesamtzahl — sonst merkt man nicht, wenn ein ganzer
+Flug leer geblieben ist. Bleibt alles leer, löst das Programm „Nur eingefärbte
+Punkte" von selbst, weil die Ansicht sonst komplett verschwindet.
+
 Angeboten wird nur, was berechnet ist. Der Export schreibt die angezeigte Ebene.
 
 ## Zusammenführen
@@ -170,6 +175,13 @@ Gebäude zeigen. Der Ablauf in der Sidebar:
    aktuelle Lage, was nach einer Handjustage reicht.
 3. **X/Y/Z/Gier** schieben und drehen die zweite Wolke von Hand, mit sofortiger
    Vorschau. Gedreht wird um ihren eigenen Schwerpunkt.
+
+Die zweite Wolke ist **orange und halbdurchsichtig** dargestellt. Orange heißt:
+Vorschau, noch nicht übernommen. Sie gehört erst nach **Übernehmen** zur Karte,
+und bis dahin ändert kein anderer Schritt etwas an ihr — färbst du in diesem
+Zustand ein, wird nur der offene Flug eingefärbt, und das Programm fragt vorher
+nach. Über **Ansicht → Zweiten Flug anzeigen** lässt sie sich ausblenden, ohne
+sie zu verwerfen.
 4. **Übernehmen** schreibt eine gemeinsame Aufzeichnung und öffnet sie als
    Arbeitswolke. Sie lässt sich danach als Ganzes einfärben und exportieren;
    jeder Abschnitt wird mit der Kamera seines eigenen Bags eingefärbt.

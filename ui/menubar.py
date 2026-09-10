@@ -59,6 +59,9 @@ _ANSICHT_ENDE = (
     ("reset_cam", "Kamera zurücksetzen", "_on_reset_camera", "R", ""),
     ("cut_reset", "Höhenschnitt aufheben", "_on_cut_reset", "Ctrl+H",
      "Die volle Höhe wieder zeigen."),
+    ("preview", "Zweiten Flug (orange) anzeigen", "_on_toggle_preview", "",
+     "Die Vorschau des dazugeladenen Fluges. Orange heißt: noch nicht\n"
+     "übernommen — sie gehört noch nicht zur Karte."),
     (None, None, None, None, None),
     ("sidebar", "Seitenleiste", "_on_toggle_sidebar", "Ctrl+B", ""),
     ("expand_all", "Alle Abschnitte aufklappen", "_on_expand_all", "", ""),
@@ -130,7 +133,7 @@ def build(win) -> dict:
     actions["edl"] = edl
     ansicht.addSeparator()
     _add(ansicht, win, _ANSICHT_ENDE, actions,
-         checkable={"sidebar", "measure"})
+         checkable={"sidebar", "measure", "preview"})
 
     _add(bar.addMenu("&Werkzeuge"), win, _WERKZEUGE, actions,
          checkable={"measure"})

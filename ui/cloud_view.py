@@ -303,9 +303,14 @@ class CloudView(QtWidgets.QWidget):
         self._prev_mapper = vtk.vtkPolyDataMapper()
         self._prev_actor = vtk.vtkActor()
         self._prev_actor.SetMapper(self._prev_mapper)
-        self._prev_actor.GetProperty().SetPointSize(2)
+        # Klein und halbdurchsichtig: die Vorschau soll die Karte zeigen, auf
+        # die sie gelegt wird, und sie nicht zudecken. Voll deckend war sie
+        # ein oranger Teppich, unter dem von der Karte nichts mehr zu sehen war.
+        self._prev_actor.GetProperty().SetPointSize(1)
         self._prev_actor.GetProperty().SetColor(1.0, 0.55, 0.20)
+        self._prev_actor.GetProperty().SetOpacity(0.55)
         self._prev_actor.SetVisibility(False)
+        self._prev_wanted = False   # vom Anwender gewuenscht (Ansicht-Menue)
         self._renderer.AddActor(self._prev_actor)
         self._prev_refs: list = []
 
@@ -531,6 +536,7 @@ class CloudView(QtWidgets.QWidget):
         aufgeschnittenen Karte.
         """
         if points is None or len(points) == 0:
+            self._prev_wanted = False
             self._prev_actor.SetVisibility(False)
             self._prev_mapper.SetInputData(vtk.vtkPolyData())
             self._prev_refs = []
@@ -561,6 +567,7 @@ class CloudView(QtWidgets.QWidget):
         self._prev_refs = refs
         self._prev_mapper.SetInputData(poly)
         self._prev_actor.GetProperty().SetColor(*color)
+        self._prev_wanted = True
         self._prev_actor.SetVisibility(True)
         if self._cut_active:
             self._prev_mapper.RemoveAllClippingPlanes()
@@ -569,7 +576,16 @@ class CloudView(QtWidgets.QWidget):
         self._render()
 
     def has_preview(self) -> bool:
+        """Ist eine Vorschau geladen (auch wenn sie gerade ausgeblendet ist)?"""
+        return bool(self._prev_wanted)
+
+    def preview_visible(self) -> bool:
         return bool(self._prev_actor.GetVisibility())
+
+    def set_preview_visible(self, on: bool) -> None:
+        """Vorschau ein- oder ausblenden, ohne sie zu verwerfen."""
+        self._prev_actor.SetVisibility(bool(on) and self._prev_wanted)
+        self._render()
 
     # ------------------------------------------------------------------ data
 

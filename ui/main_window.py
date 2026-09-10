@@ -427,6 +427,7 @@ class MainWindow(QMainWindow):
         self._actions = menubar_mod.build(self)
         self._fill_view_menus()
         self._refresh_layer_combo()   # ohne Projekt: 'keine Einfärbung'
+        self._sync_preview_action()
 
         # ------------------------------------------------------ Statusleiste
         sb = self.statusBar()
@@ -2033,6 +2034,20 @@ class MainWindow(QMainWindow):
         self._log(f"Messung: {strecke:.3f} m (waagerecht {waagerecht:.3f} m, "
                   f"Höhe {d[2]:+.3f} m)")
 
+    def _on_toggle_preview(self) -> None:
+        an = not self._cloud_view.preview_visible()
+        self._cloud_view.set_preview_visible(an)
+        self._sync_preview_action()
+
+    def _sync_preview_action(self) -> None:
+        act = self._actions.get("preview") if hasattr(self, "_actions") else None
+        if act is None:
+            return
+        act.blockSignals(True)
+        act.setChecked(self._cloud_view.preview_visible())
+        act.setEnabled(self._cloud_view.has_preview())
+        act.blockSignals(False)
+
     def _on_reset_camera(self) -> None:
         self._cloud_view.reset_camera()
 
@@ -2219,7 +2234,11 @@ class MainWindow(QMainWindow):
             f"{name}: {_fmt_int(self._merge_rec.n_points)} Punkte, "
             f"{self._merge_rec.n_scans} Scans — noch nicht ausgerichtet.")
         self._log(f"Zweiter Flug geladen: {name} "
-                  f"({_fmt_int(self._merge_rec.n_points)} Punkte). Orange dargestellt.")
+                  f"({_fmt_int(self._merge_rec.n_points)} Punkte). Orange und "
+                  f"halbdurchsichtig dargestellt — das ist eine VORSCHAU und "
+                  f"gehört erst nach 'Übernehmen' zur Karte. Ausblenden über "
+                  f"Ansicht → Zweiten Flug anzeigen.")
+        self._sync_preview_action()
 
     def _on_merge_align(self, mode: str) -> None:
         if self._merge_rec is None or self._rec is None:
@@ -2269,6 +2288,7 @@ class MainWindow(QMainWindow):
         if self._merge_rec is None:
             return
         self._merge_reset_state()
+        self._sync_preview_action()
         self._log("Zweiter Flug verworfen.")
 
     def _on_merge_apply(self) -> None:
@@ -2303,6 +2323,7 @@ class MainWindow(QMainWindow):
         # fruehere Flug fuehrt (Pano-Tab und GPS haengen an ihm), die Einfaerbung
         # bekommt ueber _parts fuer jeden Abschnitt die richtige Kamera.
         self._merge_reset_state()
+        self._sync_preview_action()
         self._project = project_m
         self._parts = [(ThreadLocalBag(q["bag"]), q["scan_range"][0], q["scan_range"][1])
                        for q in quellen]
@@ -2343,6 +2364,16 @@ class MainWindow(QMainWindow):
         except RuntimeError as exc:
             self._show_error("Einfärben", str(exc))
             return
+        if self._merge_rec is not None:
+            weiter = QMessageBox.question(
+                self, "Zweiter Flug nicht übernommen",
+                "Es ist ein zweiter Flug geladen (die orangen Punkte), aber "
+                "noch nicht übernommen.\n\nEingefärbt wird nur der offene "
+                "Flug; die orange Vorschau bleibt unverändert liegen und "
+                "verdeckt das Ergebnis.\n\nTrotzdem einfärben?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if weiter != QMessageBox.Yes:
+                return
         T = self._extrinsic_from_spins()
         try:
             self._project.save_extrinsic(T)
@@ -2392,12 +2423,38 @@ class MainWindow(QMainWindow):
         if n_sky:
             self._log(f"Himmelssaum-Sperre: {_fmt_int(n_sky)} Farbproben verworfen "
                       f"(Saum {self._spin_sky.value()} px um ausgebrannte Flächen).")
+        # Bei einer zusammengefuehrten Karte je Abschnitt ausweisen: sonst
+        # sieht man nur eine Gesamtquote und merkt nicht, dass ein ganzer Flug
+        # leer geblieben ist.
         colors, valid, err = _load_color_files(self._project.colors_dir(),
                                                self._rec.n_points)
         if err:
             self._show_error("Einfärben", err)
             return
+        if self._parts and valid is not None:
+            for teil, (proxy, von, bis) in enumerate(self._parts, start=1):
+                a = int(self._rec.offsets[von])
+                b = int(self._rec.offsets[min(bis, self._rec.n_scans)])
+                if b <= a:
+                    continue
+                anteil = float(valid[a:b].mean())
+                self._log(f"   Abschnitt {teil} "
+                          f"({os.path.basename(proxy.bag_path)}): "
+                          f"{100.0 * anteil:.1f} % von {_fmt_int(b - a)} Punkten.")
+                if anteil < 0.02:
+                    self._log(f"   WARNUNG: Abschnitt {teil} ist praktisch leer "
+                              f"geblieben — vermutlich fehlt für dieses Bag die "
+                              f"Kamera oder es liegt nicht mehr an seinem Ort.")
         self._colors, self._valid = colors, valid
+        # Eine leere Anzeige ist der schlechteste Ausgang: bei "Nur eingefärbte
+        # Punkte" verschwindet die ganze Wolke, und uebrig bleibt nur, was sonst
+        # noch im Bild ist. Lieber den Haken loesen und es sagen.
+        if n_valid == 0 and self._chk_only_colored.isChecked():
+            self._loading_ui = True
+            self._chk_only_colored.setChecked(False)
+            self._loading_ui = False
+            self._log("Kein Punkt wurde eingefärbt — 'Nur eingefärbte Punkte' "
+                      "wurde gelöst, sonst bliebe die Ansicht leer.")
         self._cloud_view.set_cloud(self._world, self._colors,
                                    self._rec.intensity, self._valid)
         idx = self._combo_colormode.findData("rgb")
