@@ -1805,7 +1805,10 @@ class MainWindow(QMainWindow):
             self._live_pts = res["pts"]
             self._log(f"Live-Vorschau bereit: {_fmt_int(len(res['pts']))} "
                       f"Punkte, {len(res['live'].bilder)} verkleinerte Bilder. "
-                      f"Gier, X und Y wirken ab jetzt sofort in der Wolke.")
+                      f"Gier, X und Y wirken ab jetzt sofort. Solange die "
+                      f"Vorschau läuft, wird die volle Karte ausgeblendet — "
+                      f"zwei Promille Stichprobe wären darin nicht zu sehen. "
+                      f"Nach dem Einfärben ist sie wieder da.")
             self._update_enabled()
             self._live_update()
 
@@ -1823,8 +1826,13 @@ class MainWindow(QMainWindow):
         if self._live is None:
             return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. "
                     f"Vorschaubilder werden noch geladen …")
+        if self._cloud_view.has_color_preview():
+            return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. Gezeigt wird "
+                    f"die Vorschau aus {_fmt_int(len(self._live_pts))} Punkten; "
+                    f"die volle Karte ist solange ausgeblendet, sonst ginge die "
+                    f"Stichprobe darin unter.")
         return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°, Live-Vorschau "
-                f"mit {_fmt_int(len(self._live_pts))} Punkten aktiv.")
+                f"mit {_fmt_int(len(self._live_pts))} Punkten bereit.")
 
     def _meander_lage(self) -> tuple:
         """Ausgerichtete Lage plus Handjustage: (yaw_grad, t als 3er-Vektor).
@@ -1887,6 +1895,8 @@ class MainWindow(QMainWindow):
         rgb = rgb.copy()
         rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
         self._cloud_view.set_color_preview(self._live_pts, rgb)
+        if hasattr(self, "_lbl_meander_lage"):
+            self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._status_lbl.setText(
             f"Vorschau: Gier {yaw:.2f}°, Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "
             f"{100.0 * maske.mean():.0f} % getroffen "

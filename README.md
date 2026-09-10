@@ -149,6 +149,12 @@ Verzögerung. In der Statuszeile stehen dabei Winkel, Versatz und wie viel
 Prozent der Stichprobe getroffen wurde. Beim Einfärben wird die eingestellte
 Lage übernommen und die Vorschau geräumt.
 
+**Während der Justage ist die volle Karte ausgeblendet** und nur die Stichprobe
+zu sehen. Das ist Absicht: 50.000 Punkte sind bei einer Karte aus 24 Millionen
+zwei Promille — als Staub darüber gestreut wäre von einer Farbänderung nichts zu
+erkennen. Allein gezeigt ist die Stichprobe die ganze Ansicht, und jeder
+Reglerzug ist sofort sichtbar. Nach dem Einfärben ist die Karte wieder da.
+
 Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
 sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X und Y
 sind Meter, die Schrittweite ist 0,5 m; das reicht: beim DRZ-Datensatz deckt ein

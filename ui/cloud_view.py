@@ -319,7 +319,7 @@ class CloudView(QtWidgets.QWidget):
         self._cprev_mapper.SetColorModeToDirectScalars()
         self._cprev_actor = vtk.vtkActor()
         self._cprev_actor.SetMapper(self._cprev_mapper)
-        self._cprev_actor.GetProperty().SetPointSize(4)
+        self._cprev_actor.GetProperty().SetPointSize(5)
         self._cprev_actor.SetVisibility(False)
         self._renderer.AddActor(self._cprev_actor)
         self._cprev_refs: list = []
@@ -570,16 +570,24 @@ class CloudView(QtWidgets.QWidget):
         return poly, refs
 
     def set_color_preview(self, points: np.ndarray | None,
-                          rgb: np.ndarray | None = None) -> None:
-        """Eingefaerbte Stichprobe ueber die Karte legen (Maeander-Handjustage).
+                          rgb: np.ndarray | None = None,
+                          solo: bool = True) -> None:
+        """Eingefaerbte Stichprobe zeigen (Maeander-Handjustage).
 
         Damit folgt die Wolke dem Regler: die Stichprobe wird bei jeder
         Aenderung neu eingefaerbt und hier ersetzt. ``None`` raeumt sie weg.
+
+        ``solo`` blendet die Karte waehrenddessen aus, und das ist der
+        Normalfall. Eine Stichprobe von 50.000 Punkten sind bei einer Karte
+        aus 24 Millionen zwei Promille — als Staub darueber gestreut sieht
+        man von einer Farbaenderung nichts. Allein gezeigt ist sie die
+        ganze Ansicht, und jeder Reglerzug ist sofort zu sehen.
         """
         if points is None or len(points) == 0:
             self._cprev_actor.SetVisibility(False)
             self._cprev_mapper.SetInputData(vtk.vtkPolyData())
             self._cprev_refs = []
+            self._actor.SetVisibility(True)
             self._render()
             return
         pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
@@ -599,6 +607,7 @@ class CloudView(QtWidgets.QWidget):
         self._cprev_refs = refs
         self._cprev_mapper.SetInputData(poly)
         self._cprev_actor.SetVisibility(True)
+        self._actor.SetVisibility(not solo)
         if self._cut_active:
             self._cprev_mapper.RemoveAllClippingPlanes()
             self._cprev_mapper.AddClippingPlane(self._plane_lo)
