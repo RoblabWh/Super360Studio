@@ -1,7 +1,8 @@
 """Punktwolken-Einfaerbung aus Dual-Fisheye-Frames + Extrinsik-Werkzeuge.
 
 - :func:`colorize`         faerbt die FAST-LIO-Punktwolke aus den zeitnaechsten
-                           Kamera-Frames ein (Helligkeitsfilter, k Kandidaten).
+                           Kamera-Frames ein (Helligkeitsfilter, Himmelssaum-
+                           Sperre, k Kandidaten).
 - :func:`overlay_preview`  Pano + projizierte Lidar-Punkte (Tiefe->Turbo) zur
                            visuellen Extrinsik-Justage.
 - :func:`auto_calibrate`   grobe Rotationssuche fuer T_imu_cam0 ueber
@@ -40,6 +41,10 @@ except ImportError:  # pragma: no cover - nur "python3 core/colorizer.py"
 _CIRCLE_C = 760.0
 _CIRCLE_R = 740.0
 _FRAME_LRU = 8          # dekodierte Frame-Haelften je colorize-Lauf
+_SKY_CLIP_DEFAULT = 250  # alle Kanaele >= : Pixel ist ausgebrannt (Himmel)
+_SKY_GROW_DEFAULT = 4    # px Saum um die ausgebrannte Flaeche, s. _blown_mask
+_SKY_LUMA_DEFAULT = 200  # ab hier gilt eine Probe als himmelsartig hell
+_SKY_SAT_DEFAULT = 0.15  # ... und muss zugleich so flau sein
 _PROGRESS_EVERY = 10    # Scans zwischen progress_cb-Aufrufen
 
 ProgressCb = Optional[Callable[[float, str], None]]
@@ -134,6 +139,53 @@ def _candidate_frames(cam_stamps: np.ndarray, t: float,
 _REMAP_MAX_W = 16384
 
 
+def _blown_mask(img_half: np.ndarray, clip: int, grow: int) -> np.ndarray | None:
+    """Ausgebrannte Flaechen (Himmel) plus Saum — dort ist keine Farbe zu holen.
+
+    Der Himmel liefert keine Lidar-Punkte, jede Farbe von dort ist ein Fehlgriff.
+    Reines Weiss faengt schon das Helligkeitsfenster ab; das eigentliche Problem
+    ist der SAUM: an der Silhouette mischen Blur, JPEG-Ringing und der
+    cyanfarbene Farbsaum Himmel und Objekt zu Grauweiss, das mit Luma 190-235
+    unter der Obergrenze durchrutscht und Baumkronen weiss ueberzieht. Gemessen
+    an den Fluegen: 2-5 px neben der ausgebrannten Flaeche liegt der Median noch
+    bei Luma 187-250 und 26-74 %% davon passieren das Fenster; ab ~8-12 px ist es
+    normales Bild. Deshalb wird die geklippte Flaeche um ``grow`` Pixel geweitet
+    und alles darin verworfen.
+
+    Gibt None zurueck, wenn nichts ausgebrannt ist (dann ist nichts zu tun).
+    """
+    if grow < 0 or clip > 255:
+        return None
+    blown = img_half.min(axis=2) >= clip
+    if not blown.any():
+        return None
+    if grow > 0:
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * grow + 1, 2 * grow + 1))
+        blown = cv2.dilate(blown.view(np.uint8), ker).view(bool)
+    return blown
+
+
+def _not_blown(mask: np.ndarray | None, uv: np.ndarray) -> np.ndarray:
+    """True, wo das Sample NICHT im Himmelssaum liegt (mask=None => alles frei)."""
+    if mask is None:
+        return np.ones(len(uv), dtype=bool)
+    h, w = mask.shape
+    u = np.clip(np.rint(uv[:, 0]).astype(np.int32), 0, w - 1)
+    v = np.clip(np.rint(uv[:, 1]).astype(np.int32), 0, h - 1)
+    return ~mask[v, u]
+
+
+def _is_skyish(bgr: np.ndarray, luma: np.ndarray, luma_min: float,
+               sat_max: float) -> np.ndarray:
+    """Probe sieht aus wie ausgebrannter Himmel: hell UND flau."""
+    if len(bgr) == 0:
+        return np.zeros(0, dtype=bool)
+    mx = bgr.max(axis=1)
+    mn = bgr.min(axis=1)
+    sat = (mx - mn) / np.maximum(mx, 1.0)
+    return (luma >= luma_min) & (sat <= sat_max)
+
+
 def _sample_bgr(img_half: np.ndarray, uv: np.ndarray) -> np.ndarray:
     """Bilineares Farbsampling: (N,2) float32-Pixel -> (N,3) float32 BGR."""
     n = int(uv.shape[0])
@@ -212,6 +264,11 @@ def _strided_world_points(rec, stride: int,
 class ColorizeParams:
     brightness_min: int = 20      # Graustufen-Schwelle: dunkler => ungueltig
     brightness_max: int = 235     # heller => ungueltig (ueberbelichtet)
+    sky_clip: int = _SKY_CLIP_DEFAULT   # alle Kanaele >= : ausgebrannt
+    sky_grow: int = _SKY_GROW_DEFAULT   # px Saum drumherum; 0 schaltet ab
+    sky_prefer: bool = True             # himmelsartige Proben zurueckstellen
+    sky_luma: int = _SKY_LUMA_DEFAULT
+    sky_sat: float = _SKY_SAT_DEFAULT
     k_frames: int = 3             # bis zu K zeitnaechste Frames je Scan
     max_dt: float = 0.08          # s; Frames weiter weg ignorieren
     min_range: float = 0.5        # m; naeher an der Kamera nicht einfaerben
@@ -226,7 +283,7 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     Konsens-Frames (~+-0,8 s, andere Drohnenpose) gesampelt; je Punkt gewinnt
     der Farb-MEDIAN aller gueltigen Samples (Double-Sphere gueltig, im
     Bildkreis inkl. Randzonen-Guard, Distanz >= min_range, Grauwert im
-    Helligkeitsfenster). Der Median ueberstimmt einzelne Silhouetten-
+    Helligkeitsfenster, ausserhalb des Himmelssaums s. :func:`_blown_mask`). Der Median ueberstimmt einzelne Silhouetten-
     Fehlgriffe (Baumkrone/Dachkante sampelt Himmel durch Luecken), die beim
     frueheren Erster-Treffer-Verfahren dauerhaft in der Wolke landeten.
     Schreibt colors.bin (uint8 N x 3, RGB!), valid.bin (uint8 N), meta.json.
@@ -250,17 +307,28 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     bmin = float(params.brightness_min)
     bmax = float(params.brightness_max)
     min_r2 = float(params.min_range) ** 2
+    sky_clip = int(params.sky_clip)
+    sky_grow = int(params.sky_grow)
+    sky_prefer = bool(params.sky_prefer)
+    sky_luma = float(params.sky_luma)
+    sky_sat = float(params.sky_sat)
+    n_sky_blocked = 0
+    n_sky_outvoted = 0
 
     # kleiner LRU fuer kontiguierliche Frame-Haelften (Dekodierung cacht BagReader)
     halves: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
 
-    def get_halves(fidx: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_halves(fidx: int):
+        """(half0, half1, sky0, sky1) — Bildhaelften plus Himmelssaum-Masken."""
         if fidx in halves:
             halves.move_to_end(fidx)
             return halves[fidx]
         img = bag.read_camera(fidx)
-        pair = (np.ascontiguousarray(img[:, :SPLIT_X]),
-                np.ascontiguousarray(img[:, SPLIT_X:2 * SPLIT_X]))
+        h0 = np.ascontiguousarray(img[:, :SPLIT_X])
+        h1 = np.ascontiguousarray(img[:, SPLIT_X:2 * SPLIT_X])
+        pair = (h0, h1,
+                _blown_mask(h0, sky_clip, sky_grow),
+                _blown_mask(h1, sky_clip, sky_grow))
         halves[fidx] = pair
         if len(halves) > _FRAME_LRU:
             halves.popitem(last=False)
@@ -290,6 +358,7 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
 
         sample_ok: list[np.ndarray] = []
         sample_col: list[np.ndarray] = []
+        sample_sky: list[np.ndarray] = []
         for fidx in cands:
             T_wi = rec.interpolate_pose(float(cam_stamps[fidx]))
             if T_wi is None:
@@ -308,37 +377,59 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             uv1, geo1 = cam1.project(pc1)
             geo1 &= _in_circle(uv1)
 
-            half0, half1 = get_halves(fidx)
+            half0, half1, sky0, sky1 = get_halves(fidx)
             ok = np.zeros(len(p_world), dtype=bool)
             col = np.zeros((len(p_world), 3), dtype=np.float32)
+            skyish = np.zeros(len(p_world), dtype=bool)
 
             if geo0.any():
                 bgr = _sample_bgr(half0, uv0[geo0])
                 g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
                 bright = (g >= bmin) & (g <= bmax)
-                sel = np.flatnonzero(geo0)[bright]
+                free = _not_blown(sky0, uv0[geo0])
+                n_sky_blocked += int((bright & ~free).sum())
+                keep = bright & free
+                sel = np.flatnonzero(geo0)[keep]
                 ok[sel] = True
-                col[sel] = bgr[bright]
+                col[sel] = bgr[keep]
+                skyish[sel] = _is_skyish(bgr[keep], g[keep], sky_luma, sky_sat)
             if geo1.any():
                 bgr = _sample_bgr(half1, uv1[geo1])
                 g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
                 bright = (g >= bmin) & (g <= bmax)
-                sel = np.flatnonzero(need1)[geo1][bright]
+                free = _not_blown(sky1, uv1[geo1])
+                n_sky_blocked += int((bright & ~free).sum())
+                keep = bright & free
+                sel = np.flatnonzero(need1)[geo1][keep]
                 ok[sel] = True
-                col[sel] = bgr[bright]
+                col[sel] = bgr[keep]
+                skyish[sel] = _is_skyish(bgr[keep], g[keep], sky_luma, sky_sat)
             if ok.any():
                 sample_ok.append(ok)
                 sample_col.append(col)
+                sample_sky.append(skyish)
 
         if sample_ok:
             O = np.stack(sample_ok)                     # (k,n)
             C = np.stack(sample_col)                    # (k,n,3)
-            C[~O] = np.nan
+            use = O
+            if sky_prefer and len(sample_sky) > 1:
+                # Der Himmel liefert keine Lidar-Punkte. Wenn fuer einen Punkt
+                # eine nicht-himmelsartige Probe existiert, ist sie die einzig
+                # physikalisch moegliche — himmelsartige Proben duerfen den
+                # Median dann nicht mehr mitbestimmen. Gibt es nur himmelsartige
+                # (echte helle Flaeche, z. B. weisse Wand), bleibt alles gueltig.
+                K = np.stack(sample_sky)
+                good = O & ~K
+                has_good = good.any(axis=0)
+                use = np.where(has_good[None, :], good, O)
+                n_sky_outvoted += int((O & ~use).sum())
+            C[~use] = np.nan
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 med = np.nanmedian(C, axis=0)           # (n,3) BGR
-            any_ok = O.any(axis=0)
+            any_ok = use.any(axis=0)
             gsel = np.flatnonzero(any_ok) + s
             colors[gsel] = np.nan_to_num(
                 med[any_ok])[:, ::-1].astype(np.uint8)  # BGR -> RGB
@@ -356,6 +447,13 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "extrinsic": T.tolist(),
         "brightness_min": params.brightness_min,
         "brightness_max": params.brightness_max,
+        "sky_clip": params.sky_clip,
+        "sky_grow": params.sky_grow,
+        "sky_prefer": params.sky_prefer,
+        "sky_luma": params.sky_luma,
+        "sky_sat": params.sky_sat,
+        "n_sky_blocked": int(n_sky_blocked),
+        "n_sky_outvoted": int(n_sky_outvoted),
         "k_frames": params.k_frames,
         "max_dt": params.max_dt,
         "min_range": params.min_range,
@@ -374,7 +472,9 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     os.replace(tmp, os.path.join(out_dir, "meta.json"))
     if progress_cb is not None:
         progress_cb(1.0, f"Einfaerbung fertig: {n_valid}/{N} Punkte gueltig")
-    return {"n_valid": int(n_valid), "frac_valid": frac, "out_dir": out_dir}
+    return {"n_valid": int(n_valid), "frac_valid": frac, "out_dir": out_dir,
+            "n_sky_blocked": int(n_sky_blocked),
+            "n_sky_outvoted": int(n_sky_outvoted)}
 
 
 # ========================================================== overlay_preview
@@ -833,6 +933,25 @@ if __name__ == "__main__":
     bag = BagReader(BAG)
     print(f"recording: {rec.n_scans} scans, {rec.n_points} points; "
           f"bag: {len(bag.camera_stamps())} frames")
+
+    # ---------- Test 0: Himmelssaum-Maske (rein synthetisch) ----------
+    print("== Test 0: Himmelssaum-Maske ==")
+    img = np.full((60, 60, 3), 100, np.uint8)
+    img[10:20, 10:20] = 255                       # ausgebrannte Flaeche
+    img[20:22, 10:20] = 220                       # Saum darunter, unter bmax=235
+    m0 = _blown_mask(img, 250, 0)
+    m4 = _blown_mask(img, 250, 4)
+    assert m0 is not None and m0.sum() == 100, m0.sum()
+    assert m4.sum() > m0.sum(), "Dilatation hat nicht geweitet"
+    assert m4[21, 15] and not m0[21, 15], "Saum wird nicht erfasst"
+    assert not m4[10, 40], "Dilatation greift zu weit"
+    assert _blown_mask(np.zeros((8, 8, 3), np.uint8), 250, 4) is None
+    uv = np.array([[15.0, 21.0], [40.0, 10.0], [-5.0, 999.0]])
+    frei = _not_blown(m4, uv)
+    assert not frei[0] and frei[1], frei
+    assert _not_blown(None, uv).all(), "ohne Maske muss alles frei sein"
+    print(f"  geklippt={m0.sum()} px, mit 4 px Saum={m4.sum()} px, "
+          f"Saumpixel gesperrt={not frei[0]}, ausserhalb frei={frei[1]}")
 
     # ---------- Test 1: auto_calibrate ----------
     print("== Test 1: auto_calibrate ==")

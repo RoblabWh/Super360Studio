@@ -68,6 +68,24 @@ damit das Repo ohne das Stitcher-Projekt lauffähig ist. Gefunden wird die
 erste existierende Datei der Kandidatenliste; danach folgen die Originale in
 `Super360_Stitcher_rosbag/work/` als Fallback.
 
+## Einfärbung und der weiße Himmel
+
+Je Scan werden bis zu `K` zeitnächste Kamera-Frames plus zwei Konsens-Frames aus
+±0,8 s gesampelt; je Punkt gewinnt der Farb-Median. Dazu kommen zwei Filter gegen
+den Himmel, denn der Himmel liefert keine Lidar-Punkte — jede Farbe von dort ist
+ein Fehlgriff:
+
+* **Himmelssaum** (Standard 4 px) sperrt den Rand um ausgebrannte Flächen. Reines
+  Weiß fängt „Helligkeit max" schon ab; was Baumkronen weiß überzieht, ist der Saum
+  daneben, wo Unschärfe und Farbsaum Himmel und Blattwerk zu Grauweiß mischen. Der
+  Wert steht in der Sidebar, 0 schaltet die Sperre ab.
+* **Vorrang für echte Oberflächen**: hat ein Punkt neben hellen, flauen Proben auch
+  eine normale, bestimmen nur die normalen den Median. Punkte, für die es nur helle
+  flaue Proben gibt (weiße Wand), bleiben unberührt.
+
+Was das nicht repariert: die 360°-Kamera belichtet im Gegenlicht die ganze Szene
+über, nicht nur den Himmel. Kronen bleiben dadurch blasser als in Wirklichkeit.
+
 ## Cache
 
 Der Cache liegt **außerhalb** des Repos, per Default unter

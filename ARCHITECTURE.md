@@ -20,7 +20,7 @@ Super360Studio/
     recording.py         # Datenformat der FAST-LIO-Aufzeichnung
     fastlio_runner.py    # Subprozess-Orchestrierung fast_lio + bag play + Recorder
     stitcher.py          # Double-Sphere-Kamera + Equirect-Stitcher (cv2.remap)
-    colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye + Helligkeitsfilter
+    colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye, Helligkeits- und Himmelsfilter
     georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU
     project.py           # Session/Cache-Verwaltung pro Bag
   scripts/
@@ -270,6 +270,11 @@ class ColorizeParams:
     k_frames: int = 3             # bis zu K zeitnächste Kamera-Frames je Scan probieren
     max_dt: float = 0.08          # s; Frames weiter weg werden ignoriert
     min_range: float = 0.5        # m; Punkte näher an der Kamera nicht einfärben
+    sky_clip: int = 250           # alle Kanäle ≥ ⇒ Pixel ausgebrannt (Himmel)
+    sky_grow: int = 4             # px Saum um die ausgebrannte Fläche; 0 schaltet ab
+    sky_prefer: bool = True       # himmelsartige Proben nur, wenn keine andere da ist
+    sky_luma: int = 200           # ab hier gilt eine Probe als himmelsartig hell …
+    sky_sat: float = 0.15         # … und muss zugleich so flau sein
     T_imu_cam0: np.ndarray = ...  # 4×4, Default aus extrinsic.json bzw. Identität
 
 def colorize(rec: Recording, bag: BagReader, calib_json: str, params: ColorizeParams,
@@ -278,10 +283,46 @@ def colorize(rec: Recording, bag: BagReader, calib_json: str, params: ColorizePa
     # p_cam = T_cam0_imu @ inv(T_world_imu(t_frame)) @ p_world   (Posen-Interpolation!)
     # cam0 projizieren, wo invalid → in cam1 (T_cam1_cam0) projizieren;
     # Bilinear sampeln (cv2.remap auf Punktlisten oder Gather), Grauwert prüfen
-    # (brightness_min<=g<=brightness_max UND im Fisheye-Kreis, Radius<=740 px um Zentrum);
-    # erster gültiger Kandidat gewinnt. colors.bin (RGB!), valid.bin, meta.json schreiben.
-    # return {"n_valid": ..., "frac_valid": ..., "out_dir": ...}
+    # (brightness_min<=g<=brightness_max UND im Fisheye-Kreis, Radius<=740 px um Zentrum
+    # UND ausserhalb des Himmelssaums, s.u.);
+    # je Punkt gewinnt der MEDIAN aller gültigen Proben. colors.bin (RGB!), valid.bin,
+    # meta.json schreiben.
+    # return {"n_valid": ..., "frac_valid": ..., "n_sky_blocked": ..., "n_sky_outvoted": ...}
 
+def _blown_mask(img_half, clip: int, grow: int) -> np.ndarray | None:
+    # Pixel mit min(B,G,R) >= clip sind ausgebrannt, um `grow` px geweitet.
+```
+
+### Himmelssaum-Sperre
+
+Der Himmel liefert keine Lidar-Punkte, jede Farbe von dort ist ein Fehlgriff. Reines
+Weiß fängt schon `brightness_max` ab — das eigentliche Problem ist der **Saum**: an
+der Silhouette mischen Unschärfe, JPEG-Ringing und der cyanfarbene Farbsaum Himmel
+und Objekt zu Grauweiß, und die bilineare Abtastung zieht direkt an der Kante
+zusätzlich Himmel mit hinein. Gemessen an Flug3 (Bäume gegen ausgebrannten Himmel,
+19–26 % der Pano-Fläche voll geklippt):
+
+| Abstand zur ausgebrannten Fläche | Median-Luma | davon unter `brightness_max` |
+|---|---|---|
+| 1 px | 252 | 6–12 % |
+| 2 px | 248 | 24–26 % |
+| 3 px | 226–241 | 44–59 % |
+| 5 px | 187–222 | 58–74 % |
+| 8–12 px | 124–201 | 65–81 % |
+| fern | 128–190 | 79–90 % |
+
+Deshalb zwei Mechanismen:
+
+1. **`sky_grow`** weitet die geklippte Fläche um n px; Proben darin werden verworfen.
+2. **`sky_prefer`** stellt himmelsartige Proben (hell **und** flau) zurück: existiert
+   für einen Punkt mindestens eine nicht-himmelsartige Probe, bestimmen nur diese den
+   Median. Gibt es ausschließlich himmelsartige (echte weiße Wand), bleibt alles gültig.
+
+Der globale HSV-Filter der früheren WHS-Lösung (V ≥ 0,92 **und** S ≤ 0,12) ist hier
+nicht übertragbar: bei Flug3 ist auch der Boden überbelichtet, der Filter würde
+8–43 % der Pixel unterhalb des Horizonts mitnehmen.
+
+```python
 def overlay_preview(rec, bag, calib_json, T_imu_cam0, frame_idx: int,
                     stride=50) -> np.ndarray:
     # Pano-großes BGR-Bild: gestitchtes Pano (separater Stitcher) + projizierte

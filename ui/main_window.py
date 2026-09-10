@@ -76,6 +76,7 @@ _DEFAULT_SETTINGS: dict = {
     "brightness_min": 20,
     "brightness_max": 235,
     "k_frames": 3,
+    "sky_grow": 4,
     "point_size": 2,
     "color_mode": "rgb",
     "only_colored": True,
@@ -477,6 +478,16 @@ class MainWindow(QMainWindow):
         self._spin_kframes.setValue(3)
         self._spin_kframes.valueChanged.connect(self._on_setting_changed)
         form.addRow("K Frames:", self._spin_kframes)
+        self._spin_sky = QSpinBox()
+        self._spin_sky.setRange(0, 20)
+        self._spin_sky.setValue(4)
+        self._spin_sky.setSuffix(" px")
+        self._spin_sky.setToolTip(
+            "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\n"
+            "Farbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit max'\n"
+            "durchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.")
+        self._spin_sky.valueChanged.connect(self._on_setting_changed)
+        form.addRow("Himmelssaum:", self._spin_sky)
 
         grid_holder = QWidget()
         grid = QGridLayout(grid_holder)
@@ -743,6 +754,7 @@ class MainWindow(QMainWindow):
             self._sld_bmin.setValue(int(s.get("brightness_min", 20)))
             self._sld_bmax.setValue(int(s.get("brightness_max", 235)))
             self._spin_kframes.setValue(int(s.get("k_frames", 3)))
+            self._spin_sky.setValue(int(s.get("sky_grow", 4)))
             self._spin_pointsize.setValue(int(s.get("point_size", 2)))
             idx = self._combo_colormode.findData(s.get("color_mode", "rgb"))
             self._combo_colormode.setCurrentIndex(max(0, idx))
@@ -767,6 +779,7 @@ class MainWindow(QMainWindow):
             "brightness_min": int(self._sld_bmin.value()),
             "brightness_max": int(self._sld_bmax.value()),
             "k_frames": int(self._spin_kframes.value()),
+            "sky_grow": int(self._spin_sky.value()),
             "point_size": int(self._spin_pointsize.value()),
             "color_mode": self._combo_colormode.currentData(),
             "only_colored": bool(self._chk_only_colored.isChecked()),
@@ -1148,6 +1161,7 @@ class MainWindow(QMainWindow):
             brightness_min=int(self._sld_bmin.value()),
             brightness_max=int(self._sld_bmax.value()),
             k_frames=int(self._spin_kframes.value()),
+            sky_grow=int(self._spin_sky.value()),
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
         out_dir = self._project.colors_dir()
@@ -1163,6 +1177,10 @@ class MainWindow(QMainWindow):
         frac = float(res.get("frac_valid", 0.0))
         self._log(f"Einfärbung fertig: {_fmt_int(n_valid)} Punkte gültig "
                   f"({100.0 * frac:.1f} %).")
+        n_sky = int(res.get("n_sky_blocked", 0))
+        if n_sky:
+            self._log(f"Himmelssaum-Sperre: {_fmt_int(n_sky)} Farbproben verworfen "
+                      f"(Saum {self._spin_sky.value()} px um ausgebrannte Flächen).")
         colors, valid, err = _load_color_files(self._project.colors_dir(),
                                                self._rec.n_points)
         if err:
