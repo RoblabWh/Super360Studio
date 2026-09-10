@@ -1320,11 +1320,48 @@ class MainWindow(QMainWindow):
 
         self._start_worker("Lade Punktwolke …", job, self._on_recording_loaded)
 
+    def _parts_from_meta(self, meta: dict) -> Optional[list]:
+        """Abschnitte einer zusammengefuehrten Aufzeichnung aus ihrer meta.json.
+
+        Die Aufzeichnung weiss selbst, aus welchen Bags sie besteht — die UI
+        soll sich das nicht merken muessen. Vorher stand die Liste nur direkt
+        nach dem Zusammenfuehren im Speicher; wurde sie verworfen, faerbte die
+        gesamte Wolke aus der Kamera des ERSTEN Bags. Fuer die Scans des
+        zweiten gibt es dort keine Frames im Zeitfenster, also blieben sie
+        ungefaerbt.
+        """
+        quellen = meta.get("sources") or []
+        if len(quellen) < 2:
+            return None
+        teile = []
+        fehlend = []
+        for q in quellen:
+            bag = q.get("bag")
+            r = q.get("scan_range")
+            if not bag or not r or len(r) != 2:
+                self._log("Zusammengeführte Aufzeichnung ohne brauchbare "
+                          "Quellenangabe — Einfärbung nutzt nur das erste Bag.")
+                return None
+            if not os.path.exists(bag):
+                fehlend.append(bag)
+            teile.append((ThreadLocalBag(bag), int(r[0]), int(r[1])))
+        namen = ", ".join(os.path.basename(q["bag"]) for q in quellen)
+        self._log(f"Zusammengeführte Aufzeichnung aus {len(teile)} Flügen: {namen}. "
+                  f"Die Einfärbung nutzt für jeden Abschnitt seine eigene Kamera.")
+        for b in fehlend:
+            self._log(f"WARNUNG: Quell-Bag nicht am Ort: {b} — dieser Abschnitt "
+                      f"lässt sich nicht einfärben.")
+        return teile
+
     def _on_recording_loaded(self, res: dict) -> None:
         self._rec = res["rec"]
         self._world = res["world"]
         self._colors = res["colors"]
         self._valid = res["valid"]
+        # Immer aus der Aufzeichnung ableiten, nicht aus dem Sitzungsgedaechtnis
+        self._parts = self._parts_from_meta(self._rec.meta)
+        if self._parts:
+            self._bag = self._parts[0][0]
         self._reload_layers()
         if self._colors is None and self._combo_colormode.currentData() == "rgb":
             # ohne Farben wäre "rgb" einfarbig — Höhe ist die aussagekräftige Ansicht
@@ -1451,6 +1488,40 @@ class MainWindow(QMainWindow):
         self._start_worker(f"Exportiere das Projekt nach {os.path.basename(ziel)} …",
                            job, fertig)
 
+    def _on_open_project(self) -> None:
+        """Projekt aus dem Cache oeffnen — auch zusammengefuehrte."""
+        if self._busy:
+            QMessageBox.information(self, "Beschäftigt",
+                                    "Es läuft noch ein Arbeitsschritt.")
+            return
+        from ui.bundle_dialog import ProjectOpenDialog
+        projekte = Project.list_projects()
+        if not projekte:
+            QMessageBox.information(
+                self, "Projekt öffnen",
+                "Im Cache liegt noch kein berechnetes Projekt.")
+            return
+        dlg = ProjectOpenDialog(projekte, self)
+        if dlg.exec_() != QDialog.Accepted:
+            return
+        d = dlg.gewaehlt()
+        if not d:
+            return
+        eintrag = next((e for e in projekte if e["dir"] == d), None)
+        try:
+            project = Project.from_dir(d)
+        except RuntimeError as exc:
+            self._show_error("Projekt öffnen", str(exc))
+            return
+        # Einzelne Fluege gehen den normalen Weg — dann stehen auch das
+        # 360-Video und die GPS-Pruefung zur Verfuegung. Zusammengefuehrte
+        # haben keinen einzelnen Bagpfad und werden aus dem Cache geoeffnet.
+        if eintrag and not eintrag["zusammengefuehrt"] and \
+                project.bag_path and os.path.exists(project.bag_path):
+            self._open_bag(project.bag_path)
+            return
+        self._open_project_only(project)
+
     def _on_import_project(self) -> None:
         if self._busy:
             QMessageBox.information(self, "Beschäftigt",
@@ -1569,15 +1640,30 @@ class MainWindow(QMainWindow):
         self._save_settings()
         self._update_enabled()
 
-    def _meander_build(self, log_cb):
+    def _meander_args(self) -> dict:
+        """Alles, was der Arbeitsthread braucht — im GUI-Thread eingesammelt.
+
+        Widgets duerfen nur hier gelesen werden. Der Worker laeuft in einem
+        eigenen Thread, und Qt-Widgets von dort anzufassen ist ein Fehler, der
+        sich erst spaeter und schlecht reproduzierbar zeigt.
+        """
+        return {
+            "points": self._world,
+            "photo_dir": self._meander_dir,
+            "work_dir": self._project.meander_work_dir(),
+            "thermal": bool(self._chk_thermal.isChecked()),
+            "rgb_versatz": self._meander_versatz("rgb"),
+            "thermal_versatz": self._meander_versatz("thermal"),
+        }
+
+    @staticmethod
+    def _meander_build(args: dict, log_cb):
         """Pipeline aufsetzen; die Arbeitswolke geht als cloud.npy hinein."""
         from core import meander as meander_mod
         return meander_mod.build_pipeline(
-            self._world, self._meander_dir, self._project.meander_work_dir(),
-            thermal=bool(self._chk_thermal.isChecked()),
-            rgb_versatz=self._meander_versatz("rgb"),
-            thermal_versatz=self._meander_versatz("thermal"),
-            log=log_cb)
+            args["points"], args["photo_dir"], args["work_dir"],
+            thermal=args["thermal"], rgb_versatz=args["rgb_versatz"],
+            thermal_versatz=args["thermal_versatz"], log=log_cb)
 
     def _meander_ask_colmap(self) -> bool:
         """Vor einer Rekonstruktion fragen — die dauert eine halbe Stunde."""
@@ -1613,14 +1699,15 @@ class MainWindow(QMainWindow):
             return
         if not self._meander_ask_colmap():
             return
+        args = self._meander_args()
         bauen = self._meander_build
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
-            pipe = bauen(log_cb)
+            pipe = bauen(args, log_cb)
             pipe._cancel = lambda: cancel.is_set()
             vor = meander_mod.prepare(
-                pipe, progress_cb=lambda f, m: progress_cb(0.05 + 0.7 * f, m))
+                pipe, progress=lambda f, m: progress_cb(0.05 + 0.7 * f, m))
             k = meander_mod.align(
                 pipe, progress=lambda f, m: progress_cb(0.75 + 0.25 * f, m))
             return {"pipe": pipe, "vor": vor, "kennwerte": k}
@@ -1677,6 +1764,7 @@ class MainWindow(QMainWindow):
         if not self._meander_ask_colmap():
             return
         pipe = self._meander_pipe
+        args = self._meander_args()
         bauen = self._meander_build
         welt = self._world
         thermal = bool(self._chk_thermal.isChecked())
@@ -1686,10 +1774,10 @@ class MainWindow(QMainWindow):
             from core import meander as meander_mod
             p = pipe
             if p is None:
-                p = bauen(log_cb)
+                p = bauen(args, log_cb)
                 p._cancel = lambda: cancel.is_set()
                 meander_mod.prepare(
-                    p, progress_cb=lambda f, m: progress_cb(0.02 + 0.38 * f, m))
+                    p, progress=lambda f, m: progress_cb(0.02 + 0.38 * f, m))
                 k = meander_mod.align(
                     p, progress=lambda f, m: progress_cb(0.40 + 0.10 * f, m))
                 # Lieber hier abbrechen als Minuten in eine falsche Lage

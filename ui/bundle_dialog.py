@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import sys
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 try:  # Paket-Import (App) vs. Direktstart des Selbsttests
     from core import bundle
@@ -127,6 +127,66 @@ class ExportDialog(QtWidgets.QDialog):
         return self._pfad.text().strip()
 
 
+class ProjectOpenDialog(QtWidgets.QDialog):
+    """Vorhandene Projekte des Caches zur Auswahl.
+
+    Der normale Weg oeffnet ein Rosbag; zusammengefuehrte Projekte haben aber
+    keinen Bagpfad, unter dem man sie wiederfaende — ihr Schluessel ist ein
+    erfundener Pfad "A+B". Ohne diese Liste waeren sie nach dem Schliessen weg.
+    """
+
+    def __init__(self, projekte: list, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Projekt öffnen")
+        self.resize(760, 420)
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.addWidget(QtWidgets.QLabel(
+            "Berechnete Projekte im Cache. Zusammengeführte sind markiert — "
+            "sie lassen sich nur hier öffnen."))
+        self._tab = QtWidgets.QTableWidget(len(projekte), 5, self)
+        self._tab.setHorizontalHeaderLabels(
+            ["Projekt", "Scans", "Punkte", "Art", "berechnet"])
+        self._tab.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self._tab.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self._tab.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self._tab.verticalHeader().setVisible(False)
+        for r, e in enumerate(projekte):
+            werte = (e["name"],
+                     f"{e['n_scans']}",
+                     f"{e['n_points'] / 1e6:.1f} Mio.",
+                     "zusammengeführt" if e["zusammengefuehrt"] else "einzeln",
+                     (e["created"] or "").replace("T", " ")[:16])
+            for c, v in enumerate(werte):
+                it = QtWidgets.QTableWidgetItem(v)
+                if c == 0:
+                    it.setData(QtCore.Qt.UserRole, e["dir"])
+                    tip = e["bag"]
+                    if e["quellen"]:
+                        tip = "\n".join(e["quellen"])
+                    it.setToolTip(tip)
+                self._tab.setItem(r, c, it)
+        self._tab.resizeColumnsToContents()
+        self._tab.horizontalHeader().setStretchLastSection(True)
+        self._tab.doubleClicked.connect(lambda *_: self.accept())
+        if projekte:
+            self._tab.selectRow(0)
+        lay.addWidget(self._tab, 1)
+
+        knoepfe = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Open | QtWidgets.QDialogButtonBox.Cancel, self)
+        knoepfe.accepted.connect(self.accept)
+        knoepfe.rejected.connect(self.reject)
+        knoepfe.button(QtWidgets.QDialogButtonBox.Open).setEnabled(bool(projekte))
+        lay.addWidget(knoepfe)
+
+    def gewaehlt(self) -> str | None:
+        r = self._tab.currentRow()
+        if r < 0:
+            return None
+        it = self._tab.item(r, 0)
+        return it.data(QtCore.Qt.UserRole) if it else None
+
+
 if __name__ == "__main__":
     import sys
 
@@ -152,4 +212,20 @@ if __name__ == "__main__":
     d._pfad.setText("/tmp/gibtsnochnicht")
     assert d._buttons.button(QtWidgets.QDialogButtonBox.Ok).isEnabled()
     print("neuer Ordner:", d._hinweis.text())
+    projekte = [
+        {"dir": "/c/a-1", "name": "flug_a", "bag": "/b/a", "n_scans": 100,
+         "n_points": 1_000_000, "created": "2026-09-10T17:40", "quellen": [],
+         "zusammengefuehrt": False},
+        {"dir": "/c/ab-2", "name": "flug_a+flug_b", "bag": "/b/a", "n_scans": 300,
+         "n_points": 24_300_000, "created": "2026-09-10T18:00",
+         "quellen": ["/b/a", "/b/b"], "zusammengefuehrt": True},
+    ]
+    o = ProjectOpenDialog(projekte)
+    assert o.gewaehlt() == "/c/a-1", o.gewaehlt()
+    o._tab.selectRow(1)
+    assert o.gewaehlt() == "/c/ab-2"
+    assert o._tab.item(1, 3).text() == "zusammengeführt"
+    print("Projektliste:", [o._tab.item(r, 0).text() for r in range(o._tab.rowCount())])
+    leer = ProjectOpenDialog([])
+    assert leer.gewaehlt() is None
     print("bundle_dialog SELFTEST OK")

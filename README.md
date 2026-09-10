@@ -179,6 +179,16 @@ Trefferquote überlappen die Wolken zu wenig — dann von Hand grob zusammenschi
 und „Nur ICP" nachlaufen lassen. Ein Restfehler über 0,3 m heißt: die Lage stimmt
 grob, sitzt aber nicht sauber.
 
+Ein zusammengeführtes Projekt hat keinen einzelnen Bagpfad, unter dem man es
+wiederfände — sein Schlüssel ist ein erfundenes „A+B". Es lässt sich deshalb nur
+über **Datei → Berechnetes Projekt öffnen …** (`Strg+Umschalt+P`) wieder öffnen;
+die Liste zeigt alle Projekte des Caches und markiert die zusammengeführten.
+
+Beim Laden liest das Programm die Abschnitte aus der `meta.json` der
+Aufzeichnung, nicht aus dem Sitzungsgedächtnis. Nur so färbt jeder Abschnitt aus
+der Kamera seines eigenen Bags — sonst bliebe der zweite Flug ungefärbt, weil es
+in den Bildern des ersten keine Frames in seinem Zeitfenster gibt.
+
 Grenzen: das 360°-Video und die GPS-Prüfung zeigen weiter den zeitlich ersten
 Flug. Zeitlich überlappende Aufnahmen werden abgelehnt, weil die Scan-Reihenfolge
 dann nicht mehr eindeutig wäre.

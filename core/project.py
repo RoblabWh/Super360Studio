@@ -69,6 +69,62 @@ class Project:
         except OSError as exc:
             raise RuntimeError(f"Cache-Verzeichnis nicht anlegbar: {self.dir} ({exc})") from exc
 
+    @classmethod
+    def from_dir(cls, dir_path: str) -> "Project":
+        """Vorhandenes Projektverzeichnis oeffnen, ohne den Schluessel zu kennen.
+
+        Der normale Weg leitet das Verzeichnis aus dem Bagpfad ab. Bei einer
+        zusammengefuehrten Aufzeichnung ist dieser Pfad erfunden ("A+B") und
+        steht nirgends — ohne diesen Weg liesse sich so ein Projekt nach dem
+        Schliessen nie wieder oeffnen.
+        """
+        dir_path = os.path.abspath(dir_path)
+        if not os.path.isdir(dir_path):
+            raise RuntimeError(f"Kein Verzeichnis: {dir_path}")
+        obj = cls.__new__(cls)
+        obj.dir = dir_path
+        obj.cache_root = os.path.dirname(dir_path)
+        obj.bag_name = os.path.basename(dir_path).rsplit("-", 1)[0]
+        obj.bag_path = ""
+        meta_p = os.path.join(dir_path, "recording", "meta.json")
+        if os.path.isfile(meta_p):
+            try:
+                with open(meta_p, encoding="utf-8") as fh:
+                    obj.bag_path = str(json.load(fh).get("bag") or "")
+            except (OSError, ValueError):
+                pass
+        return obj
+
+    @staticmethod
+    def list_projects(cache_root: str = DEFAULT_CACHE_ROOT) -> list:
+        """Alle Projekte im Cache mit ihren Kennzahlen, neueste zuerst."""
+        out = []
+        if not os.path.isdir(cache_root):
+            return out
+        for name in sorted(os.listdir(cache_root)):
+            d = os.path.join(cache_root, name)
+            meta_p = os.path.join(d, "recording", "meta.json")
+            if not os.path.isfile(meta_p):
+                continue
+            try:
+                with open(meta_p, encoding="utf-8") as fh:
+                    meta = json.load(fh)
+            except (OSError, ValueError):
+                continue
+            quellen = meta.get("sources") or []
+            out.append({
+                "dir": d,
+                "name": name.rsplit("-", 1)[0],
+                "bag": meta.get("bag") or "",
+                "n_scans": int(meta.get("n_scans") or 0),
+                "n_points": int(meta.get("n_points") or 0),
+                "created": meta.get("created") or "",
+                "quellen": [q.get("bag", "") for q in quellen],
+                "zusammengefuehrt": len(quellen) >= 2,
+            })
+        out.sort(key=lambda e: e["created"], reverse=True)
+        return out
+
     # ------------------------------------------------------------ dir layout
 
     def _subdir(self, name: str) -> str:

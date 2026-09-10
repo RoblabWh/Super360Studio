@@ -21,6 +21,8 @@ from PyQt5.QtGui import QKeySequence
 _DATEI = (
     ("open", "Rosbag öffnen …", "_on_open_clicked", "Ctrl+O",
      "Einen Flug öffnen; er wird zur Arbeitswolke."),
+    ("open_project", "Berechnetes Projekt öffnen …", "_on_open_project", "Ctrl+Shift+P",
+     "Ein Projekt aus dem Cache — der einzige Weg zu zusammengeführten Karten."),
     ("merge", "Zweiten Flug dazuladen …", "_on_merge_pick", "Ctrl+Shift+O",
      "Zweites Rosbag laden und mit dem offenen zusammenführen."),
     ("meander", "Mäanderflug laden …", "_on_meander_pick", "",
