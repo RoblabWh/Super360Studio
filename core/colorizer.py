@@ -7,6 +7,8 @@
                            visuellen Extrinsik-Justage.
 - :func:`auto_calibrate`   grobe Rotationssuche fuer T_imu_cam0 ueber
                            Gradienten-Korrelation Pano <-> Punktprojektion.
+- :func:`check_extrinsic`  prueft eine vorhandene Extrinsik: sitzt sie auf einem
+                           Gipfel der Foto-Konsistenz oder auf einer Flanke?
 
 Konventionen (ARCHITECTURE.md):
   T_imu_cam0 = Pose von cam0 im IMU/Body-Frame  =>  p_imu = T_imu_cam0 @ p_cam0.
@@ -794,6 +796,66 @@ class _PhotoScoreContext:
         return total / n_ok
 
 
+# Schwellen gemessen, nicht geraten: bei +0.044 ZNCC / 2.5 Grad Abstand sinkt die
+# Farbstreuung um 3 %, bei +0.143 / 15.7 Grad um 26 %. Nur der zweite Fall ist es
+# wert, einen laufenden Einfaerbe-Lauf dafuer abzubrechen; der erste wird
+# protokolliert und nicht angemahnt.
+_CHECK_MIN_GAIN = 0.08   # ZNCC-Vorsprung, ab dem die Extrinsik als schief gilt
+_CHECK_MIN_DEG = 5.0     # ... und so weit muss der bessere Wert weg liegen
+
+
+def check_extrinsic(rec, bag, calib_json: str, T: np.ndarray,
+                    frames: Sequence[int] | None = None, cancel=None) -> dict:
+    """Sitzt ``T`` auf einem Gipfel der Foto-Konsistenz oder auf einer Flanke?
+
+    Ein kurzer Hillclimb (10/3/1 Grad) startet bei ``T``. Bleibt er dort, ist die
+    Extrinsik so gut wie das Verfahren sie finden kann. Laeuft er deutlich weg,
+    stimmt die gespeicherte Extrinsik nicht — das faellt sonst niemandem auf,
+    weil der absolute Score zwischen Fluegen nicht vergleichbar ist (ein um
+    16 Grad verdrehter Wert erreichte 0.71, waehrend 0.84 moeglich waren, und
+    kostete 26 % Farbqualitaet).
+
+    Absichtlich nur lokal: das volle Gitter von :func:`auto_calibrate` dauert
+    rund eine Minute, dieser Test wenige Sekunden und laeuft deshalb vor jeder
+    Einfaerbung mit.
+
+    Rueckgabe: ``{"score", "best_score", "best_T", "dist_deg", "suspect"}``.
+    """
+    T = np.asarray(T, dtype=np.float64)
+    if T.shape != (4, 4):
+        raise RuntimeError(f"T muss 4x4 sein, erhalten {T.shape}.")
+    if frames is None:
+        frames = _default_score_frames(rec, bag, 8)
+    ctx = _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
+    cur = Rotation.from_matrix(T[:3, :3])
+    score = ctx.score(cur.as_matrix())
+    best_rot, best = cur, score
+    for step in (10.0, 3.0, 1.0):
+        for _ in range(20):
+            _check_cancel(cancel)
+            improved = False
+            for dy, dp, dr in itertools.product((-step, 0.0, step), repeat=3):
+                if dy == dp == dr == 0.0:
+                    continue
+                cand = best_rot * Rotation.from_euler(
+                    "ZYX", [dy, dp, dr], degrees=True)
+                sc = ctx.score(cand.as_matrix())
+                if sc > best:
+                    best, best_rot, improved = sc, cand, True
+            if not improved:
+                break
+    dist = _rot_distance_deg(cur, best_rot)
+    best_T = T.copy()
+    best_T[:3, :3] = best_rot.as_matrix()
+    return {
+        "score": float(score),
+        "best_score": float(best),
+        "best_T": best_T,
+        "dist_deg": float(dist),
+        "suspect": bool(best - score >= _CHECK_MIN_GAIN and dist >= _CHECK_MIN_DEG),
+    }
+
+
 def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
                    frames: list[int] | None = None,
                    progress_cb: ProgressCb = None, cancel=None
@@ -952,6 +1014,26 @@ if __name__ == "__main__":
     assert _not_blown(None, uv).all(), "ohne Maske muss alles frei sein"
     print(f"  geklippt={m0.sum()} px, mit 4 px Saum={m4.sum()} px, "
           f"Saumpixel gesperrt={not frei[0]}, ausserhalb frei={frei[1]}")
+
+    # ---------- Test 0b: check_extrinsic ----------
+    print("== Test 0b: check_extrinsic ==")
+    T_ref = np.eye(4)
+    T_ref[:3, :3] = Rotation.from_euler("ZYX", [-92.0, 0.0, 90.0],
+                                        degrees=True).as_matrix()
+    chk_ref = check_extrinsic(rec, bag, CALIB, T_ref)
+    # dieselbe Extrinsik um 12 Grad verdreht muss auffallen
+    T_bad = T_ref.copy()
+    T_bad[:3, :3] = (Rotation.from_matrix(T_ref[:3, :3])
+                     * Rotation.from_euler("ZYX", [12.0, 0.0, 0.0],
+                                           degrees=True)).as_matrix()
+    chk_bad = check_extrinsic(rec, bag, CALIB, T_bad)
+    print(f"  Referenz:  Guete {chk_ref['score']:.3f} -> {chk_ref['best_score']:.3f}, "
+          f"{chk_ref['dist_deg']:.1f} Grad, verdaechtig={chk_ref['suspect']}")
+    print(f"  12 Grad verdreht: Guete {chk_bad['score']:.3f} -> {chk_bad['best_score']:.3f}, "
+          f"{chk_bad['dist_deg']:.1f} Grad, verdaechtig={chk_bad['suspect']}")
+    assert chk_bad["suspect"], "verdrehte Extrinsik wurde nicht erkannt"
+    assert chk_bad["best_score"] > chk_bad["score"]
+    assert chk_bad["dist_deg"] > 5.0
 
     # ---------- Test 1: auto_calibrate ----------
     print("== Test 1: auto_calibrate ==")

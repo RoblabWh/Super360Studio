@@ -322,11 +322,60 @@ Der globale HSV-Filter der früheren WHS-Lösung (V ≥ 0,92 **und** S ≤ 0,12)
 nicht übertragbar: bei Flug3 ist auch der Boden überbelichtet, der Filter würde
 8–43 % der Pixel unterhalb des Horizonts mitnehmen.
 
+### Wie genau die Extrinsik sein muss
+
+Gemessen an Flug3 als mittlere Abweichung derselben Punkte zwischen den Frames
+(Skala 0–255; das ist das, was die Einfärbung verdirbt):
+
+| Auslenkung ab dem Optimum | alle Punkte | näher als 12 m |
+|---|---|---|
+| 0 | **10,36** | **12,85** |
+| Rotation ±0,5° (je Achse) | 10,35–10,50 | 12,86–13,04 |
+| Rotation ±2° | 10,42–11,18 | 13,01–13,76 |
+| Hebelarm ±0,15 m | 10,46–10,75 | 13,11–13,54 |
+| Hebelarm ±0,30 m | 10,59–11,14 | 13,47–14,20 |
+
+Daraus folgt, was **nicht** zu bauen ist:
+
+* **Kein Hebelarm in der Suche.** Das Optimum liegt in allen drei Achsen bei 0 —
+  Kamera und Lidar sitzen praktisch aufeinander. Die WHS-Lösung schätzte 0,4 m mit,
+  bei diesem Rig würde das nur Rauschen einbauen.
+* **Kein Feinschliff unter 1°.** Zwei zusätzliche Stufen (0,3°/0,1°) heben den ZNCC
+  um 0,001–0,005, bewegen die Ausrichtung um 0,3–0,5° und ändern die Farbstreuung um
+  +0,3 % bzw. −0,1 % — sie jagen Rauschen. Zum Vergleich: Trainings- und
+  Validierungssatz unterscheiden sich am selben Punkt um 0,026.
+* **Kein Zeitversatz Kamera↔Lidar.** Das Optimum liegt bei −10 ms, Gewinn 0,5 %.
+* **Kein Belichtungsausgleich zwischen Frames.** Die Frames schwanken um 1,5 %.
+
+Was dagegen viel bringt: **eine schiefe gespeicherte Extrinsik überhaupt zu
+bemerken**. Der absolute ZNCC ist zwischen Flügen nicht vergleichbar — Flug0 stand
+mit 0,708 gespeichert da, während 0,835 möglich waren, und die Farbstreuung war
+dadurch 11,96 statt 8,85 (**26 % schlechter**). Genau dafür ist `check_extrinsic`.
+
+Die Schwellen sind gemessen, nicht geraten:
+
+| Fall | Vorsprung | Abstand | Farbstreuung |
+|---|---|---|---|
+| 07-25 Flug3 | 0,000 | 0,0° | — |
+| 09-08 12-53-52 | +0,007 | 1,0° | −2,3 % |
+| 09-08 12-56-28 | +0,044 | 2,5° | −3,2 % |
+| **07-17 Flug0** | **+0,143** | **15,7°** | **−26 %** |
+
+Nur der letzte Fall rechtfertigt es, einen laufenden Einfärbe-Lauf abzubrechen.
+Darunter wird die Güte protokolliert und nicht angemahnt — sonst warnt das
+Programm für 3 %, und die Warnung wird wertlos.
+
 ```python
 def overlay_preview(rec, bag, calib_json, T_imu_cam0, frame_idx: int,
                     stride=50) -> np.ndarray:
     # Pano-großes BGR-Bild: gestitchtes Pano (separater Stitcher) + projizierte
     # Lidar-Punkte (Tiefe→Turbo-Colormap) übergezeichnet → für Extrinsik-Justage.
+
+def check_extrinsic(rec, bag, calib_json, T, frames=None, cancel=None) -> dict:
+    # Kurzer Hillclimb (10/3/1°) ab T. Bleibt er stehen, sitzt T auf einem Gipfel
+    # der Foto-Konsistenz; läuft er weg, ist die gespeicherte Extrinsik verdreht.
+    # {"score", "best_score", "best_T", "dist_deg", "suspect"};
+    # suspect = Vorsprung >= 0.08 UND Abstand >= 5°. Läuft vor jeder Einfärbung (3-6 s).
 
 def auto_calibrate(rec, bag, calib_json, T_init=None, frames: list[int] = None,
                    progress_cb=None, cancel=None) -> tuple[np.ndarray, float]:

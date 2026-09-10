@@ -68,6 +68,23 @@ damit das Repo ohne das Stitcher-Projekt lauffähig ist. Gefunden wird die
 erste existierende Datei der Kandidatenliste; danach folgen die Originale in
 `Super360_Stitcher_rosbag/work/` als Fallback.
 
+## Extrinsik prüfen
+
+Vor jeder Einfärbung wird die gespeicherte Kamera-Extrinsik geprüft (3–6 s): ein
+kurzer Hillclimb startet dort und schaut, ob sie auf einem Gipfel der
+Foto-Konsistenz sitzt. Die Güte steht danach im Protokoll, zusammen mit dem besten
+erreichbaren Wert und dem Abstand dorthin.
+
+Das ist nötig, weil der absolute Wert zwischen Flügen nicht vergleichbar ist: bei
+`rosbag_2026-07-17_13-16-18_Flug0` stand 0,71 gespeichert und sah unauffällig aus,
+während 0,84 möglich waren — die Extrinsik war 15,7° verdreht und kostete 26 %
+Farbqualität. Erst ab 5° Abstand und 0,08 Vorsprung wird gewarnt; darunter lohnt
+der Abbruch nicht (bei 2,5° sind es 3 %).
+
+Genauer als das braucht die Kalibrierung nicht zu sein. Unterhalb von etwa 0,5°
+ändert eine Verschiebung die Farbqualität nur noch um Bruchteile eines Prozents,
+und der Hebelarm zwischen Kamera und Lidar ist bei diesem Aufbau messbar null.
+
 ## Einfärbung und der weiße Himmel
 
 Je Scan werden bis zu `K` zeitnächste Kamera-Frames plus zwei Konsens-Frames aus

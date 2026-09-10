@@ -1167,6 +1167,24 @@ class MainWindow(QMainWindow):
         out_dir = self._project.colors_dir()
 
         def job(progress_cb, cancel, log_cb):
+            # Kurzer Test vor dem langen Lauf: sitzt die Extrinsik auf einem
+            # Gipfel oder auf einer Flanke? Der absolute Score ist zwischen
+            # Fluegen nicht vergleichbar, eine verdrehte Extrinsik faellt daher
+            # sonst nicht auf — sie kostet aber die halbe Farbqualitaet.
+            progress_cb(0.01, "Prüfe Extrinsik …")
+            try:
+                chk = colorizer.check_extrinsic(rec, bag, calib, T, cancel=cancel)
+            except RuntimeError as exc:
+                log_cb(f"Extrinsik-Prüfung übersprungen: {exc}")
+            else:
+                log_cb(f"Extrinsik-Güte (Foto-Konsistenz): {chk['score']:.3f}; "
+                       f"bestes erreichbares {chk['best_score']:.3f} "
+                       f"{chk['dist_deg']:.1f}° daneben.")
+                if chk["suspect"]:
+                    log_cb(
+                        "WARNUNG: die gespeicherte Extrinsik ist deutlich verdreht. "
+                        "Das kostet spürbar Farbqualität — Lauf abbrechen, "
+                        "'Auto-Kalibrierung (grob)' starten und neu einfärben.")
             return colorizer.colorize(rec, bag, calib, params, out_dir,
                                       progress_cb=progress_cb, cancel=cancel)
 
