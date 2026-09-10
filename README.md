@@ -47,6 +47,18 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 4. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 5. **Export** — berücksichtigt „Nur eingefärbte Punkte".
 
+## Kippkorrektur
+
+FAST-LIO richtet sein Weltsystem an der Sensorlage des ersten Scans aus, nicht an
+der Schwerkraft. Steht der Livox schräg auf der Drohne, kippt die ganze Karte mit.
+Seit dem 08.09.2026 ist er rund 41° gekippt montiert (davor 0,3°–5,6°).
+
+Die GUI misst die Lotrechte deshalb aus dem IMU-Ruhefenster am Bag-Anfang und
+dreht die Karte beim Laden gerade — aber erst ab 10° Schräglage, damit die sauber
+montierten Flüge unverändert bleiben. Im Protokoll steht dann eine Zeile wie
+„Karte lotrecht gedreht: Livox war 40.1° schräg montiert". Gedreht wird nur das
+Weltsystem, Einfärbung und Farb-Cache sind davon nicht betroffen.
+
 ## Kalibrierung
 
 Die Double-Sphere-Kalibrierungen liegen als Kopie in `calib/`

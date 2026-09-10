@@ -143,12 +143,36 @@ offsets.npy      int64, (S+1,)               # Scan i = points[offsets[i]:offset
 stamps.npy       float64, (S,)               # lidar_end_time je Scan
 poses.npy        float64, (S,7)              # x y z qx qy qz qw  (T_world_imu)
 meta.json        {"bag": ..., "config": "whs_dense.yaml", "n_scans": S, "n_points": N,
-                  "expected_scans": ..., "rate": ..., "created": ...}
+                  "expected_scans": ..., "rate": ..., "created": ...,
+                  "gravity_level": {...}}   # s.u., wird beim ersten Laden ergaenzt
 ```
+
+### Kippkorrektur (gravity_level)
+
+FAST-LIO verankert sein Weltsystem in der IMU-Lage des ersten Scans und richtet
+es **nicht** an der Schwerkraft aus. Ein schräg montierter Livox kippt damit die
+ganze Karte, nicht nur den ersten Scan — der legt die Lage nur fest. Gemessen ab
+2026-09-08: 40,9° / 43,0° / 41,0°, davor durchgehend 0,3°–5,6°.
+
+`Recording.load()` misst die Lotrechte einmal je Aufzeichnung aus dem Ruhefenster
+am Bag-Anfang (`BagReader.read_imu_at_rest()`: mitteln, solange die Drehrate unter
+0,10 rad/s bleibt, mindestens 0,30 s, höchstens 3 s) und dreht das **Weltsystem**
+lotrecht: `T_neu = R_lot · T_alt`. Nur die Posen ändern sich. Punkte im Body-Frame,
+Kamera-Extrinsik und `rec_fingerprint` bleiben unberührt, der Farb-Cache gilt
+weiter. Gedreht wird die kürzeste Drehung, der Gierwinkel bleibt also stehen.
+
+Angewendet erst ab `LEVEL_MIN_TILT_DEG = 10.0`; darunter bleibt die Karte
+bitgleich. Das Ergebnis steht als `gravity_level` in der meta.json:
+`{quat, tilt_deg, threshold_deg, applied, up_body, mount_tilt_deg, rest_window_s,
+rest_samples, rest_acc_std, scans_in_rest}`. Schlägt die Messung fehl (Bag
+verschoben, kein IMU-Topic, Drohne von Anfang an in Bewegung), wird nichts
+geschrieben und die Karte bleibt, wie sie ist. `load(bag_path=...)` übersteuert
+den Pfad aus der meta.json, der nach einem Umbenennen des Bags ins Leere zeigt.
 ```python
 class Recording:
     points: np.ndarray; intensity: np.ndarray; offsets: np.ndarray
     stamps: np.ndarray; poses: np.ndarray; meta: dict
+    gravity_level: dict | None
     @staticmethod
     def load(dir_path: str) -> "Recording": ...      # np.memmap für points/intensity
     def world_points(self, progress_cb=None, cancel=None) -> np.ndarray: ...  # float32 N×3

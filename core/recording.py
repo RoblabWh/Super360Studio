@@ -8,6 +8,15 @@ Format auf Platte:
     poses.npy      float64, (S,7)  x y z qx qy qz qw  (T_world_imu)
     meta.json      {"bag": ..., "n_scans": S, "n_points": N, ...}
 
+Kippkorrektur: FAST-LIO verankert sein Weltsystem in der IMU-Lage des ersten
+Scans und richtet es NICHT an der Schwerkraft aus. Steht der Livox schraeg auf
+der Drohne, erbt die ganze Karte diese Schraeglage — nicht nur der erste Scan,
+der legt sie nur fest. Recording.load() misst die Lotrechte aus dem Ruhefenster
+am Bag-Anfang und dreht sie heraus, aber erst ab LEVEL_MIN_TILT_DEG, damit
+sauber montierte Fluege unveraendert bleiben. Gedreht wird nur das Weltsystem
+(Posen); Punkte im Body-Frame und Kamera-Extrinsik bleiben unberuehrt, deshalb
+aendern Einfaerbung und Farb-Cache sich dadurch nicht.
+
 Qt-frei. points/intensity werden als np.memmap (read-only) geladen.
 """
 
@@ -22,6 +31,107 @@ from scipy.spatial.transform import Rotation, Slerp
 _EDGE_TOL_S = 0.15  # Randtoleranz fuer interpolate_pose
 _PROGRESS_EVERY = 50  # Scans zwischen zwei progress_cb-Aufrufen
 
+# Ab dieser Schraeglage wird die Karte lotrecht gedreht. Darunter bleibt sie
+# unangetastet: die sauber montierten Fluege liegen bei 0.3-5.6 Grad, das ist
+# Montagetoleranz und keine Kippung, und ihre Karten sollen bitgleich bleiben.
+LEVEL_MIN_TILT_DEG = 10.0
+
+
+def _write_json_atomic(path: str, obj) -> None:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh, indent=2)
+    os.replace(tmp, path)
+
+
+def level_rotation(up_world: np.ndarray) -> Rotation:
+    """Kuerzeste Drehung, die ``up_world`` auf die Welt-z-Achse legt.
+
+    Bewusst die kuerzeste: sie kippt nur und dreht den Gierwinkel nicht mit,
+    damit die Karte ihre Ausrichtung in der Ebene behaelt (die GPS-Georeferen-
+    zierung bestimmt den Gierwinkel spaeter selbst).
+    """
+    v = np.asarray(up_world, dtype=np.float64)
+    n = float(np.linalg.norm(v))
+    if n < 1e-9:
+        return Rotation.identity()
+    v = v / n
+    axis = np.cross(v, [0.0, 0.0, 1.0])
+    sin_a = float(np.linalg.norm(axis))
+    cos_a = float(v[2])
+    if sin_a < 1e-12:
+        # schon lotrecht, oder exakt auf dem Kopf (dann um x drehen)
+        return Rotation.identity() if cos_a > 0 else Rotation.from_rotvec([np.pi, 0.0, 0.0])
+    return Rotation.from_rotvec(axis / sin_a * np.arctan2(sin_a, cos_a))
+
+
+def _rotate_world(poses: np.ndarray, rot: Rotation) -> np.ndarray:
+    """Weltsystem drehen: T_neu = rot * T_alt (Body-Punkte bleiben, wie sie sind)."""
+    out = np.array(poses, dtype=np.float64, copy=True)
+    out[:, 0:3] = rot.apply(poses[:, 0:3])
+    out[:, 3:7] = (rot * Rotation.from_quat(poses[:, 3:7])).as_quat()
+    return out
+
+
+def _measure_gravity_level(rec_dir: str, meta: dict, poses: np.ndarray,
+                          stamps: np.ndarray, bag_path: str | None = None) -> dict | None:
+    """Kippkorrektur bestimmen und in meta.json festschreiben.
+
+    Einmal je Aufzeichnung: das Ergebnis landet unter "gravity_level" in der
+    meta.json und wird beim naechsten Laden von dort gelesen. Schlaegt die
+    Messung fehl (Bag verschoben, kein IMU, Drohne von Anfang an in Bewegung),
+    wird nichts geschrieben und beim naechsten Mal erneut versucht.
+    """
+    cached = meta.get("gravity_level")
+    if isinstance(cached, dict) and "quat" in cached:
+        return cached
+
+    # Der Pfad in der meta.json zeigt ins Leere, sobald das Bag nach der
+    # Aufzeichnung umbenannt wurde; der Aufrufer kennt den aktuellen Ort.
+    bag = bag_path or meta.get("bag")
+    if not bag or not os.path.exists(str(bag)):
+        return None
+    try:
+        # lazy: zieht cv2/rosbags nur nach, wenn wirklich gemessen wird
+        from core.bag_reader import BagReader
+        with BagReader(str(bag)) as reader:
+            rest = reader.read_imu_at_rest()
+    except Exception:  # noqa: BLE001 — ohne Messung bleibt die Karte, wie sie ist
+        return None
+    if rest is None:
+        return None
+
+    # Lotrechte vom Sensor- ins Weltsystem: mit den Posen der Scans, die noch
+    # ins Ruhefenster fallen. Gibt es keine, ist das Weltsystem laut FAST-LIO
+    # die Anfangslage des Sensors und der Vektor gilt unveraendert.
+    in_rest = stamps <= rest.t_end
+    if len(poses) and bool(np.any(in_rest)):
+        up_world = Rotation.from_quat(poses[in_rest, 3:7]).apply(rest.up_body).mean(axis=0)
+    else:
+        up_world = np.asarray(rest.up_body, dtype=np.float64)
+
+    rot = level_rotation(up_world)
+    nrm = float(np.linalg.norm(up_world))
+    tilt = float(np.degrees(np.arccos(np.clip(up_world[2] / nrm if nrm else 1.0, -1.0, 1.0))))
+    level = {
+        "quat": [float(x) for x in rot.as_quat()],
+        "tilt_deg": tilt,
+        "threshold_deg": LEVEL_MIN_TILT_DEG,
+        "applied": bool(tilt >= LEVEL_MIN_TILT_DEG),
+        "up_body": [float(x) for x in rest.up_body],
+        "mount_tilt_deg": float(rest.tilt_deg),
+        "rest_window_s": float(rest.window_s),
+        "rest_samples": int(rest.n_samples),
+        "rest_acc_std": float(rest.acc_std),
+        "scans_in_rest": int(np.count_nonzero(in_rest)),
+    }
+    meta["gravity_level"] = level
+    try:
+        _write_json_atomic(os.path.join(rec_dir, "meta.json"), meta)
+    except OSError:
+        pass  # nur ein Cache-Eintrag; die Korrektur gilt trotzdem
+    return level
+
 
 class Recording:
     """Geladene FAST-LIO-Aufzeichnung: Punkte im Body-Frame + Pose je Scan."""
@@ -30,8 +140,9 @@ class Recording:
     intensity: np.ndarray  # float32 (N,), memmap read-only
     offsets: np.ndarray  # int64 (S+1,)
     stamps: np.ndarray  # float64 (S,)
-    poses: np.ndarray  # float64 (S,7): x y z qx qy qz qw
+    poses: np.ndarray  # float64 (S,7): x y z qx qy qz qw (ggf. lotrecht gedreht)
     meta: dict
+    gravity_level: dict | None  # Kippkorrektur, s. _measure_gravity_level
 
     def __init__(
         self,
@@ -41,6 +152,7 @@ class Recording:
         stamps: np.ndarray,
         poses: np.ndarray,
         meta: dict,
+        gravity_level: dict | None = None,
     ):
         self.points = points
         self.intensity = intensity
@@ -48,6 +160,7 @@ class Recording:
         self.stamps = stamps
         self.poses = poses
         self.meta = meta
+        self.gravity_level = gravity_level
 
     @property
     def n_scans(self) -> int:
@@ -58,8 +171,14 @@ class Recording:
         return self.points.shape[0]
 
     @staticmethod
-    def load(dir_path: str) -> "Recording":
-        """Laedt eine Aufzeichnung; points/intensity als read-only np.memmap."""
+    def load(dir_path: str, level: bool = True, bag_path: str | None = None) -> "Recording":
+        """Laedt eine Aufzeichnung; points/intensity als read-only np.memmap.
+
+        Mit ``level=True`` (Standard) wird die Karte lotrecht gedreht, sofern der
+        Livox schraeger als LEVEL_MIN_TILT_DEG montiert war; s. Modulkopf. Dafuer
+        wird das Bag noch einmal kurz gelesen — ``bag_path`` uebersteuert den in
+        der meta.json gespeicherten Pfad, der nach einem Umbenennen ins Leere zeigt.
+        """
         d = str(dir_path)
         if not os.path.isdir(d):
             raise RuntimeError(f"Aufzeichnungs-Verzeichnis nicht gefunden: {d}")
@@ -107,13 +226,20 @@ class Recording:
             raise RuntimeError(
                 f"Aufzeichnung inkonsistent in {d}: offsets/stamps/poses passen nicht zu den Punktdaten."
             )
+        stamps = stamps.astype(np.float64, copy=False)
+        poses = poses.astype(np.float64, copy=False)
+        gravity_level = (_measure_gravity_level(d, meta, poses, stamps, bag_path)
+                         if level else None)
+        if gravity_level is not None and gravity_level.get("applied"):
+            poses = _rotate_world(poses, Rotation.from_quat(gravity_level["quat"]))
         return Recording(
             points=points,
             intensity=intensity,
             offsets=offsets.astype(np.int64, copy=False),
-            stamps=stamps.astype(np.float64, copy=False),
-            poses=poses.astype(np.float64, copy=False),
+            stamps=stamps,
+            poses=poses,
             meta=meta,
+            gravity_level=gravity_level,
         )
 
     # ---------------------------------------------------------------- world
@@ -175,6 +301,19 @@ class Recording:
         T[:3, :3] = rot.as_matrix()
         T[:3, 3] = trans
         return T
+
+    def level_note(self) -> str | None:
+        """Einzeiler fuers Protokoll, oder None wenn nichts zu melden ist."""
+        lvl = self.gravity_level
+        if not lvl:
+            return None
+        tilt = float(lvl.get("tilt_deg", 0.0))
+        if lvl.get("applied"):
+            return (f"Karte lotrecht gedreht: Livox war {tilt:.1f}° schräg montiert "
+                    f"(Ruhefenster {lvl.get('rest_window_s', 0.0):.2f} s, "
+                    f"{lvl.get('rest_samples', 0)} IMU-Samples).")
+        return (f"Einbaulage {tilt:.1f}° — unter der Schwelle von "
+                f"{lvl.get('threshold_deg', LEVEL_MIN_TILT_DEG):.0f}°, Karte unverändert.")
 
     def path_positions(self) -> np.ndarray:
         """(S,3) Trajektorie (Positionen der Scan-Posen)."""
@@ -283,6 +422,37 @@ if __name__ == "__main__":
     pp = rec.path_positions()
     assert pp.shape == (3, 3) and np.allclose(pp, poses[:, :3])
     print(f"path_positions: {pp.tolist()}")
+
+    # ---------- Kippkorrektur: Drehung, nicht Verzerrung ----------------
+    for tilt_deg, axis in ((40.0, [0, 1, 0]), (7.0, [1, 0, 0]), (0.0, [0, 1, 0])):
+        tilt = Rotation.from_rotvec(np.radians(tilt_deg) * np.asarray(axis, float))
+        up_world = tilt.apply([0.0, 0.0, 1.0])  # Lotrechte im schraegen Weltsystem
+        lvl = level_rotation(up_world)
+        back = lvl.apply(up_world)
+        assert np.allclose(back, [0, 0, 1], atol=1e-9), f"{tilt_deg}: {back}"
+        # kuerzeste Drehung: der Drehwinkel ist genau die Schraeglage
+        ang = np.degrees(np.linalg.norm(lvl.as_rotvec()))
+        assert abs(ang - tilt_deg) < 1e-6, f"{tilt_deg}: Drehwinkel {ang}"
+    print("level_rotation: 40/7/0 Grad auf die Lotrechte gedreht, Winkel exakt")
+
+    lvl = level_rotation(Rotation.from_rotvec(np.radians(40.0) * np.array([0, 1.0, 0]))
+                         .apply([0.0, 0.0, 1.0]))
+    rot_poses = _rotate_world(poses, lvl)
+    d_alt = np.linalg.norm(np.diff(poses[:, :3], axis=0), axis=1)
+    d_neu = np.linalg.norm(np.diff(rot_poses[:, :3], axis=0), axis=1)
+    assert np.allclose(d_alt, d_neu, atol=1e-12), "Drehung veraendert Abstaende"
+    # relative Lage zwischen zwei Posen muss erhalten bleiben
+    rel_alt = (Rotation.from_quat(poses[0, 3:7]).inv()
+               * Rotation.from_quat(poses[2, 3:7]))
+    rel_neu = (Rotation.from_quat(rot_poses[0, 3:7]).inv()
+               * Rotation.from_quat(rot_poses[2, 3:7]))
+    assert np.allclose(rel_alt.as_matrix(), rel_neu.as_matrix(), atol=1e-12)
+    print(f"_rotate_world: Abstaende und Relativlagen erhalten "
+          f"(Trajektorie {d_alt.sum():.3f} m)")
+
+    # ohne "bag" in der meta.json wird nichts gemessen und nichts geaendert
+    assert rec.gravity_level is None and Recording.load(REC_DIR).gravity_level is None
+    print("ohne Bag-Pfad: keine Messung, Karte unveraendert")
 
     with open(os.path.join(OUT, "selftest_metrics.txt"), "w", encoding="utf-8") as fh:
         fh.write(f"n_scans=3 n_points=6 world_points_max_err={err:.3e}\n")

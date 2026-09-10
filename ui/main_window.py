@@ -1017,7 +1017,10 @@ class MainWindow(QMainWindow):
 
         def job(progress_cb, cancel, log_cb):
             progress_cb(0.02, "Lade FAST-LIO-Aufzeichnung …")
-            rec = Recording.load(rec_dir)
+            rec = Recording.load(rec_dir, bag_path=project.bag_path)
+            note = rec.level_note()
+            if note:
+                log_cb(note)
             world = rec.world_points(
                 progress_cb=lambda f, m: progress_cb(0.05 + 0.85 * f, m), cancel=cancel)
             colors = valid = None

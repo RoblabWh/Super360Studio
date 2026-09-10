@@ -22,8 +22,15 @@ GPSRAW_TYPENAME = "mavros_msgs/msg/GPSRAW"
 _CAMERA_TYPES = ("sensor_msgs/msg/CompressedImage",)
 _LIDAR_TYPES = ("livox_ros_driver2/msg/CustomMsg", "sensor_msgs/msg/PointCloud2")
 _NAVSATFIX_TYPE = "sensor_msgs/msg/NavSatFix"
+_IMU_TYPE = "sensor_msgs/msg/Imu"
 
 _GPS_MERGE_MAX_DT = 0.3  # s: NavSatFix <-> GPSRAW Zuordnung
+
+# Ruhefenster am Bag-Anfang: solange die Drohne steht, ist die Drehrate klein
+# und die Beschleunigung konstant. Nur dann ist der Mittelwert die Lotrechte.
+_REST_GYRO_MAX = 0.10   # rad/s
+_REST_MIN_S = 0.30      # s, kuerzer ist der Mittelwert nicht belastbar
+_REST_MAX_S = 3.00      # s, laenger wird nicht gebraucht
 
 
 @dataclass
@@ -37,6 +44,7 @@ class BagInfo:
     lidar_topic: str | None
     gps_fix_topic: str | None
     gps_raw_topic: str | None
+    imu_topic: str | None = None
 
 
 @dataclass
@@ -61,6 +69,25 @@ class GpsFix:
     eph_cm: int | None = None
     epv_cm: int | None = None
     satellites: int | None = None  # None wenn GPSRAW fehlt
+
+
+@dataclass
+class ImuRest:
+    """Lotrechte im Sensorsystem, gemessen im Stand am Bag-Anfang.
+
+    Ein ruhender Beschleunigungsmesser misst die Gegenkraft zur Schwerkraft,
+    der Vektor zeigt also nach OBEN. ``up_body`` ist dieser Vektor im
+    Sensorsystem, ``tilt_deg`` sein Winkel gegen die Sensor-z-Achse und damit
+    die Schraeglage des Einbaus. Einheiten sind egal, nur die Richtung zaehlt
+    (der Livox meldet die Beschleunigung in g, nicht in m/s^2).
+    """
+
+    up_body: np.ndarray  # (3,) Einheitsvektor
+    tilt_deg: float
+    window_s: float  # ausgewertetes Ruhefenster
+    n_samples: int
+    acc_std: float  # groesste Achsen-Streuung, auf |a| normiert
+    t_end: float  # Ende des Ruhefensters (Bag-Zeit, s)
 
 
 def _build_typestore():
@@ -160,6 +187,8 @@ class BagReader:
             prefer_substr="raw/fix",
         )
         gps_raw = pick([t for t, (typ, n) in topics.items() if typ == GPSRAW_TYPENAME and n > 0])
+        imu = pick([t for t, (typ, n) in topics.items() if typ == _IMU_TYPE and n > 0],
+                   prefer_substr="livox")
 
         start = self._reader.start_time * 1e-9
         end = self._reader.end_time * 1e-9
@@ -173,6 +202,7 @@ class BagReader:
             lidar_topic=lidar,
             gps_fix_topic=gps_fix,
             gps_raw_topic=gps_raw,
+            imu_topic=imu,
         )
         return self._info
 
@@ -252,6 +282,61 @@ class BagReader:
         stop = min(n, int(stop))
         for idx in range(start, stop):
             yield idx, float(stamps[idx]), self.read_camera(idx)
+
+    # ------------------------------------------------------------------- imu
+
+    def read_imu_at_rest(self, max_window_s: float = _REST_MAX_S) -> "ImuRest | None":
+        """Lotrechte im Sensorsystem aus dem Ruhefenster am Bag-Anfang.
+
+        Gemittelt wird ab dem ersten IMU-Sample, solange die Drehrate unter
+        _REST_GYRO_MAX bleibt, hoechstens ueber ``max_window_s``. Liefert None,
+        wenn es kein IMU-Topic gibt oder die Drohne von Anfang an bewegt wurde
+        (Ruhefenster kuerzer als _REST_MIN_S) — dann laesst sich die Einbaulage
+        aus diesem Bag nicht bestimmen.
+        """
+        info = self.info()
+        if info.imu_topic is None:
+            return None
+        conns = [c for c in self._reader.connections if c.topic == info.imu_topic]
+        if not conns:
+            return None
+
+        acc: list[tuple[float, float, float]] = []
+        t0: float | None = None
+        t_end = 0.0
+        for conn, timestamp, rawdata in self._reader.messages(connections=conns):
+            msg = self._reader.deserialize(rawdata, conn.msgtype)
+            # Header-Stempel, damit t_end in derselben Uhr liegt wie die
+            # Scan-Stempel der Aufzeichnung; Log-Zeit nur als Rueckfall.
+            hdr = getattr(msg, "header", None)
+            t = (hdr.stamp.sec + hdr.stamp.nanosec * 1e-9) if hdr is not None else timestamp * 1e-9
+            if t0 is None:
+                t0 = t
+            if t - t0 > max_window_s:
+                break
+            w = msg.angular_velocity
+            if float(np.sqrt(w.x * w.x + w.y * w.y + w.z * w.z)) > _REST_GYRO_MAX:
+                break  # Bewegung: Ruhefenster endet hier
+            a = msg.linear_acceleration
+            acc.append((a.x, a.y, a.z))
+            t_end = t
+
+        if t0 is None or len(acc) < 2 or (t_end - t0) < _REST_MIN_S:
+            return None
+        arr = np.asarray(acc, dtype=np.float64)
+        mean = arr.mean(axis=0)
+        norm = float(np.linalg.norm(mean))
+        if norm < 1e-9:
+            return None
+        up = mean / norm
+        return ImuRest(
+            up_body=up,
+            tilt_deg=float(np.degrees(np.arccos(float(np.clip(up[2], -1.0, 1.0))))),
+            window_s=float(t_end - t0),
+            n_samples=len(acc),
+            acc_std=float(arr.std(axis=0).max() / norm),
+            t_end=float(t_end),
+        )
 
     # ------------------------------------------------------------------- gps
 
