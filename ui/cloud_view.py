@@ -617,6 +617,17 @@ class CloudView(QtWidgets.QWidget):
     def has_color_preview(self) -> bool:
         return bool(self._cprev_actor.GetVisibility())
 
+    def set_preview_solo(self, on: bool) -> None:
+        """Karte waehrend der Vorschau aus- oder wieder einblenden."""
+        if not self.has_color_preview():
+            self._actor.SetVisibility(True)
+        else:
+            self._actor.SetVisibility(not bool(on))
+        self._render()
+
+    def map_visible(self) -> bool:
+        return bool(self._actor.GetVisibility())
+
     def set_preview_cloud(self, points: np.ndarray | None,
                           color: tuple[float, float, float] = (1.0, 0.55, 0.20)) -> None:
         """Zweite Wolke einfarbig darueberlegen (Merge-Vorschau); None entfernt sie.
@@ -716,6 +727,10 @@ class CloudView(QtWidgets.QWidget):
                 raise ValueError("Gültigkeitsmaske passt nicht zur Punktanzahl.")
         self._points, self._colors = pts, colors
         self._intensity, self._valid = intensity, valid
+        # Eine neue Wolke wird immer gezeigt. Ohne das bliebe die Karte
+        # unsichtbar, wenn zuvor eine Solo-Vorschau lief und der Weg dorthin
+        # ueber einen Fehler verlassen wurde.
+        self._actor.SetVisibility(True)
         self._refresh_cut_range()
         self._rebuild_geometry()
         if not self._had_cloud:

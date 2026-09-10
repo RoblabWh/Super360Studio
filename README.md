@@ -153,7 +153,12 @@ Lage übernommen und die Vorschau geräumt.
 zu sehen. Das ist Absicht: 50.000 Punkte sind bei einer Karte aus 24 Millionen
 zwei Promille — als Staub darüber gestreut wäre von einer Farbänderung nichts zu
 erkennen. Allein gezeigt ist die Stichprobe die ganze Ansicht, und jeder
-Reglerzug ist sofort sichtbar. Nach dem Einfärben ist die Karte wieder da.
+Reglerzug ist sofort sichtbar.
+
+Der Haken **„Während der Justage nur die Vorschau zeigen"** schaltet das ab;
+dann liegen beide übereinander. Nach dem Einfärben ist die Karte ohnehin wieder
+da, und bei jedem Fehlschlag oder Abbruch wird die Vorschau geräumt — eine
+ausgeblendete Karte soll nie zurückbleiben.
 
 Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
 sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X und Y

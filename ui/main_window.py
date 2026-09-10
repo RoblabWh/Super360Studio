@@ -656,6 +656,14 @@ class MainWindow(QMainWindow):
             grid.addWidget(sp, 1, col)
             self._spin_meander[key] = sp
         form.addRow("Lage von Hand:", grid_holder)
+        self._chk_solo = QCheckBox("Während der Justage nur die Vorschau zeigen")
+        self._chk_solo.setChecked(True)
+        self._chk_solo.setToolTip(
+            "Blendet die volle Karte aus, solange die Vorschau läuft.\n"
+            "50.000 Stichprobenpunkte gehen in 24 Millionen sonst unter.\n"
+            "Abschalten zeigt beides übereinander.")
+        self._chk_solo.stateChanged.connect(self._on_solo_changed)
+        form.addRow(self._chk_solo)
         self._lbl_meander_lage = QLabel("")
         self._lbl_meander_lage.setWordWrap(True)
         form.addRow(self._lbl_meander_lage)
@@ -992,6 +1000,11 @@ class MainWindow(QMainWindow):
     def _worker_failed(self, worker: Worker, title: str, msg: str,
                        on_failed: Callable[[str], None] | None = None) -> None:
         self._retire(worker)
+        # Nach einem Fehlschlag darf keine Solo-Vorschau die Karte verdecken:
+        # sonst sieht ein abgebrochener Lauf so aus, als sei das Modell weg.
+        if self._cloud_view.has_color_preview():
+            self._live_hide()
+            self._log("Vorschau geräumt — die Karte ist wieder sichtbar.")
         if self._closing:
             return  # Fenster schließt bereits — keine Dialoge/Folgeschritte mehr
         self._set_busy(False, "Bereit")
@@ -1039,6 +1052,7 @@ class MainWindow(QMainWindow):
             self._chk_edl.setChecked(bool(s.get("edl", False)) and self._chk_edl.isEnabled())
             self._chk_path.setChecked(bool(s.get("show_path", False)))
             self._chk_thermal.setChecked(bool(s.get("meander_thermal", False)))
+            self._chk_solo.setChecked(bool(s.get("meander_solo", True)))
             for optik, key in (("rgb", "rgb_versatz"),
                                ("thermal", "thermal_versatz")):
                 v = s.get(key) or [0.0, 0.0]
@@ -1070,6 +1084,7 @@ class MainWindow(QMainWindow):
             "layer": self._layer_key,
             "meander_dir": self._meander_dir or "",
             "meander_thermal": bool(self._chk_thermal.isChecked()),
+            "meander_solo": bool(self._chk_solo.isChecked()),
             "rgb_versatz": self._meander_versatz("rgb"),
             "thermal_versatz": self._meander_versatz("thermal"),
             "only_colored": bool(self._chk_only_colored.isChecked()),
@@ -1815,6 +1830,12 @@ class MainWindow(QMainWindow):
         self._start_worker("Lade Vorschaubilder für die Handjustage …",
                            job, fertig)
 
+    def _on_solo_changed(self) -> None:
+        self._cloud_view.set_preview_solo(bool(self._chk_solo.isChecked()))
+        if hasattr(self, "_lbl_meander_lage"):
+            self._lbl_meander_lage.setText(self._meander_zustand_text())
+        self._save_settings()
+
     def _meander_zustand_text(self) -> str:
         """Was die Handregler gerade koennen — und was fehlt, wenn nicht."""
         if not self._meander_dir:
@@ -1827,10 +1848,12 @@ class MainWindow(QMainWindow):
             return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. "
                     f"Vorschaubilder werden noch geladen …")
         if self._cloud_view.has_color_preview():
+            wo = ("die volle Karte ist solange ausgeblendet"
+                  if not self._cloud_view.map_visible()
+                  else "über der vollen Karte")
             return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. Gezeigt wird "
-                    f"die Vorschau aus {_fmt_int(len(self._live_pts))} Punkten; "
-                    f"die volle Karte ist solange ausgeblendet, sonst ginge die "
-                    f"Stichprobe darin unter.")
+                    f"die Vorschau aus {_fmt_int(len(self._live_pts))} Punkten, "
+                    f"{wo}.")
         return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°, Live-Vorschau "
                 f"mit {_fmt_int(len(self._live_pts))} Punkten bereit.")
 
@@ -1894,7 +1917,8 @@ class MainWindow(QMainWindow):
             pipe.yaw, pipe.t = alt_yaw, alt_t
         rgb = rgb.copy()
         rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
-        self._cloud_view.set_color_preview(self._live_pts, rgb)
+        self._cloud_view.set_color_preview(
+            self._live_pts, rgb, solo=bool(self._chk_solo.isChecked()))
         if hasattr(self, "_lbl_meander_lage"):
             self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._status_lbl.setText(
