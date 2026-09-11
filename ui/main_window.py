@@ -30,7 +30,7 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDoubleSpinBox, QFileDialog, QFormLayout,
-    QGridLayout, QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
+    QGroupBox, QHBoxLayout, QHeaderView, QLabel, QMainWindow,
     QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea,
     QSplitter,
     QSlider, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
@@ -324,12 +324,21 @@ class MainWindow(QMainWindow):
         # plus eine Stichprobe der Wolke. Ein Durchlauf kostet damit rund
         # 80 ms statt Minuten, die Wolke folgt dem Regler.
         self._live = None
+        self._live_th = None           # dasselbe fuer die Thermalbilder
+        self._live_optik = "rgb"       # welche Optik die Vorschau gerade zeigt
         self._live_pts: Optional[np.ndarray] = None
         self._live_gemeckert = False   # Warnung bei 0 % nur einmal je Sitzung
         self._live_timer = QTimer(self)
         self._live_timer.setSingleShot(True)
         self._live_timer.setInterval(120)
         self._live_timer.timeout.connect(self._live_update)
+        # Optik der Maeanderkameras: Massstab je Optik, Thermal-Einmessung
+        self._optik: dict = {"rgb_faktor": 1.0, "thermal_faktor": 1.0, "thermal": None}
+        # Schieber am zweiten Flug: erst nach kurzer Ruhe neu transformieren
+        self._merge_timer = QTimer(self)
+        self._merge_timer.setSingleShot(True)
+        self._merge_timer.setInterval(60)
+        self._merge_timer.timeout.connect(self._on_merge_manual)
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -568,28 +577,21 @@ class MainWindow(QMainWindow):
         self._spin_sky.valueChanged.connect(self._on_setting_changed)
         form.addRow("Himmelssaum:", self._spin_sky)
 
-        grid_holder = QWidget()
-        grid = QGridLayout(grid_holder)
-        grid.setContentsMargins(0, 0, 0, 0)
-        self._ext_spins: dict[str, QDoubleSpinBox] = {}
-        specs = (("yaw", "Yaw °", -180.0, 180.0, 0.5, 2),
-                 ("pitch", "Pitch °", -180.0, 180.0, 0.5, 2),
-                 ("roll", "Roll °", -180.0, 180.0, 0.5, 2),
-                 ("x", "x m", -2.0, 2.0, 0.005, 3),
-                 ("y", "y m", -2.0, 2.0, 0.005, 3),
-                 ("z", "z m", -2.0, 2.0, 0.005, 3))
-        for i, (key, label, lo, hi, step, dec) in enumerate(specs):
-            spin = QDoubleSpinBox()
-            _cap_width(spin, "-180,000", 48)
-            spin.setRange(lo, hi)
-            spin.setSingleStep(step)
-            spin.setDecimals(dec)
+        # Extrinsik: grob und fein je Wert — Winkel bis 0,005°, Versatz bis
+        # auf den Millimeter.
+        from ui.feinregler import FeinRegler, regler_grad
+        self._ext_spins: dict = {}
+        form.addRow(QLabel("<b>Extrinsik Kamera↔IMU</b>"))
+        for key, label, spin in (
+                ("yaw", "Yaw", regler_grad()),
+                ("pitch", "Pitch", regler_grad()),
+                ("roll", "Roll", regler_grad()),
+                ("x", "x", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
+                ("y", "y", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
+                ("z", "z", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm"))):
             spin.valueChanged.connect(self._on_extrinsic_changed)
             self._ext_spins[key] = spin
-            grid.addWidget(QLabel(label), i // 2, (i % 2) * 2)
-            grid.addWidget(spin, i // 2, (i % 2) * 2 + 1)
-        form.addRow(QLabel("Extrinsik Kamera↔IMU:"))
-        form.addRow(grid_holder)
+            form.addRow(label, spin)
 
         self._btn_autocal = QPushButton("Auto-Kalibrierung (grob)")
         self._btn_autocal.clicked.connect(self._on_autocal_clicked)
@@ -643,26 +645,48 @@ class MainWindow(QMainWindow):
             "mit Farbvorschau. Das Hauptfenster bleibt unberührt.")
         self._btn_meander_fenster.clicked.connect(self._on_meander_fenster)
         form.addRow(self._btn_meander_fenster)
+        self._btn_meander_optik = QPushButton("Optik einmessen")
+        self._btn_meander_optik.setToolTip(
+            "Höhe über den Laser-Entfernungsmesser der Drohne, RGB-Brennweite\n"
+            "über die Farbkonsistenz der Bilder, Thermalkamera (Brennweite,\n"
+            "Verzeichnung, Schielwinkel) gegen das RGB-Bild desselben Auslösers.\n"
+            "Rund eine Minute. Läuft nach dem ersten Ausrichten von selbst.")
+        self._btn_meander_optik.clicked.connect(lambda: self._on_meander_einmessen())
+        form.addRow(self._btn_meander_optik)
 
-        # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke
-        grid_holder = QWidget()
-        grid = QGridLayout(grid_holder)
-        grid.setContentsMargins(0, 0, 0, 0)
+        # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke. RGB
+        # ist ein Zuschlag auf die gefundene Lage, Thermal ein Zuschlag auf
+        # die RGB-Lage — beide Optiken haengen an derselben Gimbal, wird RGB
+        # nachgezogen, zieht Thermal mit. Jeder Wert hat einen groben und einen
+        # feinen Schieber, der feine bis auf den Zentimeter.
+        from ui.feinregler import regler_grad, regler_meter, regler_pixel, regler_prozent
         self._spin_meander = {}
-        for col, (key, label, rng, step, suffix) in enumerate((
-                ("yaw", "Gier", 180.0, 0.5, "°"),
-                ("x", "X", 500.0, 0.5, " m"),
-                ("y", "Y", 500.0, 0.5, " m"))):
-            sp = QDoubleSpinBox()
-            sp.setRange(-rng, rng)
-            sp.setSingleStep(step)
-            sp.setDecimals(2)
-            sp.setSuffix(suffix)
-            sp.valueChanged.connect(self._on_meander_manual)
-            grid.addWidget(QLabel(label), 0, col)
-            grid.addWidget(sp, 1, col)
-            self._spin_meander[key] = sp
-        form.addRow("Lage von Hand:", grid_holder)
+        self._spin_meander_th = {}
+        self._massstab = {}
+        for optik, titel, ziel, felder in (
+                ("rgb", "RGB — Zuschlag auf die gefundene Lage", self._spin_meander,
+                 (("yaw", "Gier", regler_grad()), ("x", "X", regler_meter()),
+                  ("y", "Y", regler_meter()), ("z", "Z (Höhe)", regler_meter(50.0)))),
+                ("thermal", "Thermal — Zuschlag auf die RGB-Lage", self._spin_meander_th,
+                 (("yaw", "Gier", regler_grad()), ("x", "X", regler_meter()),
+                  ("y", "Y", regler_meter())))):
+            form.addRow(QLabel(f"<b>{titel}</b>"))
+            for key, label, regler in felder:
+                regler.valueChanged.connect(
+                    lambda _v, o=optik: self._on_meander_manual(o))
+                form.addRow(label, regler)
+                ziel[key] = regler
+            m = regler_prozent()
+            m.setToolTip(
+                "Maßstab = Brennweite gegenüber der Rekonstruktion, in Prozent.\n"
+                "Zu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\n"
+                "um Meter, in jedem Bild anders: die Bilder wirken zueinander\n"
+                "verzerrt. „Optik einmessen“ findet ihn selbst."
+                if optik == "rgb" else
+                "Maßstab der Thermalkamera gegenüber ihrer Einmessung, in Prozent.")
+            m.valueChanged.connect(lambda _v, o=optik: self._on_meander_massstab(o))
+            form.addRow("Maßstab", m)
+            self._massstab[optik] = m
         self._chk_solo = QCheckBox("Während der Justage nur die Vorschau zeigen")
         self._chk_solo.setChecked(False)
         self._chk_solo.setToolTip(
@@ -683,21 +707,13 @@ class MainWindow(QMainWindow):
                 ("rgb", "RGB-Optik", "Versatz des Bildhauptpunkts in Pixeln des RGB-Bildes."),
                 ("thermal", "Thermal-Optik", "Dasselbe für die Thermaloptik — eigener Wert, "
                                              "es ist ein zweites Objektiv.")):
-            holder = QWidget()
-            g = QGridLayout(holder)
-            g.setContentsMargins(0, 0, 0, 0)
-            for col, (achse, label) in enumerate((("u", "rechts"), ("v", "unten"))):
-                sp = QDoubleSpinBox()
-                sp.setRange(-400.0, 400.0)
-                sp.setSingleStep(1.0)
-                sp.setDecimals(1)
-                sp.setSuffix(" px")
+            form.addRow(QLabel(f"<b>{titel} — Hauptpunkt</b>"))
+            for achse, label in (("u", "rechts"), ("v", "unten")):
+                sp = regler_pixel()
                 sp.setToolTip(tip)
                 sp.valueChanged.connect(self._on_setting_changed)
-                g.addWidget(QLabel(label), 0, col)
-                g.addWidget(sp, 1, col)
+                form.addRow(label, sp)
                 self._spin_optik[(optik, achse)] = sp
-            form.addRow(f"{titel}:", holder)
         return box
 
     def _group_merge(self) -> QWidget:
@@ -713,23 +729,15 @@ class MainWindow(QMainWindow):
         self._lbl_merge.setWordWrap(True)
         form.addRow(self._lbl_merge)
 
-        grid_holder = QWidget()
-        grid = QGridLayout(grid_holder)
-        grid.setContentsMargins(0, 0, 0, 0)
+        from ui.feinregler import regler_grad, regler_meter
         self._spin_merge = {}
-        for col, (key, label, rng, step, suffix) in enumerate((
-                ("x", "X", 500.0, 0.1, " m"), ("y", "Y", 500.0, 0.1, " m"),
-                ("z", "Z", 500.0, 0.1, " m"), ("yaw", "Gier", 180.0, 1.0, "°"))):
-            sp = QDoubleSpinBox()
-            sp.setRange(-rng, rng)
-            sp.setSingleStep(step)
-            sp.setDecimals(2)
-            sp.setSuffix(suffix)
-            sp.valueChanged.connect(self._on_merge_manual)
-            grid.addWidget(QLabel(label), 0, col)
-            grid.addWidget(sp, 1, col)
+        for key, label, sp in (("x", "X", regler_meter(500.0)),
+                               ("y", "Y", regler_meter(500.0)),
+                               ("z", "Z", regler_meter(500.0)),
+                               ("yaw", "Gier", regler_grad())):
+            sp.valueChanged.connect(lambda *_: self._merge_timer.start())
+            form.addRow(label, sp)
             self._spin_merge[key] = sp
-        form.addRow(grid_holder)
 
         row = QWidget()
         hl = QHBoxLayout(row)
@@ -926,10 +934,27 @@ class MainWindow(QMainWindow):
         for key, sp in self._spin_meander.items():
             sp.setEnabled(not busy and hat_lage)
             sp.setToolTip(
-                "Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke."
+                "RGB: Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke."
                 if hat_lage else
                 "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, "
                 "auf die sich die Regler beziehen könnten.")
+        self._btn_meander_optik.setEnabled(not busy and hat_lage)
+        self._massstab["rgb"].setEnabled(not busy and hat_lage)
+        hat_thermal = hat_lage and self._hat_thermal()
+        self._massstab["thermal"].setEnabled(not busy and hat_thermal)
+        for key, sp in self._spin_meander_th.items():
+            sp.setEnabled(not busy and hat_thermal)
+            if hat_thermal:
+                sp.setToolTip(
+                    "Thermal: Zuschlag auf die RGB-Lage; wirkt sofort und zeigt "
+                    "dabei die Thermalvorschau.\nWird RGB verschoben, zieht "
+                    "Thermal mit. Der Wert bleibt im Projekt gespeichert.")
+            elif hat_lage:
+                sp.setToolTip("Keine Thermalbilder in diesem Lauf — "
+                              "„Thermalbilder mitrechnen“ anhaken und neu "
+                              "ausrichten.")
+            else:
+                sp.setToolTip("Erst 'Ausrichten' laufen lassen.")
         if hasattr(self, "_lbl_meander_lage"):
             self._lbl_meander_lage.setText(self._meander_zustand_text())
         if hasattr(self, "_actions"):
@@ -1237,6 +1262,9 @@ class MainWindow(QMainWindow):
         self._layers = {}
         self._meander_pipe = None
         self._live_clear()
+        self._meander_setze_thermal((0.0, 0.0, 0.0))
+        self._meander_setze_optik({"rgb_faktor": 1.0, "thermal_faktor": 1.0,
+                                   "thermal": None})
         self._merge_reset_state()
         self._gps_panel.set_quality(None, None, None)
         self._info_table.setRowCount(0)
@@ -1800,6 +1828,8 @@ class MainWindow(QMainWindow):
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
+        self._meander_lade_thermal()
+        self._meander_lade_optik()
         self._update_enabled()
         self._start_live_preview()
 
@@ -1815,25 +1845,47 @@ class MainWindow(QMainWindow):
                                      dtype=np.float64)
         cams = pipe.rgb_cams()
         bilder = pipe._p("images")
+        th_cams = pipe.thermal_cams() if self._hat_thermal() else None
+        th_bilder = pipe._p("thermal")
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
+            anteil = 0.7 if th_cams is not None else 1.0
             live = meander_mod.LivePreview(
-                cams, bilder, progress=progress_cb,
+                cams, bilder, progress=lambda f, m: progress_cb(anteil * f, m),
                 cancel=lambda: cancel.is_set())
-            return {"live": live, "pts": stich}
+            live_th = None
+            if th_cams is not None:
+                live_th = meander_mod.LivePreview(
+                    th_cams, th_bilder,
+                    progress=lambda f, m: progress_cb(0.7 + 0.3 * f,
+                                                      "Thermal: " + m),
+                    cancel=lambda: cancel.is_set())
+            return {"live": live, "live_th": live_th, "pts": stich}
 
         def fertig(res: dict) -> None:
             self._live = res["live"]
+            self._live_th = res["live_th"]
             self._live_pts = res["pts"]
+            th = (f" und {len(res['live_th'].bilder)} Thermalbilder"
+                  if res["live_th"] is not None else "")
             self._log(f"Live-Vorschau bereit: {_fmt_int(len(res['pts']))} "
-                      f"Punkte, {len(res['live'].bilder)} verkleinerte Bilder. "
-                      f"Sie erscheint beim ersten Zug an Gier, X oder Y und "
+                      f"Punkte, {len(res['live'].bilder)} verkleinerte RGB-Bilder"
+                      f"{th}. Sie erscheint beim ersten Zug an Gier, X oder Y — "
+                      f"RGB-Regler zeigen RGB, Thermal-Regler Thermal — und "
                       f"blendet die Karte dabei aus (Haken darüber schaltet "
                       f"das ab). Die Karte bleibt bis dahin stehen.")
             self._update_enabled()
             # Bewusst KEIN _live_update hier: die Karte soll nach dem
             # Ausrichten stehen bleiben. Wer nichts justiert, will sie sehen.
+            # Aber die Optik einmessen, wenn das fuer diesen Flug noch nie
+            # geschehen ist — ohne sie sind die Bilder zueinander verzerrt.
+            from core import optik as optik_mod
+            if self._project is not None and not optik_mod.vorhanden(
+                    self._project.meander_work_dir()):
+                self._log("Die Optik dieses Fluges ist noch nicht eingemessen — "
+                          "das läuft jetzt einmal von selbst.")
+                self._on_meander_einmessen()
 
         self._start_worker("Lade Vorschaubilder für die Handjustage …",
                            job, fertig)
@@ -1859,10 +1911,11 @@ class MainWindow(QMainWindow):
             wo = ("die volle Karte ist solange ausgeblendet"
                   if not self._cloud_view.map_visible()
                   else "über der vollen Karte")
+            optik = "Thermal" if self._live_optik == "thermal" else "RGB"
             return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°. Gezeigt wird "
-                    f"die Vorschau aus {_fmt_int(len(self._live_pts))} Punkten, "
-                    f"{wo}. Magenta sind die Kamerastandorte, Grau ist von "
-                    f"keinem Bild getroffen.")
+                    f"die {optik}-Vorschau aus {_fmt_int(len(self._live_pts))} "
+                    f"Punkten, {wo}. Magenta sind die Kamerastandorte, Grau ist "
+                    f"von keinem Bild getroffen.")
         return (f"Ausgerichtet auf {np.degrees(pipe.yaw):.2f}°, Live-Vorschau "
                 f"mit {_fmt_int(len(self._live_pts))} Punkten bereit.")
 
@@ -1878,8 +1931,152 @@ class MainWindow(QMainWindow):
         t = meander_mod.as_t3(pipe.t)
         t[0] += float(self._spin_meander["x"].value())
         t[1] += float(self._spin_meander["y"].value())
+        t[2] += float(self._spin_meander["z"].value())
         return (float(np.degrees(pipe.yaw)) + float(self._spin_meander["yaw"].value()),
                 t)
+
+    def _faktor(self, optik: str) -> float:
+        """Massstab-Regler als Brennweitenfaktor (0 % = 1.0)."""
+        return 1.0 + float(self._massstab[optik].value()) / 100.0
+
+    def _meander_cams(self, thermal: bool) -> Optional[dict]:
+        """Kameras mit dem Massstab der Regler und der Thermal-Einmessung."""
+        from core import optik as optik_mod
+        pipe = self._meander_pipe
+        if thermal:
+            return optik_mod.thermal_cams(pipe, self._optik.get("thermal"),
+                                          self._faktor("thermal"), self._faktor("rgb"))
+        return optik_mod.rgb_cams(pipe, self._faktor("rgb"))
+
+    def _meander_setze_optik(self, d: dict) -> None:
+        """Optik uebernehmen und die Massstab-Regler setzen, ohne Vorschau."""
+        self._optik = dict(d)
+        for optik in ("rgb", "thermal"):
+            m = self._massstab[optik]
+            m.blockSignals(True)
+            m.setValue((float(d.get(f"{optik}_faktor", 1.0)) - 1.0) * 100.0)
+            m.blockSignals(False)
+
+    def _meander_lade_optik(self) -> None:
+        if self._project is None:
+            return
+        from core import optik as optik_mod
+        d = optik_mod.laden(self._project.meander_work_dir())
+        self._meander_setze_optik(d)
+        if optik_mod.vorhanden(self._project.meander_work_dir()):
+            self._log(f"Optik aus dem Projekt: RGB-Maßstab {d['rgb_faktor']:.4f}, "
+                      f"Thermal {'eingemessen' if d.get('thermal') else 'nicht eingemessen'}"
+                      f", Maßstab {d['thermal_faktor']:.4f}.")
+
+    def _meander_speichere_optik(self) -> None:
+        if self._project is None or self._meander_pipe is None:
+            return
+        from core import optik as optik_mod
+        self._optik["rgb_faktor"] = self._faktor("rgb")
+        self._optik["thermal_faktor"] = self._faktor("thermal")
+        try:
+            optik_mod.speichern(self._project.meander_work_dir(), self._optik)
+        except OSError as exc:
+            self._log(f"Optik nicht gespeichert: {exc}")
+
+    def _on_meander_massstab(self, optik: str) -> None:
+        """Massstab geaendert: merken und die Vorschau dieser Optik zeigen."""
+        self._meander_speichere_optik()
+        self._on_meander_manual(optik)
+
+    def _on_meander_einmessen(self) -> None:
+        """Hoehe, RGB-Brennweite und Thermaloptik einmessen (s. core.optik)."""
+        pipe = self._meander_pipe
+        if pipe is None or getattr(pipe, "yaw", None) is None or self._world is None:
+            QMessageBox.information(self, "Optik einmessen",
+                                    "Erst „Ausrichten“ laufen lassen.")
+            return
+        self._meander_apply_manual()          # auf der Lage aufsetzen, die man sieht
+        yaw, t = self._meander_lage()
+        welt = self._world
+        thermal = self._hat_thermal()
+
+        def job(progress_cb, cancel, log_cb):
+            from core import optik as optik_mod
+            punkte = welt[:: max(1, len(welt) // 400_000)]
+            return optik_mod.einmessen(
+                pipe, np.asarray(punkte, dtype=np.float64), yaw, t, pipe.photo_dir,
+                thermal=thermal, progress=progress_cb,
+                cancel=lambda: cancel.is_set(), log=log_cb)
+
+        def fertig(res: dict) -> None:
+            from core import meander as meander_mod
+            if res["dz"]:
+                y, tt = self._meander_lage()
+                tt = tt + np.array([0.0, 0.0, res["dz"]])
+                meander_mod.set_manual(self._meander_pipe, y, tt)
+            neu = {"rgb_faktor": res["rgb"]["faktor"], "thermal_faktor": 1.0,
+                   "thermal": res["thermal"], "hoehe": res["hoehe"],
+                   "rgb": res["rgb"]}
+            self._meander_setze_optik(neu)
+            self._meander_speichere_optik()
+            auf = res["rgb"].get("auf_flaeche_nachher")
+            if auf is not None:
+                self._lbl_meander.setText(
+                    f"Eingemessen: {auf * 100:.0f} % der Fotopunkte auf der "
+                    f"Oberfläche (vorher {res['rgb']['auf_flaeche_vorher'] * 100:.0f} %), "
+                    f"RGB-Maßstab {res['rgb']['faktor']:.3f}"
+                    + (", Thermal eingemessen." if res["thermal"] else "."))
+            self._log("Optik eingemessen und gespeichert. Einfärben und Vorschau "
+                      "benutzen sie ab jetzt; die Maßstab-Regler zeigen das "
+                      "Ergebnis und lassen sich weiter von Hand nachziehen.")
+            if self._cloud_view.has_color_preview():
+                self._live_timer.start()
+            self._update_enabled()
+
+        self._start_worker("Messe die Optik ein …", job, fertig)
+
+    def _thermal_zuschlag(self) -> tuple:
+        """Thermal-Regler: (Gier Grad, X m, Y m) als Zuschlag auf die RGB-Lage."""
+        return tuple(float(self._spin_meander_th[k].value()) for k in ("yaw", "x", "y"))
+
+    def _meander_lage_thermal(self) -> tuple:
+        """Lage der Thermalbilder: RGB-Lage samt Handjustage plus Thermal-Zuschlag."""
+        from core import meander as meander_mod
+        return meander_mod.thermal_lage(*self._meander_lage(), self._thermal_zuschlag())
+
+    def _hat_thermal(self) -> bool:
+        pipe = self._meander_pipe
+        if pipe is None:
+            return False
+        try:
+            return pipe.thermal_cams() is not None
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _meander_setze_thermal(self, zuschlag) -> None:
+        """Thermal-Regler setzen, ohne eine Vorschau auszuloesen."""
+        for key, wert in zip(("yaw", "x", "y"), zuschlag):
+            sp = self._spin_meander_th[key]
+            sp.blockSignals(True)
+            sp.setValue(float(wert))
+            sp.blockSignals(False)
+
+    def _meander_lade_thermal(self) -> None:
+        """Gespeicherten Thermal-Zuschlag des Projekts in die Regler holen."""
+        if self._project is None:
+            return
+        from core import meander as meander_mod
+        z = meander_mod.load_thermal_zuschlag(self._project.meander_work_dir())
+        self._meander_setze_thermal(z)
+        if any(z):
+            self._log(f"Thermal-Lage aus dem Projekt: {z[0]:+.2f}°, "
+                      f"{z[1]:+.2f}/{z[2]:+.2f} m auf die RGB-Lage.")
+
+    def _meander_speichere_thermal(self) -> None:
+        if self._project is None or self._meander_pipe is None:
+            return
+        from core import meander as meander_mod
+        try:
+            meander_mod.save_thermal_zuschlag(self._project.meander_work_dir(),
+                                              self._thermal_zuschlag())
+        except OSError as exc:
+            self._log(f"Thermal-Lage nicht gespeichert: {exc}")
 
     def _on_meander_fenster(self) -> None:
         """Ausrichtfenster oeffnen: Karte und Flug uebereinander, live justierbar."""
@@ -1893,13 +2090,15 @@ class MainWindow(QMainWindow):
         if self._world is None:
             return
         from ui.meander_align_window import MeanderAlignWindow
-        stich = self._live_pts
-        if stich is None:
-            n = len(self._world)
-            stich = np.ascontiguousarray(
-                self._world[::max(1, n // _LIVE_PUNKTE)][:_LIVE_PUNKTE],
-                dtype=np.float64)
-        fenster = MeanderAlignWindow(self._world, pipe, self._live, stich, self)
+        # Den Handzuschlag aus dem Hauptfenster erst verrechnen: das Fenster
+        # setzt auf der Lage auf, die man gerade sieht, nicht auf der alten.
+        self._meander_apply_manual()
+        optik = dict(self._optik, rgb_faktor=self._faktor("rgb"),
+                     thermal_faktor=self._faktor("thermal"))
+        fenster = MeanderAlignWindow(
+            self._world, pipe, self._live, live_th=self._live_th,
+            thermal_zuschlag=self._thermal_zuschlag(),
+            thermal_da=self._hat_thermal(), optik=optik, parent=self)
         fenster.uebernommen.connect(self._on_meander_fenster_lage)
         fenster.setAttribute(Qt.WA_DeleteOnClose, True)
         self._meander_fenster = fenster       # Referenz halten, sonst weg
@@ -1909,32 +2108,52 @@ class MainWindow(QMainWindow):
                       "Farbvorschau darin werden die Vorschaubilder gebraucht — "
                       "die lädt „Ausrichten“ im Anschluss.")
 
-    def _on_meander_fenster_lage(self, yaw_deg: float, t) -> None:
-        """Lage aus dem Ausrichtfenster als neue Basis uebernehmen."""
+    def _on_meander_fenster_lage(self, e: dict) -> None:
+        """Lage aus dem Ausrichtfenster uebernehmen: RGB als neue Basis,
+        Thermal als Zuschlag darauf, dazu beide Massstaebe."""
         from core import meander as meander_mod
-        meander_mod.set_manual(self._meander_pipe, float(yaw_deg), t)
+        yaw_deg, t, th_zuschlag = float(e["yaw"]), e["t"], e["thermal"]
+        meander_mod.set_manual(self._meander_pipe, yaw_deg, t)
         for sp in self._spin_meander.values():
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
-        self._log(f"Lage aus dem Ausrichtfenster übernommen: Gier "
-                  f"{yaw_deg:.2f}°, Versatz {np.round(np.asarray(t)[:2], 2).tolist()} m.")
+        self._meander_setze_thermal(th_zuschlag)
+        self._meander_speichere_thermal()
+        self._meander_setze_optik(dict(self._optik, rgb_faktor=e["rgb_faktor"],
+                                       thermal_faktor=e["thermal_faktor"]))
+        self._meander_speichere_optik()
+        t = np.asarray(t, dtype=float)
+        self._log(f"Lage aus dem Ausrichtfenster übernommen: Gier {yaw_deg:.3f}°, "
+                  f"Versatz {t[0]:+.2f}/{t[1]:+.2f}/{t[2]:+.2f} m, RGB-Maßstab "
+                  f"{e['rgb_faktor']:.4f}.")
+        if self._hat_thermal():
+            dg, dx, dy = th_zuschlag
+            self._log(f"Thermal: {dg:+.3f}°, {dx:+.2f}/{dy:+.2f} m auf die RGB-Lage, "
+                      f"Maßstab {e['thermal_faktor']:.4f}.")
+        if self._cloud_view.has_color_preview():
+            self._live_timer.start()     # sichtbare Vorschau auf die neue Lage
         if hasattr(self, "_lbl_meander_lage"):
             self._lbl_meander_lage.setText(self._meander_zustand_text())
 
-    def _on_meander_manual(self) -> None:
+    def _on_meander_manual(self, optik: str = "rgb") -> None:
         """Handjustage anwenden und die Vorschau nachziehen.
 
         Die Basislage bleibt stehen, die Regler sind ein Zuschlag darauf —
         sonst wuerde jeder Reglerzug auf dem vorigen aufbauen und man kaeme nie
         zurueck. Neu gerechnet wird erst nach kurzer Ruhe (Timer), damit ein
-        Ziehen nicht Dutzende Durchlaeufe ausloest.
+        Ziehen nicht Dutzende Durchlaeufe ausloest. Gezeigt wird die Optik,
+        an deren Regler zuletzt gedreht wurde.
         """
         if self._meander_pipe is None or self._meander_pipe.yaw is None:
             self._log("Handjustage ohne Wirkung: es gibt noch keine "
                       "Ausrichtung. Erst „Ausrichten“ laufen lassen.")
             return
-        if self._live is None:
+        if optik == "thermal":
+            self._meander_speichere_thermal()
+        self._live_optik = optik
+        live = self._live_th if optik == "thermal" else self._live
+        if live is None:
             self._log("Die Vorschaubilder sind noch nicht geladen — die "
                       "Regler wirken, sobald sie da sind.")
             return
@@ -1946,16 +2165,16 @@ class MainWindow(QMainWindow):
         if pipe is None or pipe.yaw is None or self._live is None \
                 or self._live_pts is None:
             return
-        yaw, t = self._meander_lage()
-        # Lage in der Pipeline setzen, damit affine() sie sieht, und danach
-        # zuruecklegen — die Basis bleibt, die Regler sind nur ein Zuschlag.
-        alt_yaw, alt_t = pipe.yaw, np.asarray(pipe.t, dtype=float).copy()
+        from core import meander as meander_mod
+        thermal = self._live_optik == "thermal" and self._live_th is not None
+        live = self._live_th if thermal else self._live
+        yaw, t = self._meander_lage_thermal() if thermal else self._meander_lage()
         try:
-            pipe.yaw = float(np.radians(yaw))
-            pipe.t = t
-            A, b = pipe.affine()
+            # Die Basis bleibt, die Regler sind nur ein Zuschlag
+            A, b = meander_mod.lage_affine(pipe, yaw, t)
             t0 = time.perf_counter()
-            rgb, maske = self._live.colorize(self._live_pts, A, b)
+            rgb, maske = live.colorize(self._live_pts, A, b,
+                                       cams=self._meander_cams(thermal))
         except Exception as exc:  # noqa: BLE001
             # Ohne diesen Fang verschluckt Qt den Fehler im Timer-Slot und der
             # Regler sieht aus, als bewirke er nichts.
@@ -1963,8 +2182,6 @@ class MainWindow(QMainWindow):
             self._log(traceback.format_exc())
             self._live_timer.stop()
             return
-        finally:
-            pipe.yaw, pipe.t = alt_yaw, alt_t
         rgb = rgb.copy()
         rgb[~maske] = 60          # nicht getroffen: dunkel, nicht Fallback-grau
         anteil = float(maske.mean())
@@ -2010,7 +2227,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_lbl_meander_lage"):
             self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._status_lbl.setText(
-            f"Vorschau: Gier {yaw:.2f}°, Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "
+            f"Vorschau {'Thermal' if thermal else 'RGB'}: Gier {yaw:.2f}°, "
+            f"Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "
             f"{100.0 * maske.mean():.0f} % getroffen "
             f"({(time.perf_counter() - t0) * 1000:.0f} ms)")
 
@@ -2026,6 +2244,8 @@ class MainWindow(QMainWindow):
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
+        # Thermal bleibt ein Zuschlag auf RGB und damit in seinen Reglern
+        self._meander_speichere_thermal()
 
     def _live_hide(self) -> None:
         """Nur die Anzeige raeumen; die geladenen Bilder bleiben im Speicher,
@@ -2035,6 +2255,8 @@ class MainWindow(QMainWindow):
 
     def _live_clear(self) -> None:
         self._live = None
+        self._live_th = None
+        self._live_optik = "rgb"
         self._live_pts = None
         self._live_gemeckert = False
         self._live_hide()
@@ -2053,11 +2275,21 @@ class MainWindow(QMainWindow):
         welt = self._world
         thermal = bool(self._chk_thermal.isChecked())
         proj = self._project
+        th_zuschlag = self._thermal_zuschlag()
+        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
+                           thermal_faktor=self._faktor("thermal"))
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
+            from core import optik as optik_mod
             p = pipe
+            th = th_zuschlag
+            opt = optik_jetzt
             if p is None:
+                # Ohne Pipeline gab es keine Regler — dann gilt, was im
+                # Projekt steht.
+                th = meander_mod.load_thermal_zuschlag(args["work_dir"])
+                opt = optik_mod.laden(args["work_dir"])
                 p = bauen(args, log_cb)
                 p._cancel = lambda: cancel.is_set()
                 meander_mod.prepare(
@@ -2068,32 +2300,61 @@ class MainWindow(QMainWindow):
                 # stecken: die Trefferquote beim Einfaerben merkt den
                 # Fehlgriff nicht, sie liegt auch dann nahe 100 %.
                 schlecht = meander_mod.pruefe_ausrichtung(k)
-                if schlecht:
+                eingemessen = (opt.get("rgb") or {}).get("auf_flaeche_nachher")
+                if schlecht and eingemessen is not None and \
+                        eingemessen >= meander_mod.MIN_AUF_FLAECHE:
+                    # Die Kennzahl der Ausrichtung ist von vor dem Einmessen;
+                    # mit der eingemessenen Optik liegen die Fotopunkte auf.
+                    log_cb(f"Ausrichtung mit eingemessener Optik: "
+                           f"{eingemessen * 100:.1f} % der Fotopunkte auf der "
+                           f"Oberfläche.")
+                elif schlecht:
                     raise RuntimeError(schlecht)
             p._cancel = lambda: cancel.is_set()
             A, b = p.affine()
             ergebnis = {"pipe": p, "ebenen": {}}
+            rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
+            if rf != 1.0:
+                log_cb(f"RGB mit Maßstab {rf:.4f} (Brennweite).")
             progress_cb(0.52, "Färbe die volle Wolke aus den RGB-Bildern …")
             rgb, maske = meander_mod.colorize_points(
-                welt, p.rgb_cams(), p._p("images"), A, b,
+                welt, optik_mod.rgb_cams(p, rf), p._p("images"), A, b,
                 progress=lambda f, m: progress_cb(0.52 + 0.28 * f, m),
                 cancel=lambda: cancel.is_set())
             meander_mod.save_layer(
                 proj.layer_dir("meander_rgb"), rgb, maske,
                 {"quelle": "meander_rgb", "flug": p.photo_dir,
                  "yaw_deg": float(np.degrees(p.yaw)),
+                 "t": [float(x) for x in meander_mod.as_t3(p.t)],
+                 "rgb_faktor": rf,
                  "anteil": float(maske.mean()),
                  "rgb_versatz": [float(x) for x in p.rgb_versatz]})
             ergebnis["ebenen"]["meander_rgb"] = float(maske.mean())
-            if thermal and p.thermal_cams() is not None:
+            th_cams = optik_mod.thermal_cams(p, opt.get("thermal"), tf, rf) \
+                if thermal else None
+            if th_cams is not None:
                 progress_cb(0.82, "Färbe aus den Thermalbildern …")
+                yaw_th, t_th = meander_mod.thermal_lage(
+                    float(np.degrees(p.yaw)), p.t, th)
+                A_th, b_th = meander_mod.lage_affine(p, yaw_th, t_th)
+                if any(th):
+                    log_cb(f"Thermal mit eigener Lage: {th[0]:+.3f}°, "
+                           f"{th[1]:+.2f}/{th[2]:+.2f} m auf die RGB-Lage.")
+                log_cb("Thermal mit eingemessener Optik (Brennweite, Verzeichnung, "
+                       "Schielwinkel)." if opt.get("thermal") else
+                       "Thermal ohne Einmessung — nur EXIF-Brennweite. „Optik "
+                       "einmessen“ macht das deutlich besser.")
                 trgb, tmaske = meander_mod.colorize_points(
-                    welt, p.thermal_cams(), p._p("thermal"), A, b,
+                    welt, th_cams, p._p("thermal"), A_th, b_th,
                     progress=lambda f, m: progress_cb(0.82 + 0.16 * f, m),
                     cancel=lambda: cancel.is_set())
                 meander_mod.save_layer(
                     proj.layer_dir("meander_thermal"), trgb, tmaske,
                     {"quelle": "meander_thermal", "flug": p.photo_dir,
+                     "yaw_deg": float(yaw_th),
+                     "thermal_zuschlag": [float(x) for x in th],
+                     "thermal_faktor": tf,
+                     "thermal_eingemessen": bool(opt.get("thermal")),
                      "anteil": float(tmaske.mean()),
                      "thermal_versatz": [float(x) for x in p.thermal_versatz]})
                 ergebnis["ebenen"]["meander_thermal"] = float(tmaske.mean())
@@ -2107,6 +2368,8 @@ class MainWindow(QMainWindow):
 
     def _on_meander_done(self, res: dict) -> None:
         self._meander_pipe = res["pipe"]
+        self._meander_lade_thermal()     # Lief ohne Pipeline: Wert aus dem Projekt
+        self._meander_lade_optik()
         for key, anteil in res["ebenen"].items():
             self._log(f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte "
                       f"eingefärbt.")

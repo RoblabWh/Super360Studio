@@ -166,21 +166,84 @@ unberührt.
 
 | Ansicht | was zu sehen ist |
 |---|---|
-| **Überlagerung** | Karte in Grau, die Fotopunkte des Fluges in Magenta |
-| **Farbvorschau** | die Karte, eingefärbt mit der aktuellen Lage |
+| **Überlagerung** | Karte in Grau (hell = hoch), die Fotopunkte des Fluges in Magenta, mit eigener Thermallage zusätzlich in Orange |
+| **Farbvorschau RGB** | die Karte, eingefärbt aus den RGB-Bildern mit der aktuellen Lage |
+| **Farbvorschau Thermal** | dasselbe aus den Thermalbildern, mit der Thermallage |
 
-Dazu die Blickrichtung: von oben, von vorn oder von der Seite.
+**Navigation mit der Maus:** Mausrad zoomt zum Mauszeiger hin, links ziehen
+dreht, rechts oder mittel ziehen (oder Umschalt + links) verschiebt,
+Doppelklick passt die ganze Karte ein. Dazu Blickrichtungen (oben, vorn,
+Seite, schräg), eine Punktgröße und oben links ein Maßstabsbalken in Metern.
+Beim Justieren bleibt die Ansicht stehen — wo man hingezoomt hat, sieht man
+die Wirkung des Reglers.
 
-Gier, X und Y wirken in beiden sofort (60–100 ms). Unter dem Bild stehen Winkel,
-Versatz und — je nach Ansicht — der Abstand der Schwerpunkte oder die
-Trefferquote. **Lage übernehmen** schreibt die eingestellte Lage als neue Basis
-zurück ins Hauptfenster, **zurücksetzen** stellt die gefundene Lage wieder her.
+Gier, X und Y gibt es **zweimal**: eine Zeile für RGB, eine für Thermal. Alle
+wirken sofort. Unter dem Bild stehen Winkel, Versatz und — je nach Ansicht — der
+Abstand der Schwerpunkte oder die Trefferquote. Wer an einem Thermalregler
+dreht, bekommt die Thermal-Farbvorschau. **Lage übernehmen** schreibt beide
+Lagen zurück ins Hauptfenster, **zurücksetzen** stellt die Lage beim Öffnen
+wieder her. Ein Handzuschlag aus dem Hauptfenster wird beim Öffnen verrechnet,
+das Fenster setzt auf der Lage auf, die man gerade sieht.
 
 Gezeichnet wird als **Bild**, nicht mit einem zweiten 3D-Fenster. Zwei
 OpenGL-Kontexte in einer Anwendung sind je nach Grafiktreiber und Sitzung eine
-Quelle schwarzer Fenster, und fürs Ausrichten reicht der Blick von oben. Der
-Preis ist, dass sich die Ansicht nicht frei drehen lässt; dafür rendert sie
-zuverlässig — geprüft sogar ganz ohne X-Server.
+Quelle schwarzer Fenster. Das Bild rechnet numpy mit Tiefenpuffer, ein Bild aus
+400.000 Punkten kostet einige zehn Millisekunden — genug, damit Drehen und
+Zoomen der Maus folgen, und zuverlässig, geprüft sogar ganz ohne X-Server.
+
+### Optik einmessen
+
+Die Bilder eines Mäanderfluges passen erst zueinander, wenn die Optik stimmt.
+Am DRZ-Flug (DJI M30T, 57 m) stimmte sie nicht:
+
+* **RGB-Brennweite ~11 % zu kurz.** COLMAP hält die Optik bewusst fest (sonst
+  wölbt sich die Rekonstruktion zur Kuppel) — aber mit dem Nennwert aus dem
+  EXIF. Jedes Bild landet dadurch zu klein auf der Karte, am Rand um Meter und
+  in jedem Bild in eine andere Richtung: die Bilder wirken **zueinander
+  verzerrt**. Die Fotopunkte schweben aus demselben Grund knapp 4 m über der
+  Lidar-Oberfläche.
+* **Thermal schielt, ist verzeichnet und hat eine andere Brennweite.** Die
+  Thermalkamera ist gegen die RGB-Kamera um rund 2° verdreht (2 m am Boden),
+  ihr Objektiv hat eine kräftige Tonnenverzeichnung, und die Brennweite weicht
+  vom EXIF ab. Bisher wurde mit der RGB-Pose, EXIF-Brennweite und ohne
+  Verzeichnung gerechnet.
+
+**„Optik einmessen“** (läuft nach dem ersten Ausrichten von selbst, rund eine
+Minute) misst das nacheinander ein, siehe `core/optik.py`:
+
+1. **Höhe** über den Laser-Entfernungsmesser der Drohne — jedes Bild trägt im
+   XMP den Abstand zum Boden. Die Höhe muss zuerst feststehen: auf ebenem Boden
+   lassen sich Brennweite und Flughöhe gegeneinander tauschen.
+2. **RGB-Brennweite** über die Farbkonsistenz: jeder Kartenpunkt wird in alle
+   Bilder projiziert, die ihn sehen; stimmt die Brennweite, widersprechen sich
+   die Bilder am wenigsten.
+3. **Thermaloptik** gegen das RGB-Bild desselben Auslösers — Brennweite,
+   Hauptpunkt, Verzeichnung und Schielwinkel, über die Transinformation der
+   Grauwerte. Geprüft an Bildpaaren, die nicht zum Einmessen dienten.
+
+Das Ergebnis liegt in `meander/optik_kalibrierung.json`, die Maßstab-Regler
+zeigen es, Einfärben und Vorschau benutzen es. ODM/WebODM wurde erwogen und
+verworfen: die M30T ist dort nicht unterstützt, eine gekoppelte Verarbeitung von
+Weitwinkel und Thermal gibt es nicht, und SfM auf reinen Thermalbildern scheitert
+an texturarmen Dächern.
+
+### Schieber statt Zahlenfelder
+
+Jeder Versatz — Lage des Mäanderfluges (RGB und Thermal), Maßstab, Hauptpunkt
+der Optiken, Zusammenführen, Extrinsik — hat **zwei Schieber**: einen groben für
+den Weg und einen feinen für das letzte Stück (Meter bis auf den Zentimeter,
+Winkel bis 0,005°, Maßstab bis 0,01 %). Der Wert ist die Summe; das Feld daneben
+zeigt sie und nimmt einen getippten Wert an, „0“ setzt zurück.
+
+### Eigene Lage für Thermal
+
+Die Thermalbilder haben eigene Regler für Gier, X und Y — im Hauptfenster unter
+**Lage von Hand** in der Zeile **Thermal**, im Ausrichtfenster ebenso. Sie sind
+ein **Zuschlag auf die RGB-Lage**, keine zweite Lage daneben: beide Optiken
+hängen an derselben Gimbal. Wird RGB neu ausgerichtet oder nachgezogen, zieht
+Thermal mit, und in den Thermalreglern steht nur, was zwischen den Optiken
+nicht passt. Der Wert bleibt im Projekt (`meander/thermal_lage.json`) und wird
+beim Einfärben für die Thermalebene verwendet; ihre `meta.json` hält ihn fest.
 
 Das ist der Weg, wenn die automatische Ausrichtung danebenliegt: erst in der
 Überlagerung grob schieben, bis Magenta auf Grau liegt, dann in der Farbvorschau
@@ -199,15 +262,16 @@ verschwindet wieder bei jedem Fehlschlag, jedem Abbruch, jedem Wechsel der
 Farbquelle und nach dem Einfärben. Eine ausgeblendete Karte bleibt nie zurück.
 
 Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
-sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X und Y
-sind Meter, die Schrittweite ist 0,5 m; das reicht: beim DRZ-Datensatz deckt ein
-RGB-Pixel 5,2 cm Boden ab, ein halber Meter verschiebt also um rund zehn Pixel
-und ändert die Farbe von 60 % der Stichprobe sichtbar.
+sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X, Y
+und Z sind Meter; der grobe Schieber geht in Dezimetern, der feine in
+Zentimetern. Beim DRZ-Datensatz deckt ein RGB-Pixel rund 5 cm Boden ab — der
+feine Schieber bewegt also um Bruchteile eines Pixels. Die Maßstab-Regler sind
+kein Zuschlag, sondern der Wert selbst; sie bleiben im Projekt gespeichert.
 
 Die beiden Kästen **RGB-Optik** und **Thermal-Optik** verschieben den
 Bildhauptpunkt in Pixeln. Das wirkt wie eine Verkippung der Kamera gegen die
 Achse, die COLMAP angenommen hat, und die Verschiebung am Boden wächst mit dem
-Abstand — anders als die Regler für X und Y darüber, die starr schieben. Getrennt
+Abstand — anders als die Regler für Gier, X und Y darüber, die starr schieben. Getrennt
 je Optik, weil es zwei Objektive sind. Bewusst ohne Automatik: eine
 Kennzahl dafür ist nicht zu finden, ein sonnenwarmes Dach ist thermisch
 gleichmäßig und optisch strukturiert, ein Schatten umgekehrt.

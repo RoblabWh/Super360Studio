@@ -141,6 +141,9 @@ def align(pipe, progress=None) -> dict:
     if progress is not None:
         progress(0.05, "Suche Gierwinkel und Verschiebung …")
     pipe.align()
+    # Eine align.json aus der Zeit vor as_t3 traegt nur x und y. Die Pipeline
+    # liest sie unveraendert ein, und jedes spaetere affine() bricht dann ab.
+    pipe.t = as_t3(pipe.t)
     k = dict(pipe.kennwerte or {})
     k.update({"yaw_deg": float(np.degrees(pipe.yaw)),
               "t": [float(x) for x in np.asarray(pipe.t).ravel()]})
@@ -185,6 +188,63 @@ def set_manual(pipe, yaw_deg: float, t) -> None:
     pipe.yaw = float(np.radians(yaw_deg))
     pipe.t = as_t3(t)
     pipe.save_align()
+
+
+def lage_affine(pipe, yaw_deg: float, t) -> tuple:
+    """Affin fuer eine beliebige Lage, ohne die Lage der Pipeline anzufassen.
+
+    ``affine()`` liest Gier und Verschiebung aus der Pipeline. Fuer eine
+    Vorschau oder die Thermallage werden sie kurz gesetzt und danach
+    zurueckgelegt — die Basis bleibt, was ``align`` gefunden hat.
+    """
+    alt_yaw, alt_t = pipe.yaw, pipe.t
+    try:
+        pipe.yaw = float(np.radians(yaw_deg))
+        pipe.t = as_t3(t)
+        return pipe.affine()
+    finally:
+        pipe.yaw, pipe.t = alt_yaw, alt_t
+
+
+# ------------------------------------------------------------ Thermallage
+#
+# Die Thermalbilder haben eine eigene Handlage, aber als Zuschlag auf die
+# RGB-Lage, nicht als zweite Lage daneben: beide Optiken haengen an derselben
+# Gimbal. Wird RGB neu ausgerichtet oder nachgezogen, zieht Thermal mit, und im
+# Zuschlag steht nur, was zwischen den beiden Optiken nicht passt.
+
+_THERMAL_LAGE = "thermal_lage.json"
+
+
+def thermal_lage(rgb_yaw_deg: float, rgb_t, zuschlag) -> tuple:
+    """Lage der Thermalbilder: RGB-Lage plus Zuschlag (Gier Grad, X m, Y m)."""
+    dgier, dx, dy = (float(v) for v in zuschlag)
+    t = as_t3(rgb_t)
+    t[0] += dx
+    t[1] += dy
+    return float(rgb_yaw_deg) + dgier, t
+
+
+def load_thermal_zuschlag(work_dir: str) -> tuple:
+    """Gespeicherten Thermal-Zuschlag lesen; (0, 0, 0), wenn keiner da ist."""
+    pfad = os.path.join(work_dir, _THERMAL_LAGE)
+    try:
+        with open(pfad, encoding="utf-8") as fh:
+            d = json.load(fh)
+        return (float(d["gier_grad"]), float(d["x"]), float(d["y"]))
+    except (OSError, ValueError, KeyError, TypeError):
+        return (0.0, 0.0, 0.0)
+
+
+def save_thermal_zuschlag(work_dir: str, zuschlag) -> None:
+    dgier, dx, dy = (float(v) for v in zuschlag)
+    os.makedirs(work_dir, exist_ok=True)
+    tmp = os.path.join(work_dir, _THERMAL_LAGE + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump({"gier_grad": dgier, "x": dx, "y": dy,
+                   "bezug": "Zuschlag auf die RGB-Lage, X und Y in Metern"},
+                  fh, indent=2)
+    os.replace(tmp, os.path.join(work_dir, _THERMAL_LAGE))
 
 
 def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
@@ -291,8 +351,21 @@ class LivePreview:
             if progress is not None and (i % 20 == 0 or i == n - 1):
                 progress((i + 1) / n, f"Lade Vorschaubild {i + 1}/{n} …")
 
-    def colorize(self, points: np.ndarray, A, b) -> tuple[np.ndarray, np.ndarray]:
-        """Wie :func:`colorize_points`, nur auf den verkleinerten Bildern."""
+    def colorize(self, points: np.ndarray, A, b, cams=None) -> tuple[np.ndarray, np.ndarray]:
+        """Wie :func:`colorize_points`, nur auf den verkleinerten Bildern.
+
+        ``cams`` ersetzt Posen und Optik fuer diesen einen Durchlauf (gleiche
+        Bilder, gleiche Reihenfolge) — so wirken Massstab und Thermaloptik
+        sofort, ohne dass ein Bild neu geladen wird.
+        """
+        Rcw, tcw, size, params, model = self.Rcw, self.tcw, self.size, self.params, self.model
+        if cams is not None:
+            Rcw = np.asarray(cams["Rcw"], dtype=np.float64)
+            tcw = np.asarray(cams["tcw"], dtype=np.float64)
+            size = np.asarray(cams["size"])
+            params = np.asarray(cams["params"])
+            model = (cams["model"].item() if getattr(cams["model"], "shape", None) == ()
+                     else str(cams["model"]))
         P = np.asarray(points, dtype=np.float64)
         N = len(P)
         Ainv = np.linalg.inv(np.asarray(A, dtype=np.float64))
@@ -301,10 +374,9 @@ class LivePreview:
         col = np.empty((N, 3), dtype=np.uint8)
         col[:] = _FALLBACK
         for i, img in enumerate(self.bilder):
-            pc = (self.Rcw[i] @ PT).T + self.tcw[i]
-            u, v, front, rad = self._cz._project(pc, self.size[i],
-                                                 self.params[i], self.model)
-            W, H = self.size[i]
+            pc = (Rcw[i] @ PT).T + tcw[i]
+            u, v, front, rad = self._cz._project(pc, size[i], params[i], model)
+            W, H = size[i]
             gilt = front & (u >= 0) & (u < W) & (v >= 0) & (v < H) & (rad < best)
             if not gilt.any():
                 continue
@@ -424,6 +496,31 @@ if __name__ == "__main__":
         print("  2er-Vektor bricht in register.affine ab — genau deshalb as_t3")
     else:
         raise AssertionError("2er-Vektor haette abbrechen muessen")
+
+    print("== Test 6b: Thermallage ist ein Zuschlag auf RGB ==")
+    yaw_t, t_t = thermal_lage(80.0, [-18.0, 9.0, -2.0], (1.5, 0.5, -0.25))
+    assert abs(yaw_t - 81.5) < 1e-12 and np.allclose(t_t, [-17.5, 8.75, -2.0]), t_t
+    yaw_t, t_t = thermal_lage(80.0, [-18.0, 9.0], (0.0, 0.0, 0.0))
+    assert t_t.shape == (3,), "Thermallage muss ein 3er sein"
+    assert load_thermal_zuschlag(tmp) == (0.0, 0.0, 0.0), "ohne Datei nicht 0"
+    save_thermal_zuschlag(tmp, (1.5, 0.5, -0.25))
+    assert load_thermal_zuschlag(tmp) == (1.5, 0.5, -0.25)
+    with open(os.path.join(tmp, _THERMAL_LAGE), "w") as fh:
+        fh.write("{kaputt")
+    assert load_thermal_zuschlag(tmp) == (0.0, 0.0, 0.0), "kaputte Datei nicht 0"
+
+    class _P:
+        yaw, t, enu = 0.3, np.array([1.0, 2.0]), (1.0, np.eye(3), np.zeros(3))
+        skala, zentrum = 1.0, None
+
+        def affine(self):
+            return reg.affine(self.yaw, self.t, *self.enu, skala=self.skala,
+                              zentrum=self.zentrum)
+    p_ = _P()
+    A_, b_ = lage_affine(p_, 90.0, [5.0, 6.0])
+    assert np.allclose(b_, [5.0, 6.0, 0.0]) and np.allclose(A_ @ [1, 0, 0], [0, 1, 0])
+    assert p_.yaw == 0.3 and p_.t.tolist() == [1.0, 2.0], "Basislage veraendert"
+    print("  Zuschlag addiert, Datei hin und zurueck, Basislage unberuehrt")
 
     print("== Test 7: Ebene schreiben und lesen ==")
     lay = os.path.join(tmp, "ebene")
