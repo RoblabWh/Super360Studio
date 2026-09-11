@@ -2,41 +2,6 @@
 
 ![Punktwolke des DRZ-Geländes in fünf Ansichten, nacheinander überblendet](assets/modelle.gif)
 
-Bis 2026-09 hieß das Programm „RosBag Suite 360".
-
-PyQt5-GUI für die Auswertung der Drohnen-Rosbags (ROS2 Humble, Livox Mid-360 +
-Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
-
-1. **Punktwolke (FAST-LIO2)** — berechnet aus dem Bag die dichteste Karte
-   (`whs_dense.yaml`: alle gültigen Punkte, volle Scans via
-   `/cloud_registered_body` + `/Odometry`) und zeigt sie im 3D-Viewer (VTK).
-2. **360°-Video** — stitcht die Dual-Fisheye-Frames Docker-frei (OpenCV-Remap,
-   Double-Sphere-Kalibrierung aus `Super360_Stitcher_rosbag`) und spielt sie ab
-   (Zoom aufs Mausrad, Pan, Frame-genaues Springen, 180°-Drehung).
-3. **Einfärbung** — färbt die Punktwolke aus den 360°-Bildern ein; zu dunkle /
-   zu helle Pixel (Sliders „Helligkeit min/max") werden ausgefiltert, nicht
-   eingefärbte Punkte lassen sich ausblenden („Nur eingefärbte Punkte").
-   Kamera-Extrinsik: grobe Auto-Kalibrierung + manuelle Feinjustage
-   (Yaw/Pitch/Roll/x/y/z) mit Overlay-Vorschau.
-4. **GPS** — prüft IMMER die Signalqualität (fix_type, Satelliten, eph/HDOP,
-   Kovarianz, Bewegungs-Baseline; Sentinel-Werte werden erkannt). Nur bei
-   brauchbarem Signal wird die LIO-Trajektorie per gewichteter
-   4-DOF-Ausrichtung (Yaw + Translation, Gewichte 1/eph²) auf ENU/UTM
-   georeferenziert; Residuen (RMS) werden ausgewiesen.
-5. **Export** — PLY/PCD (lokal) und LAS (georeferenziert in UTM, falls GPS
-   brauchbar; exakte pyproj-Projektion).
-
-## Bedienung im Überblick
-
-Oben die Menüleiste (**Datei**, **Ändern**, **Ansicht**, **Werkzeuge**, **Hilfe**),
-rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
-klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. `Strg+B`
-blendet die Leiste ganz aus, der Trenner dazwischen lässt sich ziehen. Welche
-Abschnitte offen sind, merkt sich das Projekt.
-
-Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
-`F6` einfärben, `F7` Mäander, `M` messen, `R` Kamera zurück, `Esc` Messung weg, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
-
 ## Vor dem ersten Start
 
 Getestet auf **Ubuntu 22.04** mit dem System-Python **3.10** und einem
