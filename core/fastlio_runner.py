@@ -87,8 +87,8 @@ class FastLioRunner:
     FIRST_SCAN_TIMEOUT_S = 20.0   # base; scaled with 1/rate in run()
     MIN_SCANS = 5                 # below this a run does not count as success
 
-    def __init__(self, fastlio_ws: str = "/home/lena/fastlio2_ws",
-                 livox_ws: str = "/home/lena/ws_livox",
+    def __init__(self, fastlio_ws: str = os.path.expanduser("~/fastlio2_ws"),
+                 livox_ws: str = os.path.expanduser("~/ws_livox"),
                  ros_setup: str = "/opt/ros/humble/setup.bash"):
         self.fastlio_ws = fastlio_ws
         self.livox_ws = livox_ws

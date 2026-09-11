@@ -28,7 +28,7 @@ import numpy as np
 # des Repos, weiterhin am historischen Ort. Per Env-Variable umhaengbar.
 DEFAULT_CACHE_ROOT = os.environ.get(
     "SUPER360_CACHE_ROOT",
-    "/home/lena/RosBagSuper_Gui/rosbag_suite/cache",
+    os.path.expanduser("~/RosBagSuper_Gui/rosbag_suite/cache"),
 )
 
 _RECORDING_FILES = ("points.bin", "intensity.bin", "offsets.npy", "stamps.npy", "poses.npy", "meta.json")

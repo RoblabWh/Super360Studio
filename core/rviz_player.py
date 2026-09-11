@@ -36,8 +36,8 @@ _PANO_SCRIPT = os.path.join(_PKG, "scripts", "pano_publisher.py")
 # traj_utils/quadrotor_msgs aus EPIC. Ohne diese Typen bricht `ros2 bag play` ab.
 DEFAULT_SETUPS = (
     "/opt/ros/humble/setup.bash",
-    "/home/lena/ws_livox/install/setup.bash",
-    "/home/lena/EPIC_ros2/install/setup.bash",
+    os.path.expanduser("~/ws_livox/install/setup.bash"),
+    os.path.expanduser("~/EPIC_ros2/install/setup.bash"),
 )
 
 

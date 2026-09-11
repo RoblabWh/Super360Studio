@@ -37,6 +37,108 @@ Abschnitte offen sind, merkt sich das Projekt.
 Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
 `F6` einfärben, `F7` Mäander, `M` messen, `R` Kamera zurück, `Esc` Messung weg, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
 
+## Vor dem ersten Start
+
+Getestet auf **Ubuntu 22.04** mit dem System-Python **3.10** und einem
+Grafiktreiber mit OpenGL ≥ 3.2 (die 3D-Ansicht ist VTK). Was davon da ist,
+prüft ein Skript und sagt zu jedem fehlenden Teil den Befehl:
+
+```bash
+python3 scripts/pruefe_installation.py
+```
+
+Was man braucht, hängt davon ab, was man machen will:
+
+| Teil | wofür | Pflicht? |
+|---|---|---|
+| PyQt5, VTK (apt) + Python-Pakete (pip) | App starten, Projekte öffnen, ansehen, messen, exportieren | **ja** |
+| PointCloudMerger (Nachbar-Repo) | Mäander-Einfärbung aus dem DJI-Flug | für Mäander |
+| Interpreter mit `pycolmap` | neue COLMAP-Rekonstruktion eines Mäanderfluges | nur ohne fertiges Modell |
+| ROS 2 Humble + Livox-Treiber + FAST_LIO_ROS2 | **Karte berechnen** aus einem Rosbag | nur dafür |
+| EPIC_ros2 | RViz-Wiedergabe (`traj_utils`/`quadrotor_msgs`) | nur dafür |
+
+Ein fertiges Projekt (z. B. ein exportierter Ordner) lässt sich also mit den
+Pflichtteilen allein öffnen, ansehen, messen, einfärben aus der Mäander-Ebene
+und exportieren — ROS braucht es nur zum Berechnen der Karte.
+
+### 1. Pflicht: GUI und Python-Pakete
+
+```bash
+sudo apt install python3-pip python3-pyqt5 python3-pyqt5.qtopengl python3-vtk9
+pip install --user -r requirements.txt
+```
+
+PyQt5 und VTK bewusst aus **apt** (getestet: PyQt5 5.15.6, VTK 9.1.0) — die
+pip-Wheels von VTK bringen eigene Qt-Bindungen mit und vertragen sich damit
+nicht zuverlässig. `requirements.txt` enthält den Rest (numpy, scipy,
+opencv-python, open3d, rosbags 0.10, Pillow, laspy, pyproj, pyqtdarktheme)
+mit den getesteten Versionen als Kommentar. Fehlt `pyqtdarktheme`, startet die
+App im Standard-Look.
+
+### 2. Mäander-Einfärbung
+
+```bash
+git clone git@github.com:LenaKremer98/PointCloudMerger.git ~/PointCloudMerger
+sudo apt install libimage-exiftool-perl        # optional: Geotags schneller
+```
+
+Gesucht wird unter `~/PointCloudMerger` und neben diesem Repo. Temperaturen aus
+den Thermalbildern brauchen **kein** DJI-SDK (s. „Temperaturen“).
+
+Liegt im Projekt noch kein COLMAP-Modell des Fluges, rechnet die App eins — dafür
+braucht es einen Interpreter mit `pycolmap`, getrennt vom System-Python:
+
+```bash
+python3 -m venv ~/.venvs/colmap
+~/.venvs/colmap/bin/pip install pycolmap        # getestet: 4.0.4
+```
+
+### 3. Karte berechnen (FAST-LIO2)
+
+Nur dafür braucht es ROS 2 Humble. Die App erwartet die Workspaces unter
+`~/ws_livox` und `~/fastlio2_ws` und sourct sie selbst — vor dem Start der App
+muss nichts gesourct werden. Kurzfassung (Details in den READMEs der Repos):
+
+```bash
+# ROS 2 Humble (https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
+sudo apt install ros-humble-desktop ros-humble-pcl-ros libpcl-dev libeigen3-dev \
+                 python3-colcon-common-extensions
+
+# Livox-SDK2
+git clone https://github.com/Livox-SDK/Livox-SDK2.git ~/Livox-SDK2
+cd ~/Livox-SDK2 && mkdir -p build && cd build && cmake .. && make -j && sudo make install
+
+# livox_ros_driver2 (liefert den Nachrichtentyp CustomMsg der Mid-360)
+mkdir -p ~/ws_livox/src
+git clone https://github.com/Livox-SDK/livox_ros_driver2.git ~/ws_livox/src/livox_ros_driver2
+cd ~/ws_livox/src/livox_ros_driver2 && source /opt/ros/humble/setup.bash && ./build.sh humble
+
+# FAST_LIO_ROS2 mit der Konfiguration aus diesem Repo
+mkdir -p ~/fastlio2_ws/src
+git clone --recursive https://github.com/Ericsii/FAST_LIO_ROS2.git ~/fastlio2_ws/src/FAST_LIO_ROS2
+cp config/fastlio/whs_dense.yaml ~/fastlio2_ws/src/FAST_LIO_ROS2/config/
+cd ~/fastlio2_ws && source /opt/ros/humble/setup.bash \
+    && source ~/ws_livox/install/setup.bash && colcon build
+```
+
+**`whs_dense.yaml` gehört nicht zu FAST_LIO_ROS2** — es ist die eigene
+Konfiguration für die Super-Drohne (jeder Rohpunkt, volle Scans, Lidar-IMU-
+Extrinsik der Mid-360) und liegt deshalb unter `config/fastlio/` in diesem Repo.
+Ohne sie schlägt „Karte berechnen“ fehl. Nach einer Änderung neu bauen, der
+Workspace ist ohne `--symlink-install` gebaut.
+
+Optional für die RViz-Wiedergabe: [EPIC](https://github.com/Robotics-STAR-Lab/EPIC)
+als `~/EPIC_ros2` bauen — ohne dessen Nachrichtentypen bricht `ros2 bag play`
+bei den Drohnen-Bags ab.
+
+### 4. Tests (optional)
+
+```bash
+sudo apt install xvfb
+xvfb-run -a python3 scripts/test_cloud_view_steuerung.py
+python3 -m core.meander        # jedes Modul in core/ und ui/ hat einen Selbsttest
+```
+
 ## Start
 
 ```bash
@@ -46,6 +148,9 @@ Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
 Kein ROS-Sourcing nötig — die GUI liest Bags über die `rosbags`-Bibliothek;
 nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 (`/opt/ros/humble`, `~/ws_livox`, `~/fastlio2_ws`).
+
+Projekte liegen im Cache unter `~/RosBagSuper_Gui/rosbag_suite/cache`, umzuhängen
+mit der Umgebungsvariable `SUPER360_CACHE_ROOT`.
 
 ## Bedienung (Pipeline in der Sidebar)
 

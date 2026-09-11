@@ -1,0 +1,19 @@
+# Python-Pakete fuer Super360 Studio (Python 3.10, Ubuntu 22.04).
+#   pip install --user -r requirements.txt
+#
+# PyQt5 und VTK kommen NICHT von hier, sondern aus apt — die getestete
+# Kombination ist python3-pyqt5 5.15.6 mit python3-vtk9 9.1.0 (s. README,
+# "Vor dem ersten Start"). Die pip-Wheels von VTK bringen eigene Qt-Bindungen
+# mit und vertragen sich damit nicht zuverlaessig.
+#
+# Getestet mit den Versionen im Kommentar.
+
+numpy>=1.24            # 2.2.6
+scipy>=1.10            # 1.14.1   cKDTree(workers=...), ndimage, optimize, Rotation
+opencv-python>=4.8     # 4.12.0   Remap, Canny, Bild-IO
+open3d>=0.17           # 0.19.0   Normalen, Voxelraster, ICP/FGR beim Zusammenfuehren
+rosbags>=0.10,<0.11    # 0.10.10  ROS2-Bags ohne ROS lesen (get_typestore, Stores)
+Pillow>=9.0            # 12.1.1   Bilder, EXIF/XMP
+laspy>=2.4             # 2.7.0    LAS-Export
+pyproj>=3.4            # 3.7.1    UTM-Projektion fuer den georeferenzierten Export
+pyqtdarktheme>=2.1     # 2.1.0    dunkles Theme; fehlt es, startet die App im Standard-Look
