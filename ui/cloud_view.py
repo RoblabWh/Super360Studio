@@ -12,8 +12,21 @@ ein Gebaeude hineinschauen. Geschnitten wird ueber vtkPlane am Mapper, also
 auf der Grafikkarte — die Geometrie wird dabei nicht neu aufgebaut, das
 Ziehen bleibt auch bei Millionen Punkten fluessig. Die Trajektorie haengt an
 einem eigenen Mapper und bleibt ungeschnitten sichtbar.
+
+**Maus wie im VS-Code-Punktwolken-Viewer** (``PointCloudMerger/vscode-
+pointcloud-viewer``): links ziehen dreht um den Zielpunkt (Gier und Nick, Z
+oben, 0,006 rad je Pixel), rechts ziehen oder Umschalt/Strg und ziehen
+verschiebt in der Bildebene, das Mausrad zoomt mit ``exp(0,0012 * Delta)``,
+Blickwinkel 50°. Ein Klick beim Messen ist ein Klick, solange die Maus dabei
+unter 5 Pixeln bleibt — gedreht werden kann also auch waehrend des Messens.
+
+**Leiste oben** wie dort: Farbe, Punktgroesse (in Vierteln), Messen,
+Temperatur anzeigen, Ansicht zuruecksetzen. Mit Temperatur zeigt die Maus
+ueber einem Punkt dessen Temperatur — in jedem Farbmodus.
 """
 from __future__ import annotations
+
+import math
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -35,6 +48,12 @@ _BG = {"dunkel": (0.102, 0.110, 0.125), "hell": (0.93, 0.94, 0.955)}
 _UNIFORM_COLOR = {"dunkel": (0.80, 0.82, 0.85), "hell": (0.22, 0.25, 0.28)}
 _COLOR_MODES = ("rgb", "hoehe", "intensitaet", "uniform")
 _ID_DTYPE = np.int64 if vtk.vtkIdTypeArray().GetDataTypeSize() == 8 else np.int32
+
+_BLICKWINKEL = 50.0   # Grad, wie im VS-Code-Viewer
+_DREH = 0.006         # rad je Pixel
+_ZOOM = 0.0012        # je Browser-Pixel Mausrad; eine Raste sind dort 100
+_NICK_MAX = 1.553     # knapp unter 90°, sonst kippt die Hochachse
+_HOVER_PUNKTE = 1_500_000   # so viele Punkte mit Temperatur prueft das Hovern
 
 _CUT_W = 62        # px Gesamtbreite der Leiste
 _CUT_TRACK_W = 10  # px Breite der Schiene
@@ -254,13 +273,29 @@ class CloudView(QtWidgets.QWidget):
 
     #: (A, B) in Weltkoordinaten; B ist None, solange nur A gesetzt ist
     measured = QtCore.pyqtSignal(object, object)
+    #: Leiste: Farbmodus gewaehlt (Schluessel, s. set_farbmodi)
+    farbmodus_gewaehlt = QtCore.pyqtSignal(str)
+    #: Leiste: Punktgroesse in Pixeln (Viertelschritte)
+    punktgroesse_geaendert = QtCore.pyqtSignal(float)
+    #: Leiste oder Taste: Messen soll umschalten
+    messen_angefordert = QtCore.pyqtSignal()
+    #: Leiste: Temperatur beim Hovern zeigen an/aus
+    temperatur_umgeschaltet = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout(self)
+        aussen = QtWidgets.QVBoxLayout(self)
+        aussen.setContentsMargins(0, 0, 0, 0)
+        aussen.setSpacing(0)
+        aussen.addWidget(self._leiste_bauen())
+        layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        aussen.addLayout(layout, 1)
         self._vtkw = QVTKRenderWindowInteractor(self)
+        self._vtkw.setMouseTracking(True)          # fuer die Temperatur beim Hovern
+        self._vtkw.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self._vtkw.setCursor(QtCore.Qt.OpenHandCursor)
         layout.addWidget(self._vtkw, 1)
 
         side = QtWidgets.QVBoxLayout()
@@ -282,7 +317,25 @@ class CloudView(QtWidgets.QWidget):
         rw = self._vtkw.GetRenderWindow()
         rw.SetMultiSamples(0)  # required for correct render-pass (EDL) output
         rw.AddRenderer(self._renderer)
-        rw.GetInteractor().SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+        # Die Maus steuert diese Klasse selbst (wie der VS-Code-Viewer); der
+        # VTK-Stil bekommt keine Maus- und Tastenereignisse mehr zu sehen.
+        rw.GetInteractor().SetInteractorStyle(vtk.vtkInteractorStyleUser())
+        self._renderer.GetActiveCamera().SetViewAngle(_BLICKWINKEL)
+        self._kam = {"yaw": -math.pi / 4, "pitch": 0.5, "dist": 10.0,
+                     "ziel": np.zeros(3), "radius": 1.0}
+        self._ziehen = 0            # 0 nichts, 1 drehen, 2 verschieben
+        self._maus_letzt = QtCore.QPoint()
+        self._maus_start = QtCore.QPoint()
+        # Temperatur beim Hovern: Werte je Punkt, Stichprobe zum Suchen
+        self._temperatur: np.ndarray | None = None
+        self._temp_an = True
+        self._hover_pts: np.ndarray | None = None
+        self._hover_temp: np.ndarray | None = None
+        self._hover_pos = QtCore.QPoint()
+        self._hover_timer = QtCore.QTimer(self)
+        self._hover_timer.setSingleShot(True)
+        self._hover_timer.setInterval(45)
+        self._hover_timer.timeout.connect(self._hover_zeigen)
 
         self._mapper = vtk.vtkPolyDataMapper()
         self._mapper.SetColorModeToDirectScalars()
@@ -363,6 +416,124 @@ class CloudView(QtWidgets.QWidget):
         self._meas_actors: list = []
         self._vtkw.installEventFilter(self)
 
+    # ------------------------------------------------------------------ Leiste
+
+    def _leiste_bauen(self) -> QtWidgets.QWidget:
+        """Leiste oben wie im VS-Code-Viewer: Farbe, Punkte, Messen, Temperatur."""
+        leiste = QtWidgets.QFrame(self)
+        leiste.setObjectName("wolkenleiste")
+        # Farben aus der Palette, nicht fest: helle Schrift waere ohne das
+        # dunkle Theme auf hellem Grund unsichtbar
+        leiste.setStyleSheet("#wolkenleiste { border-bottom: 1px solid rgba(128,128,128,90); }")
+        lay = QtWidgets.QHBoxLayout(leiste)
+        lay.setContentsMargins(10, 4, 10, 4)
+        lay.setSpacing(14)
+
+        def gruppe(*widgets):
+            g = QtWidgets.QHBoxLayout()
+            g.setSpacing(5)
+            for w in widgets:
+                g.addWidget(w)
+            lay.addLayout(g)
+
+        self._farbe = QtWidgets.QComboBox()
+        self._farbe.setMinimumContentsLength(14)
+        self._farbe.setToolTip("Farbmodus der Wolke")
+        self._farbe.activated.connect(
+            lambda i: self.farbmodus_gewaehlt.emit(str(self._farbe.itemData(i))))
+        gruppe(QtWidgets.QLabel("Farbe"), self._farbe)
+
+        self._groesse = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self._groesse.setRange(2, 40)          # Viertelpixel: 0,5 .. 10 px
+        self._groesse.setValue(8)
+        self._groesse.setFixedWidth(110)
+        self._groesse.setToolTip("Punktgröße in Pixeln, in Viertelschritten")
+        self._groesse_lbl = QtWidgets.QLabel("2")
+        self._groesse_lbl.setMinimumWidth(34)
+        self._groesse.valueChanged.connect(self._groesse_gezogen)
+        gruppe(QtWidgets.QLabel("Punkte"), self._groesse, self._groesse_lbl)
+
+        self._btn_messen = QtWidgets.QPushButton("Messen")
+        self._btn_messen.setCheckable(True)
+        self._btn_messen.setToolTip("zwei Punkte anklicken (M) — Esc verwirft")
+        self._btn_messen.clicked.connect(lambda: self.messen_angefordert.emit())
+        gruppe(self._btn_messen)
+
+        self._chk_temp = QtWidgets.QCheckBox("Temperatur anzeigen")
+        self._chk_temp.setChecked(True)
+        self._chk_temp.setEnabled(False)
+        self._chk_temp.setToolTip(
+            "Zeigt beim Überfahren eines Punktes seine Temperatur — in jedem\n"
+            "Farbmodus. Braucht eine Thermal-Einfärbung aus dem Mäanderflug.")
+        self._chk_temp.toggled.connect(self._temp_umgeschaltet)
+        gruppe(self._chk_temp)
+
+        knopf = QtWidgets.QPushButton("Ansicht zurücksetzen")
+        knopf.setToolTip("R")
+        knopf.clicked.connect(self.reset_camera)
+        gruppe(knopf)
+        lay.addStretch(1)
+        hinweis = QtWidgets.QLabel("links: drehen · rechts/Umschalt: verschieben · Rad: zoomen")
+        hinweis.setStyleSheet("font-style: italic;")
+        hinweis.setEnabled(False)          # gedaempft, in jedem Theme lesbar
+        lay.addWidget(hinweis)
+        return leiste
+
+    def set_farbmodi(self, eintraege: list, aktuell: str) -> None:
+        """Auswahl der Leiste fuellen: [(schluessel, text, verfuegbar), ...]."""
+        self._farbe.blockSignals(True)
+        self._farbe.clear()
+        for key, text, da in eintraege:
+            self._farbe.addItem(text, key)
+            item = self._farbe.model().item(self._farbe.count() - 1)
+            item.setEnabled(bool(da))
+            if not da:
+                item.setToolTip("für dieses Projekt nicht vorhanden")
+        self._farbe.blockSignals(False)
+        self.setze_farbmodus(aktuell)
+
+    def setze_farbmodus(self, key: str) -> None:
+        i = self._farbe.findData(key)
+        if i >= 0 and i != self._farbe.currentIndex():
+            self._farbe.blockSignals(True)
+            self._farbe.setCurrentIndex(i)
+            self._farbe.blockSignals(False)
+
+    def _groesse_gezogen(self, v: int) -> None:
+        wert = v / 4.0
+        self._groesse_lbl.setText(f"{wert:g}".replace(".", ","))
+        self._actor.GetProperty().SetPointSize(wert)
+        self._render()
+        self.punktgroesse_geaendert.emit(wert)
+
+    def _temp_umgeschaltet(self, an: bool) -> None:
+        self._temp_an = bool(an)
+        if not an:
+            QtWidgets.QToolTip.hideText()
+        self.temperatur_umgeschaltet.emit(bool(an))
+
+    def set_temperatur_anzeigen(self, an: bool) -> None:
+        self._chk_temp.blockSignals(True)
+        self._chk_temp.setChecked(bool(an))
+        self._chk_temp.blockSignals(False)
+        self._temp_an = bool(an)
+
+    def set_temperatur(self, temp: np.ndarray | None) -> None:
+        """Temperatur je Punkt der Wolke (°C, NaN wo keine) oder None."""
+        if temp is not None:
+            temp = np.asarray(temp, dtype=np.float32).ravel()
+            if self._points is not None and len(temp) != len(self._points):
+                raise ValueError("Temperaturen passen nicht zur Punktanzahl.")
+        self._temperatur = temp
+        self._hover_pts = self._hover_temp = None
+        da = temp is not None and bool(np.isfinite(temp[:: max(1, len(temp) // 10000)]).any())
+        self._chk_temp.setEnabled(da)
+        self._chk_temp.setToolTip(
+            "Zeigt beim Überfahren eines Punktes seine Temperatur — in jedem "
+            "Farbmodus." if da else
+            "Keine Temperaturen: erst mit dem Mäanderflug und „Thermalbilder "
+            "mitrechnen“ einfärben.")
+
     # ------------------------------------------------------------- Hoehenschnitt
 
     def _on_cut_changed(self, lo: float, hi: float) -> None:
@@ -401,7 +572,10 @@ class CloudView(QtWidgets.QWidget):
         if on == self._measure_on:
             return
         self._measure_on = on
-        self._vtkw.setCursor(QtCore.Qt.CrossCursor if on else QtCore.Qt.ArrowCursor)
+        self._vtkw.setCursor(QtCore.Qt.CrossCursor if on else QtCore.Qt.OpenHandCursor)
+        self._btn_messen.blockSignals(True)
+        self._btn_messen.setChecked(on)
+        self._btn_messen.blockSignals(False)
         if not on:
             self.clear_measure()
 
@@ -428,37 +602,34 @@ class CloudView(QtWidgets.QWidget):
         P = self._disp_points
         if P is None or len(P) == 0 or not self._initialized:
             return None
+        i = self._naechster(P, x, y, radius_px)
+        return None if i < 0 else np.array(P[i], dtype=np.float64)
+
+    def _naechster(self, P: np.ndarray, x: int, y: int, radius_px: float) -> int:
+        """Index des Punktes in ``P`` nahe (x, y), der der Kamera am naechsten
+        steht; -1, wenn keiner. Beachtet den Hoehenschnitt."""
         w = max(self._vtkw.width(), 1)
         h = max(self._vtkw.height(), 1)
         cam = self._renderer.GetActiveCamera()
         m = cam.GetCompositeProjectionTransformMatrix(w / h, -1.0, 1.0)
-        M = np.array([[m.GetElement(i, j) for j in range(4)] for i in range(4)])
-
-        pts = P.astype(np.float64)
-        keep = np.ones(len(pts), dtype=bool)
+        M = np.array([[m.GetElement(i, j) for j in range(4)] for i in range(4)],
+                     dtype=np.float32)
+        pts = np.asarray(P, dtype=np.float32)
+        wq = pts @ M[3, :3] + M[3, 3]
+        cx = pts @ M[0, :3] + M[0, 3]
+        cy = pts @ M[1, :3] + M[1, 3]
+        vorn = wq > 1e-9
+        wq = np.where(vorn, wq, 1.0)
+        sx = (cx / wq * 0.5 + 0.5) * w
+        sy = (1.0 - (cy / wq * 0.5 + 0.5)) * h        # Qt zaehlt von oben
+        nah = vorn & ((sx - x) ** 2 + (sy - y) ** 2 <= radius_px * radius_px)
         schnitt = self.cut_planes()
         if schnitt is not None:
-            keep &= (pts[:, 2] >= schnitt[0]) & (pts[:, 2] <= schnitt[1])
-        if not keep.any():
-            return None
-        idx = np.flatnonzero(keep)
-        Q = pts[idx]
-        clip = Q @ M[:3, :3].T + M[:3, 3]
-        wq = Q @ M[3, :3] + M[3, 3]
-        gut = wq > 1e-9
-        if not gut.any():
-            return None
-        idx, clip, wq = idx[gut], clip[gut], wq[gut]
-        ndc = clip / wq[:, None]
-        sx = (ndc[:, 0] * 0.5 + 0.5) * w
-        sy = (1.0 - (ndc[:, 1] * 0.5 + 0.5)) * h      # Qt zaehlt von oben
-        d2 = (sx - x) ** 2 + (sy - y) ** 2
-        nah = d2 <= radius_px * radius_px
-        if not nah.any():
-            return None
-        kand = idx[nah]
-        tiefe = ndc[nah][:, 2]
-        return np.array(pts[kand[int(np.argmin(tiefe))]], dtype=np.float64)
+            nah &= (pts[:, 2] >= schnitt[0]) & (pts[:, 2] <= schnitt[1])
+        kand = np.flatnonzero(nah)
+        if not len(kand):
+            return -1
+        return int(kand[int(np.argmin(wq[kand]))])      # kleinste Tiefe gewinnt
 
     def _add_measure_point(self, p: np.ndarray) -> None:
         if len(self._meas) >= 2:      # dritter Klick faengt neu an
@@ -524,19 +695,153 @@ class CloudView(QtWidgets.QWidget):
         self._render()
 
     def eventFilter(self, obj, event):  # noqa: N802 (Qt)
-        """Klicks im Messmodus abfangen, damit sie die Kamera nicht drehen."""
-        if obj is self._vtkw and self._measure_on:
-            et = event.type()
-            if et == QtCore.QEvent.MouseButtonPress and event.button() == QtCore.Qt.LeftButton:
-                p = self.pick_point(event.x(), event.y())
+        """Maus und Tasten der 3D-Ansicht — Steuerung wie im VS-Code-Viewer.
+
+        Alle Maus- und Tastenereignisse werden hier verbraucht; VTK sieht
+        keines. Sonst dreht sein eigener Stil mit, und dessen Tasten (q, e
+        beenden) waeren eine Falle.
+        """
+        if obj is not self._vtkw:
+            return super().eventFilter(obj, event)
+        et = event.type()
+        E = QtCore.QEvent
+        if et == E.MouseButtonPress:
+            self._vtkw.setFocus()
+            links = event.button() == QtCore.Qt.LeftButton
+            mod = event.modifiers() & (QtCore.Qt.ShiftModifier | QtCore.Qt.ControlModifier)
+            self._ziehen = 1 if (links and not mod) else 2
+            self._maus_letzt = self._maus_start = event.pos()
+            QtWidgets.QToolTip.hideText()
+            if not self._measure_on:
+                self._vtkw.setCursor(QtCore.Qt.ClosedHandCursor)
+            return True
+        if et == E.MouseMove:
+            if self._ziehen:
+                d = event.pos() - self._maus_letzt
+                self._maus_letzt = event.pos()
+                if self._ziehen == 1:
+                    self.drehen(d.x(), d.y())
+                else:
+                    self.verschieben(d.x(), d.y())
+            elif self._temp_an and self._temperatur is not None:
+                self._hover_pos = event.pos()
+                self._hover_timer.start()
+            return True
+        if et == E.MouseButtonRelease:
+            bewegt = (event.pos() - self._maus_start).manhattanLength()
+            war = self._ziehen
+            self._ziehen = 0
+            self._vtkw.setCursor(QtCore.Qt.CrossCursor if self._measure_on
+                                 else QtCore.Qt.OpenHandCursor)
+            # Ein Klick ist ein Klick, solange die Maus dabei stehen bleibt
+            if self._measure_on and war == 1 and event.button() == QtCore.Qt.LeftButton \
+                    and bewegt < 5:
+                p = self.pick_point(event.x(), event.y(), radius_px=16.0)
                 if p is not None:
                     self._add_measure_point(p)
-                return True
-            if et in (QtCore.QEvent.MouseButtonRelease,
-                      QtCore.QEvent.MouseButtonDblClick) and \
-                    event.button() == QtCore.Qt.LeftButton:
-                return True
+            return True
+        if et == E.MouseButtonDblClick:
+            return True
+        if et == E.Wheel:
+            # Qt: 120 je Raste; der Browser liefert dafuer 100 Pixel
+            schritte = event.angleDelta().y() / 120.0
+            if schritte:
+                self.zoomen(-schritte * 100.0)
+            return True
+        if et == E.KeyPress:
+            if event.key() == QtCore.Qt.Key_Escape:
+                self.clear_measure()
+            return True
+        if et == E.KeyRelease:
+            return True
+        if et == E.Leave:
+            self._hover_timer.stop()
+            QtWidgets.QToolTip.hideText()
         return super().eventFilter(obj, event)
+
+    # -------------------------------------------------------------- Kamera
+
+    def drehen(self, dx: float, dy: float) -> None:
+        k = self._kam
+        k["yaw"] -= dx * _DREH
+        k["pitch"] = max(-_NICK_MAX, min(_NICK_MAX, k["pitch"] + dy * _DREH))
+        self._kamera_setzen()
+
+    def verschieben(self, dx: float, dy: float) -> None:
+        """In der Bildebene schieben; Schrittweite haengt am Abstand."""
+        k = self._kam
+        schritt = k["dist"] * math.tan(math.radians(_BLICKWINKEL / 2.0)) * 2.0 \
+            / max(1, self._vtkw.height())
+        rechts, oben = self._bildachsen()
+        k["ziel"] = k["ziel"] - rechts * dx * schritt + oben * dy * schritt
+        self._kamera_setzen()
+
+    def zoomen(self, delta_browser: float) -> None:
+        k = self._kam
+        k["dist"] *= math.exp(delta_browser * _ZOOM)
+        k["dist"] = max(k["radius"] * 1e-4, min(k["radius"] * 200.0, k["dist"]))
+        self._kamera_setzen()
+
+    def _augenrichtung(self) -> np.ndarray:
+        k = self._kam
+        cp, sp = math.cos(k["pitch"]), math.sin(k["pitch"])
+        cy, sy = math.cos(k["yaw"]), math.sin(k["yaw"])
+        return np.array([cp * cy, cp * sy, sp])
+
+    def _bildachsen(self) -> tuple:
+        blick = -self._augenrichtung()               # vom Auge zum Ziel
+        rechts = np.cross(blick, [0.0, 0.0, 1.0])
+        n = np.linalg.norm(rechts)
+        rechts = rechts / n if n > 1e-9 else np.array([1.0, 0.0, 0.0])
+        oben = np.cross(rechts, blick)
+        return rechts, oben / max(np.linalg.norm(oben), 1e-9)
+
+    def _kamera_setzen(self) -> None:
+        k = self._kam
+        cam = self._renderer.GetActiveCamera()
+        auge = k["ziel"] + k["dist"] * self._augenrichtung()
+        cam.SetFocalPoint(*k["ziel"])
+        cam.SetPosition(*auge)
+        cam.SetViewUp(0.0, 0.0, 1.0)
+        cam.SetViewAngle(_BLICKWINKEL)
+        nah = max(k["dist"] * 0.001, 1e-4)
+        cam.SetClippingRange(nah, k["dist"] * 4.0 + k["radius"] * 6.0)
+        self._render()
+
+    # --------------------------------------------------------- Temperatur
+
+    def _hover_vorbereiten(self) -> bool:
+        """Stichprobe der angezeigten Punkte, die eine Temperatur haben."""
+        if self._hover_pts is not None:
+            return len(self._hover_pts) > 0
+        if self._temperatur is None or self._disp_points is None:
+            return False
+        idx = self._sel if self._sel is not None else None
+        temp = self._temperatur if idx is None else self._temperatur[idx]
+        gut = np.flatnonzero(np.isfinite(temp))
+        if len(gut) > _HOVER_PUNKTE:
+            gut = gut[:: len(gut) // _HOVER_PUNKTE + 1]
+        self._hover_pts = np.ascontiguousarray(self._disp_points[gut], dtype=np.float32)
+        self._hover_temp = np.ascontiguousarray(temp[gut], dtype=np.float32)
+        return len(gut) > 0
+
+    def temperatur_bei(self, x: int, y: int, radius_px: float = 9.0) -> float | None:
+        """Temperatur des Punktes unter (x, y), oder None."""
+        if self._temperatur is None or not self._hover_vorbereiten():
+            return None
+        i = self._naechster(self._hover_pts, x, y, radius_px)
+        return None if i < 0 else float(self._hover_temp[i])
+
+    def _hover_zeigen(self) -> None:
+        if not self._temp_an or self._ziehen:
+            return
+        pos = self._hover_pos
+        t = self.temperatur_bei(pos.x(), pos.y())
+        if t is None:
+            QtWidgets.QToolTip.hideText()
+            return
+        QtWidgets.QToolTip.showText(self._vtkw.mapToGlobal(pos + QtCore.QPoint(14, 10)),
+                                    f"{t:.1f} °C".replace(".", ","), self._vtkw)
 
     # ------------------------------------------------------------- Vorschau
 
@@ -696,6 +1001,7 @@ class CloudView(QtWidgets.QWidget):
             # Alle gehaltenen Puffer freigeben (auch Anzeige-/VTK-Referenzen),
             # sonst bleiben ~Hunderte MB der alten Wolke fuer die Session liegen.
             self._points = self._colors = self._intensity = self._valid = None
+            self.set_temperatur(None)
             self._mapper.SetInputData(vtk.vtkPolyData())
             self._poly = None
             self._sel = None
@@ -727,6 +1033,8 @@ class CloudView(QtWidgets.QWidget):
                 raise ValueError("Gültigkeitsmaske passt nicht zur Punktanzahl.")
         self._points, self._colors = pts, colors
         self._intensity, self._valid = intensity, valid
+        if self._temperatur is not None and len(self._temperatur) != n:
+            self.set_temperatur(None)      # gehoerte zu einer anderen Wolke
         # Eine neue Wolke raeumt eine alte Farbvorschau weg und wird immer
         # gezeigt. Die Vorschau gehoert zu einer laufenden Justage; sobald
         # sich die Wolke darunter aendert, passt sie nicht mehr — und eine
@@ -772,8 +1080,19 @@ class CloudView(QtWidgets.QWidget):
 
     # --------------------------------------------------------------- options
 
-    def set_point_size(self, size: int) -> None:
-        self._actor.GetProperty().SetPointSize(int(max(1, min(8, size))))
+    def set_point_size(self, size: float) -> None:
+        """Punktgroesse in Pixeln, 0,5 bis 10 in Viertelschritten.
+
+        Gebrochene Groessen wirken: die Grafikkarte setzt je Punkt die Pixel,
+        deren Mitte im Quadrat der Groesse liegt — bei 1,5 sind das je nach
+        Lage ein oder zwei, im Mittel also dazwischen.
+        """
+        wert = round(max(0.5, min(10.0, float(size))) * 4.0) / 4.0
+        self._groesse.blockSignals(True)
+        self._groesse.setValue(int(round(wert * 4)))
+        self._groesse.blockSignals(False)
+        self._groesse_lbl.setText(f"{wert:g}".replace(".", ","))
+        self._actor.GetProperty().SetPointSize(wert)
         self._render()
 
     def set_color_mode(self, mode: str) -> None:
@@ -821,18 +1140,22 @@ class CloudView(QtWidgets.QWidget):
     # --------------------------------------------------------------- actions
 
     def reset_camera(self) -> None:
-        # Auf die 1..99-Perzentil-Box einpassen, damit einzelne Ausreißer-Punkte
-        # die Startansicht nicht winzig machen.
-        if self._points is not None and len(self._points) > 100:
-            lo = np.percentile(self._points, 1.0, axis=0)
-            hi = np.percentile(self._points, 99.0, axis=0)
-            pad = np.maximum((hi - lo) * 0.05, 0.1)
-            lo, hi = lo - pad, hi + pad
-            self._renderer.ResetCamera(lo[0], hi[0], lo[1], hi[1], lo[2], hi[2])
-        else:
-            self._renderer.ResetCamera()
-        self._renderer.ResetCameraClippingRange()
-        self._render()
+        """Startansicht wie im VS-Code-Viewer: auf den Schwerpunkt, schraeg
+        von oben (Gier −45°, Nick 0,5 rad), Abstand 2,2 × der Radius, in dem
+        95 % der Punkte liegen — ein einzelner Ausreisser schiebt die Kamera
+        sonst so weit weg, dass die Wolke als Fleck in der Mitte steht."""
+        k = self._kam
+        P = self._points
+        if P is not None and len(P) > 0:
+            probe = np.asarray(P[:: max(1, len(P) // 200_000)], dtype=np.float64)
+            mitte = probe.mean(axis=0)
+            abst = np.linalg.norm(probe - mitte, axis=1)
+            k["ziel"] = mitte
+            k["radius"] = max(0.5 * float(np.linalg.norm(probe.max(0) - probe.min(0))), 1e-3)
+            sicht = float(np.percentile(abst, 95.0)) or k["radius"]
+            k["dist"] = max(sicht * 2.2, 1e-3)
+        k["yaw"], k["pitch"] = -math.pi / 4, 0.5
+        self._kamera_setzen()
 
     def screenshot(self, path: str) -> None:
         if not self._initialized:
@@ -862,6 +1185,7 @@ class CloudView(QtWidgets.QWidget):
             keep = _voxel_first_indices(pts, self._voxel)
             sel = keep if sel is None else sel[keep]
         self._sel = sel
+        self._hover_pts = self._hover_temp = None     # Stichprobe neu ziehen
         disp = self._points if sel is None else self._points[sel]
         self._disp_points = np.ascontiguousarray(disp, dtype=np.float32)
         n = len(self._disp_points)

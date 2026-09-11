@@ -34,8 +34,8 @@ klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. `Strg+B`
 blendet die Leiste ganz aus, der Trenner dazwischen lässt sich ziehen. Welche
 Abschnitte offen sind, merkt sich das Projekt.
 
-Kurzbefehle: `Strg+O` öffnen, `F5` Karte, `F6` einfärben, `F7` Mäander,
-`M` messen, `R` Kamera zurück, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
+Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
+`F6` einfärben, `F7` Mäander, `M` messen, `R` Kamera zurück, `Esc` Messung weg, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
 
 ## Start
 
@@ -61,9 +61,48 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 5. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 6. **Export** — berücksichtigt „Nur eingefärbte Punkte".
 
+## 3D-Ansicht: Maus und Leiste
+
+Die Maus steuert die Wolke **genau wie der VS-Code-Punktwolken-Viewer**
+(`PointCloudMerger/vscode-pointcloud-viewer`):
+
+| Eingabe | Wirkung |
+|---|---|
+| links ziehen | um den Zielpunkt drehen (Z oben, 0,006 rad je Pixel) |
+| rechts ziehen, oder Umschalt/Strg und ziehen | in der Bildebene verschieben |
+| Mausrad | zoomen (Abstand × exp(0,0012 · Δ), eine Raste ≈ 12 %) |
+| `R` oder „Ansicht zurücksetzen“ | auf den Schwerpunkt, schräg von oben |
+| `M` oder „Messen“ | Messen ein/aus; ein Klick ist ein Klick, solange die Maus unter 5 px bleibt — gedreht wird auch beim Messen |
+| `Esc` | Messung verwerfen |
+
+Oben liegt die **Leiste** wie dort:
+
+* **Farbe** — Einheitsfarbe, Intensität, Höhe, RGB Onboard, RGB Mäander,
+  Thermal Mäander. Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
+  ist ausgegraut. Seitenleiste und Menü ziehen mit.
+* **Punkte** — 0,5 bis 10 px in Viertelschritten. Gebrochene Größen wirken
+  wirklich (bei 1 / 1,5 / 2 px gemessen 18,6 / 22,2 / 23,4 % bedeckte Pixel).
+* **Messen** und **Ansicht zurücksetzen**.
+* **Temperatur anzeigen** (Standard an) — über einem Punkt zeigt die Maus
+  seine Temperatur, **in jedem Farbmodus**, sobald es eine Thermal-Mäander-Ebene
+  mit Temperaturen gibt.
+
+### Temperaturen
+
+Die Thermalbilder der M30T sind radiometrische JPEGs: neben dem Palettenbild
+tragen sie die Rohwerte des Sensors (APP3, 640 × 512 × 16 Bit) und die
+kameraeigene Umrechnungstabelle Rohwert → Zehntelgrad (APP5). `core/temperatur.py`
+liest beides, ohne DJI-SDK. Beim Einfärben bekommt jeder Punkt die Temperatur aus
+demselben Bild und Pixel wie seine Farbe; sie liegt als
+`colors_meander_thermal/temperatur.bin` neben der Ebene. Am DRZ-Flug: 64 % der
+Punkte, 21,9 bis 37,3 °C (1.–99. Perzentil). Es ist die Temperatur, die auch
+die DJI-App zeigt — mit dem Emissionsgrad, der in der Kamera eingestellt war.
+
+Ältere Thermal-Ebenen haben noch keine Temperaturen; einmal neu einfärben.
+
 ## Messen
 
-`M` oder **Werkzeuge → Messen** schaltet um. Zwei Klicks in die Wolke setzen die
+`M`, **Werkzeuge → Messen** oder **Messen** in der Leiste schaltet um. Zwei Klicks in die Wolke setzen die
 Marken, dazwischen liegt eine Linie mit dem Abstand in Metern. Unter der
 3D-Ansicht stehen beide Punkte in Originalkoordinaten, dazu Abstand, waagerechter
 Anteil, Höhenunterschied und die Differenz je Achse. Ein dritter Klick fängt neu
@@ -228,6 +267,52 @@ zeigen es, Einfärben und Vorschau benutzen es. ODM/WebODM wurde erwogen und
 verworfen: die M30T ist dort nicht unterstützt, eine gekoppelte Verarbeitung von
 Weitwinkel und Thermal gibt es nicht, und SfM auf reinen Thermalbildern scheitert
 an texturarmen Dächern.
+
+### Automatisch bis zur Farbe
+
+**„Automatisch: ausrichten bis zur Farbe“** macht alles hintereinander, rund
+sechs Minuten: Ausrichten → Optik einmessen → Feinausrichten → Einfärben mit
+Sichtprüfung. Jeder Schritt gibt es auch als eigenen Knopf.
+
+**Feinausrichten** (`core/optik.py`, `feinausrichten`) legt das Fotomodell auf
+die Karte — mit den Maßen, die den jeweiligen Freiheitsgrad wirklich festlegen:
+
+| Freiheitsgrad | woran gemessen | DRZ-Flug |
+|---|---|---|
+| Neigung, Höhe | Fotopunkte auf der Lidar-Oberfläche (Punkt-zu-Ebene, robust) | −0,04°/−0,18° |
+| Versatz in der Ebene | Kantenmaß (Farbkanten gegen Höhenkanten), zwei Stichproben gemittelt | +0,25/+0,45 m |
+| Maßstab | Brennweite aus „Optik einmessen“ | 1,086 |
+| Gier | bleibt aus dem Ausrichten | — |
+
+Gier und Blockmaßstab werden bewusst **nicht** automatisch gesucht: gemessen
+ist das Kantenmaß über ±0,5° Gier flach (zwei Stichproben fanden +0,15° und
++0,45°), und ein Blockmaßstab tauscht gegen Brennweite und Höhe — er zog die
+Fotopunkte von der Oberfläche (50 % → 34 %). Übernommen wird eine Korrektur nur,
+wenn die Farbkonsistenz der Bilder dabei nicht schlechter wird. Eine neue
+Ausrichtung verwirft Feinausrichtung und Höhe und misst sie neu; Brennweite und
+Thermaloptik bleiben, die gehören zur Kamera.
+
+### Sichtprüfung beim Einfärben
+
+Bisher bekam jeder Punkt die Farbe aus dem Bild, in dem er am nächsten zur
+Bildmitte lag. Von einer Wand sieht dieses Bild aber nichts — davor liegt das
+Dach. Das Dachmuster lief die Wände hinunter.
+
+Mit **„Beim Einfärben Sichtbarkeit prüfen“** (Standard, `core/sichtbar.py`):
+
+1. Je Kamera wird aus der Karte eine Tiefenkarte gerechnet; ein Punkt bekommt
+   nur Farbe aus Bildern, in denen er nicht verdeckt ist.
+2. Unter diesen gewinnt das Bild, das am frontalsten auf seine Fläche blickt
+   (Normale aus der Karte) — für Dächer die Kamera darüber, für Wände eine von
+   der Seite.
+
+Was keine Kamera sieht, bleibt **ungefärbt**: Unterholz, das Innere einer
+Halle, das der Lidar durch Tor und Oberlichter gescannt hat, eine zweite
+Dachschicht. Am DRZ-Flug rund 30 % der Punkte; von oben fehlt dadurch nichts
+(0,2 %). Mit „Nur eingefärbte Punkte“ sind sie ausgeblendet. Ein Auffüllen vom
+Nachbarn wurde ausprobiert und verworfen — es verteilte die Farbe weniger
+zufällig sichtbarer Punkte zu Klecksen. Die Einfärbung dauert etwa dreimal so
+lang; Live-Vorschau und Ausrichtfenster rechnen weiter ohne Sichtprüfung.
 
 ### Schieber statt Zahlenfelder
 
@@ -415,11 +500,12 @@ per Vorgabe nicht dabei** — es ist der Eingang, nicht das Ergebnis. Ohne Bag
 bleiben Karte, Farben, Messen, Höhenschnitt und Export erhalten; das 360°-Video
 und ein erneutes Einfärben brauchen es.
 
-**Datei → Projekt importieren …** (`Strg+I`) liest so einen Ordner wieder ein und
-legt ihn im lokalen Cache ab. Mitgenommene Bags bleiben im Exportordner liegen
-und werden von dort referenziert — sie ein zweites Mal zu kopieren wäre bei
-24 GB Verschwendung. Die Bagpfade in der `meta.json` werden dabei auf den Ort
-gezogen, an dem sie jetzt wirklich liegen. Fehlt ein Bag, sagt das Protokoll
+**Datei → Projektordner öffnen …** (`Strg+I`) öffnet so einen Ordner **an Ort
+und Stelle** — ohne Kopie in den Cache und ohne Rückfrage. Gearbeitet wird im
+Ordner selbst, jede Änderung landet sofort dort: Einstellungen, Ausrichtung,
+Handzuschlag, Optik, Einfärbungen. Mitgenommene Bags werden aus dem Ordner
+benutzt, die Bagpfade in der `meta.json` darauf gezogen (auch auf einem anderen
+Rechner, gesucht wird über den Ordnernamen). Fehlt ein Bag, sagt das Protokoll
 welches, und das Projekt öffnet trotzdem — nur eben ohne die Schritte, die es
 braucht.
 

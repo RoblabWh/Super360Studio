@@ -581,6 +581,11 @@ class MeanderAlignWindow(QtWidgets.QDialog):
             dg, dx, dy = self.thermal_zuschlag()
             zusatz = (f" Thermal (orange) liegt {dg:+.3f}°, {dx:+.2f}/{dy:+.2f} m "
                       f"daneben.")
+        k = getattr(self._pipe, "s360_korrektur", None)
+        if k:
+            zusatz += (f" Feinausrichtung aktiv: Neigung {k['neigung_grad'][0]:+.2f}°/"
+                       f"{k['neigung_grad'][1]:+.2f}°, Versatz {k['versatz_m'][0]:+.2f}/"
+                       f"{k['versatz_m'][1]:+.2f} m.")
         ebenen.append((foto, np.tile(_MAGENTA, (len(foto), 1))))
         # Einpassen auf Karte UND Flug: liegt der Flug daneben, muss man ihn
         # trotzdem sehen, sonst sucht man ihn vergeblich.

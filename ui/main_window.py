@@ -103,6 +103,11 @@ _DEFAULT_SETTINGS: dict = {
 
 _COLOR_MODE_ITEMS = (("RGB (eingefärbt)", "rgb"), ("Höhe", "hoehe"),
                      ("Intensität", "intensitaet"), ("Einfarbig", "uniform"))
+#: Farbmodi der Leiste ueber der 3D-Ansicht: Farbmodus und Farbquelle in einem
+_FARBLEISTE = (("uniform", "Einheitsfarbe"), ("intensitaet", "Intensität"),
+               ("hoehe", "Höhe"), ("rgb:onboard", "RGB Onboard"),
+               ("rgb:meander_rgb", "RGB Mäander"),
+               ("rgb:meander_thermal", "Thermal Mäander"))
 _VOXEL_ITEMS = (("Aus", 0.0), ("0,05 m", 0.05), ("0,10 m", 0.10), ("0,20 m", 0.20))
 _BG_ITEMS = (("Dunkel", "dunkel"), ("Hell", "hell"))
 _CONFIG_ITEMS = (("Maximal dicht (whs_dense.yaml)", "whs_dense.yaml"),
@@ -334,11 +339,22 @@ class MainWindow(QMainWindow):
         self._live_timer.timeout.connect(self._live_update)
         # Optik der Maeanderkameras: Massstab je Optik, Thermal-Einmessung
         self._optik: dict = {"rgb_faktor": 1.0, "thermal_faktor": 1.0, "thermal": None}
+        # Temperatur je Punkt aus der Thermal-Mäanderebene (°C, NaN wo keine)
+        self._temperatur: Optional[np.ndarray] = None
+        self._temperatur_anzeigen = True
+        # "Automatisch bis zur Farbe": die Schritte stossen einander an
+        self._auto_kette = False
+        self._optik_neu_messen = False   # frisch ausgerichtet: Hoehe gilt nicht mehr
         # Schieber am zweiten Flug: erst nach kurzer Ruhe neu transformieren
         self._merge_timer = QTimer(self)
         self._merge_timer.setSingleShot(True)
         self._merge_timer.setInterval(60)
         self._merge_timer.timeout.connect(self._on_merge_manual)
+        # RGB-Handzuschlag: kurz nach dem letzten Zug ins Projekt schreiben
+        self._zuschlag_timer = QTimer(self)
+        self._zuschlag_timer.setSingleShot(True)
+        self._zuschlag_timer.setInterval(400)
+        self._zuschlag_timer.timeout.connect(lambda: self._meander_speichere_zuschlag())
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -468,6 +484,11 @@ class MainWindow(QMainWindow):
         sb.addPermanentWidget(self._btn_cancel)
 
         self._cloud_view.measured.connect(self._on_measured)
+        # Leiste ueber der 3D-Ansicht: gleiche Wirkung wie Seitenleiste und Menue
+        self._cloud_view.farbmodus_gewaehlt.connect(self._on_farbleiste)
+        self._cloud_view.punktgroesse_geaendert.connect(self._on_leiste_punktgroesse)
+        self._cloud_view.messen_angefordert.connect(self._on_toggle_measure)
+        self._cloud_view.temperatur_umgeschaltet.connect(self._on_leiste_temperatur)
         self._pano_view.frameChanged.connect(self._on_pano_frame)
         self._gps_panel.georefReady.connect(self._on_georef_ready)
 
@@ -652,7 +673,34 @@ class MainWindow(QMainWindow):
             "Verzeichnung, Schielwinkel) gegen das RGB-Bild desselben Auslösers.\n"
             "Rund eine Minute. Läuft nach dem ersten Ausrichten von selbst.")
         self._btn_meander_optik.clicked.connect(lambda: self._on_meander_einmessen())
-        form.addRow(self._btn_meander_optik)
+        self._btn_meander_fein = QPushButton("Feinausrichten")
+        self._btn_meander_fein.setToolTip(
+            "Fotomodell auf die Karte legen: Neigung und Höhe über die\n"
+            "Oberfläche, Versatz in der Ebene über die Kanten. Gegengeprüft über\n"
+            "die Farbkonsistenz — was nicht hilft, wird nicht übernommen.")
+        self._btn_meander_fein.clicked.connect(lambda: self._on_meander_fein())
+        row = QWidget()
+        hl = QHBoxLayout(row)
+        hl.setContentsMargins(0, 0, 0, 0)
+        hl.addWidget(self._btn_meander_optik)
+        hl.addWidget(self._btn_meander_fein)
+        form.addRow(row)
+        self._btn_meander_auto = QPushButton("Automatisch: ausrichten bis zur Farbe")
+        self._btn_meander_auto.setToolTip(
+            "Alles hintereinander: Ausrichten, Optik einmessen, Feinausrichten,\n"
+            "Einfärben mit Sichtprüfung. Rund sechs Minuten.")
+        self._btn_meander_auto.setStyleSheet("font-weight: bold;")
+        self._btn_meander_auto.clicked.connect(lambda: self._on_meander_auto())
+        form.addRow(self._btn_meander_auto)
+        self._chk_sichtbar = QCheckBox("Beim Einfärben Sichtbarkeit prüfen (Wände)")
+        self._chk_sichtbar.setChecked(True)
+        self._chk_sichtbar.setToolTip(
+            "Jeder Punkt nur aus Bildern, die ihn wirklich sehen, und aus dem,\n"
+            "das am frontalsten auf seine Fläche blickt. Sonst läuft das Dach-\n"
+            "muster die Wände hinunter. Verdeckte Punkte bleiben ungefärbt.\n"
+            "Dauert etwa dreimal so lang.")
+        self._chk_sichtbar.stateChanged.connect(self._on_setting_changed)
+        form.addRow(self._chk_sichtbar)
 
         # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke. RGB
         # ist ein Zuschlag auf die gefundene Lage, Thermal ein Zuschlag auf
@@ -773,9 +821,12 @@ class MainWindow(QMainWindow):
     def _group_display(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._spin_pointsize = QSpinBox()
-        self._spin_pointsize.setRange(1, 8)
-        self._spin_pointsize.setValue(2)
+        self._spin_pointsize = QDoubleSpinBox()
+        self._spin_pointsize.setRange(0.5, 10.0)
+        self._spin_pointsize.setSingleStep(0.25)
+        self._spin_pointsize.setDecimals(2)
+        self._spin_pointsize.setSuffix(" px")
+        self._spin_pointsize.setValue(2.0)
         self._spin_pointsize.valueChanged.connect(self._on_display_changed)
         form.addRow("Punktgröße:", self._spin_pointsize)
         self._combo_colormode = _compact_combo(QComboBox())
@@ -939,6 +990,8 @@ class MainWindow(QMainWindow):
                 "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, "
                 "auf die sich die Regler beziehen könnten.")
         self._btn_meander_optik.setEnabled(not busy and hat_lage)
+        self._btn_meander_fein.setEnabled(not busy and hat_lage)
+        self._btn_meander_auto.setEnabled(not busy and has_rec and hat_flug)
         self._massstab["rgb"].setEnabled(not busy and hat_lage)
         hat_thermal = hat_lage and self._hat_thermal()
         self._massstab["thermal"].setEnabled(not busy and hat_thermal)
@@ -1033,6 +1086,9 @@ class MainWindow(QMainWindow):
     def _worker_failed(self, worker: Worker, title: str, msg: str,
                        on_failed: Callable[[str], None] | None = None) -> None:
         self._retire(worker)
+        if self._auto_kette:
+            self._auto_kette = False
+            self._log("Automatik angehalten — der Schritt davor ist fehlgeschlagen.")
         # Nach einem Fehlschlag darf keine Solo-Vorschau die Karte verdecken:
         # sonst sieht ein abgebrochener Lauf so aus, als sei das Modell weg.
         if self._cloud_view.has_color_preview():
@@ -1072,7 +1128,9 @@ class MainWindow(QMainWindow):
             self._sld_bmax.setValue(int(s.get("brightness_max", 235)))
             self._spin_kframes.setValue(int(s.get("k_frames", 3)))
             self._spin_sky.setValue(int(s.get("sky_grow", 4)))
-            self._spin_pointsize.setValue(int(s.get("point_size", 2)))
+            self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
+            self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
+            self._cloud_view.set_temperatur_anzeigen(self._temperatur_anzeigen)
             idx = self._combo_colormode.findData(s.get("color_mode", "rgb"))
             self._combo_colormode.setCurrentIndex(max(0, idx))
             self._chk_only_colored.setChecked(bool(s.get("only_colored", False)))
@@ -1085,6 +1143,7 @@ class MainWindow(QMainWindow):
             self._chk_edl.setChecked(bool(s.get("edl", False)) and self._chk_edl.isEnabled())
             self._chk_path.setChecked(bool(s.get("show_path", False)))
             self._chk_thermal.setChecked(bool(s.get("meander_thermal", False)))
+            self._chk_sichtbar.setChecked(bool(s.get("meander_sichtbar", True)))
             self._chk_solo.setChecked(bool(s.get("meander_solo", True)))
             for optik, key in (("rgb", "rgb_versatz"),
                                ("thermal", "thermal_versatz")):
@@ -1112,11 +1171,13 @@ class MainWindow(QMainWindow):
             "brightness_max": int(self._sld_bmax.value()),
             "k_frames": int(self._spin_kframes.value()),
             "sky_grow": int(self._spin_sky.value()),
-            "point_size": int(self._spin_pointsize.value()),
+            "point_size": float(self._spin_pointsize.value()),
+            "temperatur_anzeigen": bool(self._temperatur_anzeigen),
             "color_mode": self._combo_colormode.currentData(),
             "layer": self._layer_key,
             "meander_dir": self._meander_dir or "",
             "meander_thermal": bool(self._chk_thermal.isChecked()),
+            "meander_sichtbar": bool(self._chk_sichtbar.isChecked()),
             "meander_solo": bool(self._chk_solo.isChecked()),
             "rgb_versatz": self._meander_versatz("rgb"),
             "thermal_versatz": self._meander_versatz("thermal"),
@@ -1147,7 +1208,7 @@ class MainWindow(QMainWindow):
 
     def _push_display_settings(self) -> None:
         cv = self._cloud_view
-        cv.set_point_size(int(self._spin_pointsize.value()))
+        cv.set_point_size(float(self._spin_pointsize.value()))
         cv.set_color_mode(self._combo_colormode.currentData())
         cv.set_only_colored(self._chk_only_colored.isChecked())
         cv.set_voxel_display(float(self._combo_voxel.currentData()))
@@ -1157,6 +1218,62 @@ class MainWindow(QMainWindow):
             cv.set_path(self._rec.path_positions())
         else:
             cv.set_path(None)
+        self._sync_farbleiste()
+
+    # ------------------------------------------------ Leiste ueber der Ansicht
+
+    def _farbleiste_key(self) -> str:
+        modus = self._combo_colormode.currentData()
+        return f"rgb:{self._layer_key}" if modus == "rgb" else str(modus)
+
+    def _sync_farbleiste(self) -> None:
+        """Auswahl der Leiste an Seitenleiste und vorhandene Ebenen angleichen."""
+        hat_int = self._rec is not None and getattr(self._rec, "intensity", None) is not None
+        eintraege = []
+        for key, text in _FARBLEISTE:
+            if key.startswith("rgb:"):
+                da = key[4:] in self._layers
+            elif key == "intensitaet":
+                da = hat_int
+            else:
+                da = True
+            eintraege.append((key, text, da))
+        self._cloud_view.set_farbmodi(eintraege, self._farbleiste_key())
+
+    def _on_farbleiste(self, key: str) -> None:
+        """Farbmodus aus der Leiste: setzt Farbmodus und -quelle der Seitenleiste."""
+        if key.startswith("rgb:"):
+            ebene = key[4:]
+            if ebene != self._layer_key:
+                i = self._combo_layer.findData(ebene)
+                if i >= 0:
+                    self._loading_ui = True
+                    self._combo_layer.setCurrentIndex(i)
+                    self._loading_ui = False
+                    self._layer_key = ebene
+                    self._apply_layer()
+                    if hasattr(self, "_actions"):
+                        self._fill_layer_menu()
+            modus = "rgb"
+        else:
+            modus = key
+        i = self._combo_colormode.findData(modus)
+        if i >= 0 and i != self._combo_colormode.currentIndex():
+            self._combo_colormode.setCurrentIndex(i)      # loest die Anzeige aus
+        else:
+            self._push_display_settings()
+            self._sync_after_display()
+        self._save_settings()
+
+    def _on_leiste_punktgroesse(self, wert: float) -> None:
+        self._spin_pointsize.blockSignals(True)
+        self._spin_pointsize.setValue(float(wert))
+        self._spin_pointsize.blockSignals(False)
+        self._save_settings()
+
+    def _on_leiste_temperatur(self, an: bool) -> None:
+        self._temperatur_anzeigen = bool(an)
+        self._save_settings()
 
     def _on_display_changed(self, *_a) -> None:
         if self._loading_ui:
@@ -1209,7 +1326,9 @@ class MainWindow(QMainWindow):
         if path:
             self._open_bag(path)
 
-    def _open_bag(self, path: str) -> None:
+    def _open_bag(self, path: str, projekt=None) -> None:
+        """Bag oeffnen; ``projekt`` statt des Cache-Projekts zum Bag (Ordner
+        eines geoeffneten Exports)."""
         if self._busy:
             QMessageBox.information(
                 self, "Beschäftigt",
@@ -1229,7 +1348,7 @@ class MainWindow(QMainWindow):
             progress_cb(0.6, "Lese GPS-Daten …")
             fixes = proxy.read_gps()
             quality = georef.assess(fixes)
-            project = Project(path)
+            project = projekt if projekt is not None else Project(path)
             try:
                 with open(project.gps_json(), "w", encoding="utf-8") as fh:
                     json.dump([dataclasses.asdict(f) for f in fixes], fh)
@@ -1610,6 +1729,12 @@ class MainWindow(QMainWindow):
         self._open_project_only(project)
 
     def _on_import_project(self) -> None:
+        """Exportierten Projektordner direkt oeffnen (s. core.bundle.oeffnen).
+
+        Keine Kopie in den Cache und darum auch keine Frage, ob ein vorhandenes
+        Projekt ersetzt werden soll: gearbeitet wird im Ordner selbst, und jede
+        Aenderung wird dort sofort gespeichert.
+        """
         if self._busy:
             QMessageBox.information(self, "Beschäftigt",
                                     "Es läuft noch ein Arbeitsschritt.")
@@ -1620,49 +1745,22 @@ class MainWindow(QMainWindow):
             return
         from core import bundle
         try:
-            manifest = bundle.read_manifest(src)
+            res = bundle.oeffnen(src)
         except RuntimeError as exc:
-            self._show_error("Projekt importieren", str(exc))
+            self._show_error("Projekt öffnen", str(exc))
             return
-        bags = bundle.bag_paths_after_import(src, manifest)
-        ziel_bag = bags[0] if bags else manifest["projekt"]["bag"]
-        try:
-            project = Project(ziel_bag)
-        except RuntimeError as exc:
-            self._show_error("Projekt importieren", str(exc))
-            return
-        if project.has_recording():
-            frage = QMessageBox.question(
-                self, "Projekt bereits vorhanden",
-                f"Für '{project.bag_name}' liegt hier schon ein Projekt im "
-                f"Cache. Soll es durch das importierte ersetzt werden?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if frage != QMessageBox.Yes:
-                return
-
-        def job(progress_cb, cancel, log_cb):
-            return bundle.import_project(
-                src, project, progress=progress_cb,
-                cancel=lambda: cancel.is_set())
-
-        self._start_worker(f"Importiere Projekt aus {os.path.basename(src)} …",
-                           job, self._on_project_imported)
-
-    def _on_project_imported(self, res: dict) -> None:
-        from core import bundle
         m = res["manifest"]
-        self._log(f"Projekt importiert ({bundle.fmt_size(res['bytes'])}), "
-                  f"exportiert am {m.get('erstellt', '?')}.")
-        bags = [b for b in res["bags"] if b]
-        fehlt = res["fehlende_bags"]
-        if fehlt:
-            for b in fehlt:
-                self._log(f"Rosbag nicht am Ort: {b}")
-            self._log("Ohne Bag: 360°-Video und erneutes Einfärben stehen nicht "
-                      "zur Verfügung. Karte, Farben, Messen und Export schon.")
-            self._open_project_only(res["project"])
+        self._log(f"Projektordner geöffnet: {src} (exportiert am "
+                  f"{m.get('erstellt', '?')}). Änderungen werden direkt dort "
+                  f"gespeichert.")
+        for b in res["fehlende_bags"]:
+            self._log(f"Rosbag nicht am Ort: {b} — 360°-Video und Einfärben aus "
+                      f"der Bordkamera fallen für diesen Abschnitt aus.")
+        vorhanden = [b for b in res["bags"] if b and os.path.exists(b)]
+        if not res["zusammengefuehrt"] and vorhanden:
+            self._open_bag(vorhanden[0], projekt=res["project"])
         else:
-            self._open_bag(bags[0])
+            self._open_project_only(res["project"])
 
     def _open_project_only(self, project) -> None:
         """Projekt ohne Bag oeffnen — nur, was aus dem Cache lebt."""
@@ -1823,13 +1921,26 @@ class MainWindow(QMainWindow):
             self._lbl_meander.setText(
                 f"Ausrichtung fraglich: {k['yaw_deg']:.2f}°, nur "
                 f"{anteil * 100:.1f} % auf der Oberfläche.")
-        for key in ("yaw", "x", "y"):
+        for key in ("yaw", "x", "y", "z"):
             sp = self._spin_meander[key]
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
+        if k.get("aus_cache", True):
+            self._meander_lade_zuschlag()     # Handzuschlag von zuletzt
         self._meander_lade_thermal()
         self._meander_lade_optik()
+        from core import optik as optik_mod
+        if not k.get("aus_cache", True) and self._project is not None and \
+                optik_mod.vorhanden(self._project.meander_work_dir()):
+            # Neue Lage: Hoehenkorrektur und Feinausrichtung gehoerten zur
+            # alten. Brennweite und Thermaloptik bleiben, die sind Kamera.
+            self._optik["korrektur"] = None
+            self._meander_pipe.s360_korrektur = None
+            self._meander_speichere_optik()
+            self._optik_neu_messen = True
+            self._log("Neu ausgerichtet — Höhe und Feinausrichtung werden gleich "
+                      "neu gemessen, die Optik bleibt.")
         self._update_enabled()
         self._start_live_preview()
 
@@ -1881,10 +1992,16 @@ class MainWindow(QMainWindow):
             # Aber die Optik einmessen, wenn das fuer diesen Flug noch nie
             # geschehen ist — ohne sie sind die Bilder zueinander verzerrt.
             from core import optik as optik_mod
-            if self._project is not None and not optik_mod.vorhanden(
-                    self._project.meander_work_dir()):
+            if self._auto_kette:
+                self._auto_weiter("einmessen")
+            elif self._project is not None and (self._optik_neu_messen or not
+                                                optik_mod.vorhanden(
+                                                    self._project.meander_work_dir())):
                 self._log("Die Optik dieses Fluges ist noch nicht eingemessen — "
-                          "das läuft jetzt einmal von selbst.")
+                          "das läuft jetzt einmal von selbst."
+                          if not self._optik_neu_messen else
+                          "Messe Höhe und Brennweite zur neuen Lage …")
+                self._optik_neu_messen = False
                 self._on_meander_einmessen()
 
         self._start_worker("Lade Vorschaubilder für die Handjustage …",
@@ -1951,6 +2068,8 @@ class MainWindow(QMainWindow):
     def _meander_setze_optik(self, d: dict) -> None:
         """Optik uebernehmen und die Massstab-Regler setzen, ohne Vorschau."""
         self._optik = dict(d)
+        if self._meander_pipe is not None:
+            self._meander_pipe.s360_korrektur = d.get("korrektur")
         for optik in ("rgb", "thermal"):
             m = self._massstab[optik]
             m.blockSignals(True)
@@ -1992,6 +2111,7 @@ class MainWindow(QMainWindow):
                                     "Erst „Ausrichten“ laufen lassen.")
             return
         self._meander_apply_manual()          # auf der Lage aufsetzen, die man sieht
+        self._optik_neu_messen = False
         yaw, t = self._meander_lage()
         welt = self._world
         thermal = self._hat_thermal()
@@ -2012,7 +2132,7 @@ class MainWindow(QMainWindow):
                 meander_mod.set_manual(self._meander_pipe, y, tt)
             neu = {"rgb_faktor": res["rgb"]["faktor"], "thermal_faktor": 1.0,
                    "thermal": res["thermal"], "hoehe": res["hoehe"],
-                   "rgb": res["rgb"]}
+                   "rgb": res["rgb"], "korrektur": self._optik.get("korrektur")}
             self._meander_setze_optik(neu)
             self._meander_speichere_optik()
             auf = res["rgb"].get("auf_flaeche_nachher")
@@ -2028,8 +2148,80 @@ class MainWindow(QMainWindow):
             if self._cloud_view.has_color_preview():
                 self._live_timer.start()
             self._update_enabled()
+            if self._auto_kette:
+                self._auto_weiter("fein")
 
         self._start_worker("Messe die Optik ein …", job, fertig)
+
+    def _on_meander_fein(self) -> None:
+        """Fotomodell fein auf die Karte legen (s. core.optik.feinausrichten)."""
+        pipe = self._meander_pipe
+        if pipe is None or getattr(pipe, "yaw", None) is None or self._world is None:
+            QMessageBox.information(self, "Feinausrichten",
+                                    "Erst „Ausrichten“ laufen lassen.")
+            return
+        self._meander_apply_manual()
+        yaw, t = self._meander_lage()
+        welt = self._world
+        faktor = self._faktor("rgb")
+
+        def job(progress_cb, cancel, log_cb):
+            from core import optik as optik_mod
+            punkte = np.asarray(welt[:: max(1, len(welt) // 400_000)], dtype=np.float64)
+            return optik_mod.feinausrichten(pipe, punkte, yaw, t, faktor,
+                                            progress=progress_cb,
+                                            cancel=lambda: cancel.is_set(), log=log_cb)
+
+        def fertig(k: dict) -> None:
+            self._optik["korrektur"] = k if k["stufe"] != "nichts" else None
+            self._meander_setze_optik(self._optik)
+            self._meander_speichere_optik()
+            self._lbl_meander.setText(
+                f"Feinausgerichtet ({k['stufe']}): {k['auf_flaeche_nachher'] * 100:.0f} % "
+                f"der Fotopunkte auf der Oberfläche, Neigung "
+                f"{k['neigung_grad'][0]:+.2f}°/{k['neigung_grad'][1]:+.2f}°, Versatz "
+                f"{k['versatz_m'][0]:+.2f}/{k['versatz_m'][1]:+.2f} m.")
+            if self._cloud_view.has_color_preview():
+                self._live_timer.start()
+            self._update_enabled()
+            if self._auto_kette:
+                self._auto_weiter("einfaerben")
+
+        self._start_worker("Feinausrichtung läuft …", job, fertig)
+
+    def _on_meander_auto(self) -> None:
+        """Alles hintereinander: ausrichten, einmessen, feinausrichten, einfaerben.
+
+        Jeder Schritt stoesst den naechsten aus seinem Fertig-Zweig an; schlaegt
+        einer fehl, haelt ``_worker_failed`` die Kette an.
+        """
+        if not self._meander_dir or self._world is None:
+            QMessageBox.information(self, "Automatisch",
+                                    "Erst einen Flug öffnen und einen Mäanderflug wählen.")
+            return
+        if not self._meander_ask_colmap():
+            return
+        self._auto_kette = True
+        self._log("Automatik: ausrichten → Optik einmessen → feinausrichten → "
+                  "einfärben mit Sichtprüfung.")
+        pipe = self._meander_pipe
+        if pipe is None or getattr(pipe, "yaw", None) is None or self._live is None:
+            self._on_meander_align()      # weiter ueber die Vorschaubilder
+        else:
+            self._auto_weiter("einmessen")
+
+    def _auto_weiter(self, schritt: str) -> None:
+        if not self._auto_kette:
+            return
+        if schritt == "einmessen":
+            self._on_meander_einmessen()
+        elif schritt == "fein":
+            self._on_meander_fein()
+        elif schritt == "einfaerben":
+            self._on_meander_run()
+        else:
+            self._auto_kette = False
+            self._log("Automatik fertig.")
 
     def _thermal_zuschlag(self) -> tuple:
         """Thermal-Regler: (Gier Grad, X m, Y m) als Zuschlag auf die RGB-Lage."""
@@ -2067,6 +2259,40 @@ class MainWindow(QMainWindow):
         if any(z):
             self._log(f"Thermal-Lage aus dem Projekt: {z[0]:+.2f}°, "
                       f"{z[1]:+.2f}/{z[2]:+.2f} m auf die RGB-Lage.")
+
+    _ZUSCHLAG = "rgb_zuschlag.json"
+
+    def _meander_speichere_zuschlag(self) -> None:
+        """RGB-Handzuschlag sofort ins Projekt — nichts geht beim Schliessen verloren."""
+        if self._project is None or self._meander_pipe is None:
+            return
+        pfad = os.path.join(self._project.meander_work_dir(), self._ZUSCHLAG)
+        d = {k: float(self._spin_meander[k].value()) for k in ("yaw", "x", "y", "z")}
+        try:
+            with open(pfad + ".tmp", "w", encoding="utf-8") as fh:
+                json.dump(d, fh)
+            os.replace(pfad + ".tmp", pfad)
+        except OSError as exc:
+            self._log(f"Handzuschlag nicht gespeichert: {exc}")
+
+    def _meander_lade_zuschlag(self) -> None:
+        if self._project is None:
+            return
+        pfad = os.path.join(self._project.meander_work_dir(), self._ZUSCHLAG)
+        try:
+            with open(pfad, encoding="utf-8") as fh:
+                d = json.load(fh)
+        except (OSError, ValueError):
+            return
+        if any(float(d.get(k, 0.0)) for k in ("yaw", "x", "y", "z")):
+            for k in ("yaw", "x", "y", "z"):
+                sp = self._spin_meander[k]
+                sp.blockSignals(True)
+                sp.setValue(float(d.get(k, 0.0)))
+                sp.blockSignals(False)
+            self._log(f"Handzuschlag von zuletzt: Gier {d.get('yaw', 0):+.3f}°, "
+                      f"X {d.get('x', 0):+.2f}, Y {d.get('y', 0):+.2f}, "
+                      f"Z {d.get('z', 0):+.2f} m.")
 
     def _meander_speichere_thermal(self) -> None:
         if self._project is None or self._meander_pipe is None:
@@ -2151,6 +2377,8 @@ class MainWindow(QMainWindow):
             return
         if optik == "thermal":
             self._meander_speichere_thermal()
+        else:
+            self._zuschlag_timer.start()      # kurz nach dem Zug speichern
         self._live_optik = optik
         live = self._live_th if optik == "thermal" else self._live
         if live is None:
@@ -2244,6 +2472,7 @@ class MainWindow(QMainWindow):
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
+        self._meander_speichere_zuschlag()
         # Thermal bleibt ein Zuschlag auf RGB und damit in seinen Reglern
         self._meander_speichere_thermal()
 
@@ -2278,6 +2507,7 @@ class MainWindow(QMainWindow):
         th_zuschlag = self._thermal_zuschlag()
         optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
                            thermal_faktor=self._faktor("thermal"))
+        sichtbar = bool(self._chk_sichtbar.isChecked())
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
@@ -2311,16 +2541,39 @@ class MainWindow(QMainWindow):
                 elif schlecht:
                     raise RuntimeError(schlecht)
             p._cancel = lambda: cancel.is_set()
-            A, b = p.affine()
-            ergebnis = {"pipe": p, "ebenen": {}}
+            if pipe is None:
+                p.s360_korrektur = opt.get("korrektur")
+            # lage_affine statt p.affine(): nimmt die Feinausrichtung mit
+            A, b = meander_mod.lage_affine(p, float(np.degrees(p.yaw)), p.t)
+            ergebnis = {"pipe": p, "ebenen": {}, "sichtbar": sichtbar}
             rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
             if rf != 1.0:
                 log_cb(f"RGB mit Maßstab {rf:.4f} (Brennweite).")
+            if getattr(p, "s360_korrektur", None):
+                k = p.s360_korrektur
+                log_cb(f"Mit Feinausrichtung: Neigung {k['neigung_grad'][0]:+.2f}°/"
+                       f"{k['neigung_grad'][1]:+.2f}°, Versatz {k['versatz_m'][0]:+.2f}/"
+                       f"{k['versatz_m'][1]:+.2f} m.")
+            normalen = None
+            if sichtbar:
+                from core import sichtbar as sichtbar_mod
+                progress_cb(0.5, "Normalen der Karte für die Sichtprüfung …")
+                normalen = sichtbar_mod.normalen(welt)
+
+            def faerben(cams, ordner, A_, b_, von, bis, temperatur=None):
+                prog = lambda f, m: progress_cb(von + (bis - von) * f, m)  # noqa: E731
+                if sichtbar:
+                    return sichtbar_mod.colorize_sichtbar(
+                        welt, cams, ordner, A_, b_, normalen_welt=normalen,
+                        progress=prog, cancel=lambda: cancel.is_set(), log=log_cb,
+                        temperatur=temperatur)
+                return meander_mod.colorize_points(
+                    welt, cams, ordner, A_, b_, progress=prog,
+                    cancel=lambda: cancel.is_set(), temperatur=temperatur)
+
             progress_cb(0.52, "Färbe die volle Wolke aus den RGB-Bildern …")
-            rgb, maske = meander_mod.colorize_points(
-                welt, optik_mod.rgb_cams(p, rf), p._p("images"), A, b,
-                progress=lambda f, m: progress_cb(0.52 + 0.28 * f, m),
-                cancel=lambda: cancel.is_set())
+            rgb, maske = faerben(optik_mod.rgb_cams(p, rf), p._p("images"), A, b,
+                                 0.52, 0.80)
             meander_mod.save_layer(
                 proj.layer_dir("meander_rgb"), rgb, maske,
                 {"quelle": "meander_rgb", "flug": p.photo_dir,
@@ -2328,7 +2581,9 @@ class MainWindow(QMainWindow):
                  "t": [float(x) for x in meander_mod.as_t3(p.t)],
                  "rgb_faktor": rf,
                  "anteil": float(maske.mean()),
-                 "rgb_versatz": [float(x) for x in p.rgb_versatz]})
+                 "rgb_versatz": [float(x) for x in p.rgb_versatz],
+                 "sichtpruefung": sichtbar,
+                 "feinausrichtung": getattr(p, "s360_korrektur", None)})
             ergebnis["ebenen"]["meander_rgb"] = float(maske.mean())
             th_cams = optik_mod.thermal_cams(p, opt.get("thermal"), tf, rf) \
                 if thermal else None
@@ -2344,10 +2599,19 @@ class MainWindow(QMainWindow):
                        "Schielwinkel)." if opt.get("thermal") else
                        "Thermal ohne Einmessung — nur EXIF-Brennweite. „Optik "
                        "einmessen“ macht das deutlich besser.")
-                trgb, tmaske = meander_mod.colorize_points(
-                    welt, th_cams, p._p("thermal"), A_th, b_th,
-                    progress=lambda f, m: progress_cb(0.82 + 0.16 * f, m),
-                    cancel=lambda: cancel.is_set())
+                from core import temperatur as temperatur_mod
+                tquelle = temperatur_mod.quelle(p)
+                erg = faerben(th_cams, p._p("thermal"), A_th, b_th, 0.82, 0.98,
+                              temperatur=tquelle)
+                trgb, tmaske = erg[0], erg[1]
+                ttemp = erg[2] if len(erg) > 2 else None
+                if ttemp is not None and np.isfinite(ttemp).any():
+                    tt = ttemp[np.isfinite(ttemp)]
+                    log_cb(f"Temperaturen aus den R-JPEG: {len(tt) / len(ttemp) * 100:.0f} % "
+                           f"der Punkte, Median {np.median(tt):.1f} °C.")
+                elif tquelle is None:
+                    log_cb("Keine Temperaturen: die Thermalbilder tragen keine "
+                           "Rohwerte (kein radiometrisches JPEG).")
                 meander_mod.save_layer(
                     proj.layer_dir("meander_thermal"), trgb, tmaske,
                     {"quelle": "meander_thermal", "flug": p.photo_dir,
@@ -2355,8 +2619,12 @@ class MainWindow(QMainWindow):
                      "thermal_zuschlag": [float(x) for x in th],
                      "thermal_faktor": tf,
                      "thermal_eingemessen": bool(opt.get("thermal")),
+                     "sichtpruefung": sichtbar,
+                     "feinausrichtung": getattr(p, "s360_korrektur", None),
                      "anteil": float(tmaske.mean()),
-                     "thermal_versatz": [float(x) for x in p.thermal_versatz]})
+                     "thermal_versatz": [float(x) for x in p.thermal_versatz],
+                     "temperatur": ttemp is not None},
+                    temperatur=ttemp)
                 ergebnis["ebenen"]["meander_thermal"] = float(tmaske.mean())
             elif thermal:
                 log_cb("Thermal übersprungen: die Optik fehlt (keine Brennweite "
@@ -2373,7 +2641,10 @@ class MainWindow(QMainWindow):
         for key, anteil in res["ebenen"].items():
             self._log(f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte "
                       f"eingefärbt.")
-        if res["ebenen"].get("meander_thermal", 1.0) < 0.9:
+        if res.get("sichtbar"):
+            self._log("Ungefärbt ist, was keine Kamera sieht — mit „Nur eingefärbte "
+                      "Punkte“ ausgeblendet, von oben fehlt dadurch nichts.")
+        elif res["ebenen"].get("meander_thermal", 1.0) < 0.9:
             self._log("Der Rest liegt außerhalb der Thermalbilder — die sehen "
                       "einen schmaleren Ausschnitt als die RGB-Kamera.")
         self._live_hide()
@@ -2385,6 +2656,8 @@ class MainWindow(QMainWindow):
             if idx >= 0:
                 self._combo_layer.setCurrentIndex(idx)
         self._update_enabled()
+        if self._auto_kette:
+            self._auto_weiter("fertig")
 
     # ======================================================== Farbebenen
 
@@ -2423,7 +2696,22 @@ class MainWindow(QMainWindow):
                     self._log(f"Farbebene '{key}' passt nicht zur Wolke — ignoriert.")
                     continue
             self._layers[key] = paar
+        self._temperatur = None
+        if "meander_thermal" in self._layers:
+            self._temperatur = meander_mod.load_temperatur(
+                os.path.join(self._project.dir, Project.LAYERS["meander_thermal"]), n)
+            if self._temperatur is not None:
+                gut = np.isfinite(self._temperatur)
+                if gut.any():
+                    t = self._temperatur[gut]
+                    self._log(f"Temperaturen für {gut.mean() * 100:.0f} % der Punkte, "
+                              f"{np.percentile(t, 1):.1f} bis {np.percentile(t, 99):.1f} °C "
+                              f"— beim Überfahren mit der Maus zu sehen.")
+            else:
+                self._log("Die Thermal-Ebene hat noch keine Temperaturen — einmal neu "
+                          "einfärben, dann zeigt die Maus sie an.")
         self._refresh_layer_combo()
+        self._cloud_view.set_temperatur(self._temperatur)
 
     def _refresh_layer_combo(self) -> None:
         """Auswahlliste auf die vorhandenen Ebenen setzen."""

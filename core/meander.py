@@ -140,13 +140,17 @@ def align(pipe, progress=None) -> dict:
     """
     if progress is not None:
         progress(0.05, "Suche Gierwinkel und Verschiebung …")
+    aus_cache = os.path.exists(pipe._p("align.json"))
     pipe.align()
     # Eine align.json aus der Zeit vor as_t3 traegt nur x und y. Die Pipeline
     # liest sie unveraendert ein, und jedes spaetere affine() bricht dann ab.
     pipe.t = as_t3(pipe.t)
     k = dict(pipe.kennwerte or {})
     k.update({"yaw_deg": float(np.degrees(pipe.yaw)),
-              "t": [float(x) for x in np.asarray(pipe.t).ravel()]})
+              "t": [float(x) for x in np.asarray(pipe.t).ravel()],
+              # Frisch gesucht heisst: Hoehenkorrektur und Feinausrichtung
+              # gehoerten zu einer anderen Lage und gelten nicht mehr.
+              "aus_cache": bool(aus_cache)})
     if progress is not None:
         progress(1.0, f"Ausgerichtet: {k['yaw_deg']:.2f}°")
     return k
@@ -201,9 +205,25 @@ def lage_affine(pipe, yaw_deg: float, t) -> tuple:
     try:
         pipe.yaw = float(np.radians(yaw_deg))
         pipe.t = as_t3(t)
-        return pipe.affine()
+        A, b = pipe.affine()
     finally:
         pipe.yaw, pipe.t = alt_yaw, alt_t
+    return korrektur_anwenden(A, b, getattr(pipe, "s360_korrektur", None))
+
+
+def korrektur_anwenden(A, b, korrektur) -> tuple:
+    """Feinausrichtung auf ein Affin legen: p -> M p + v nach der Lage.
+
+    Die Pipeline kennt nur Gier und Verschiebung. Die Feinausrichtung
+    (``core.optik.feinausrichten``) findet dazu eine kleine Neigung und einen
+    Versatz; sie haengt an der Pipeline, damit jede Stelle, die eine Lage in
+    ein Affin uebersetzt, sie mitnimmt — Vorschau, Fenster, Einfaerben.
+    """
+    if not korrektur:
+        return A, b
+    M = np.asarray(korrektur["M"], dtype=float)
+    v = np.asarray(korrektur["v"], dtype=float)
+    return M @ np.asarray(A, float), M @ np.asarray(b, float) + v
 
 
 # ------------------------------------------------------------ Thermallage
@@ -248,8 +268,11 @@ def save_thermal_zuschlag(work_dir: str, zuschlag) -> None:
 
 
 def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
-                    progress=None, cancel=None) -> tuple[np.ndarray, np.ndarray]:
+                    progress=None, cancel=None, temperatur=None) -> tuple:
     """Volle Wolke einfaerben; gibt (rgb uint8 (N,3), maske bool (N,)).
+
+    Mit ``temperatur`` (s. ``core.temperatur.quelle``) kommt als drittes
+    Element die Temperatur je Punkt dazu, aus demselben Bild wie die Farbe.
 
     Wie ``colorize_pipeline.colorize.colorize``, aber ueber alle Punkte der
     Arbeitswolke statt der ausgeduennten, und mit Maske statt nur einer Quote.
@@ -282,6 +305,7 @@ def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
     best = np.full(N, np.inf, dtype=np.float32)
     col = np.empty((N, 3), dtype=np.uint8)
     col[:] = _FALLBACK
+    temp = np.full(N, np.nan, dtype=np.float32) if temperatur is not None else None
     n_cams = len(names)
     for i, n in enumerate(names):
         if cancel is not None and cancel():
@@ -297,11 +321,18 @@ def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
             vi = np.clip(v[gilt].astype(np.int32), 0, ih - 1)
             col[gilt] = img[vi, ui]
             best[gilt] = rad[gilt].astype(np.float32)
+            if temp is not None:
+                from core.temperatur import abtasten  # noqa: PLC0415
+                t_bild = temperatur(i, n)
+                temp[gilt] = np.nan if t_bild is None else \
+                    abtasten(t_bild, u[gilt], v[gilt], W, H)
         if progress is not None and (i % 10 == 0 or i == n_cams - 1):
             progress((i + 1) / n_cams,
                      f"Färbe aus Bild {i + 1}/{n_cams} — "
                      f"{np.isfinite(best).mean() * 100:.1f} % getroffen")
     maske = np.isfinite(best)
+    if temp is not None:
+        return col, maske, temp
     return col, maske
 
 
@@ -390,9 +421,20 @@ class LivePreview:
 
 # ------------------------------------------------------------------ Ebenen
 
-def save_layer(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict) -> None:
-    """Farbebene ablegen — dasselbe Format wie die Einfaerbung aus der 360-Kamera."""
+def save_layer(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict,
+               temperatur: np.ndarray | None = None) -> None:
+    """Farbebene ablegen — dasselbe Format wie die Einfaerbung aus der 360-Kamera.
+
+    ``temperatur`` (float32 je Punkt, NaN wo keine) landet als
+    ``temperatur.bin`` daneben; ohne wird eine alte entfernt, damit nie eine
+    Temperatur zu einer anderen Einfaerbung passt als ihrer eigenen.
+    """
     os.makedirs(out_dir, exist_ok=True)
+    tbin = os.path.join(out_dir, "temperatur.bin")
+    if temperatur is not None:
+        np.ascontiguousarray(temperatur, dtype=np.float32).tofile(tbin)
+    elif os.path.exists(tbin):
+        os.remove(tbin)
     np.ascontiguousarray(rgb, dtype=np.uint8).tofile(os.path.join(out_dir, "colors.bin"))
     np.ascontiguousarray(maske.astype(np.uint8)).tofile(
         os.path.join(out_dir, "valid.bin"))
@@ -400,6 +442,15 @@ def save_layer(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict) -> 
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
     os.replace(tmp, os.path.join(out_dir, "meta.json"))
+
+
+def load_temperatur(out_dir: str, n_points: int) -> np.ndarray | None:
+    """Temperatur je Punkt (float32, NaN wo keine) oder None."""
+    tbin = os.path.join(out_dir, "temperatur.bin")
+    if not os.path.isfile(tbin):
+        return None
+    t = np.fromfile(tbin, dtype=np.float32)
+    return t if t.size == n_points else None
 
 
 def load_layer(out_dir: str, n_points: int) -> tuple[np.ndarray, np.ndarray] | None:
@@ -520,7 +571,15 @@ if __name__ == "__main__":
     A_, b_ = lage_affine(p_, 90.0, [5.0, 6.0])
     assert np.allclose(b_, [5.0, 6.0, 0.0]) and np.allclose(A_ @ [1, 0, 0], [0, 1, 0])
     assert p_.yaw == 0.3 and p_.t.tolist() == [1.0, 2.0], "Basislage veraendert"
-    print("  Zuschlag addiert, Datei hin und zurueck, Basislage unberuehrt")
+    # Feinausrichtung haengt an der Pipeline und wirkt in jedem lage_affine
+    kipp = np.array([[1.0, 0, 0], [0, np.cos(0.01), -np.sin(0.01)],
+                     [0, np.sin(0.01), np.cos(0.01)]])
+    p_.s360_korrektur = {"M": kipp.tolist(), "v": [0.4, 0.35, 0.0]}
+    A2, b2 = lage_affine(p_, 90.0, [5.0, 6.0])
+    assert np.allclose(A2, kipp @ A_) and np.allclose(b2, kipp @ b_ + [0.4, 0.35, 0.0])
+    p_.s360_korrektur = None
+    print("  Zuschlag addiert, Datei hin und zurueck, Basislage unberuehrt, "
+          "Feinausrichtung wirkt")
 
     print("== Test 7: Ebene schreiben und lesen ==")
     lay = os.path.join(tmp, "ebene")
@@ -530,6 +589,13 @@ if __name__ == "__main__":
     assert np.array_equal(zurueck[0], rgb) and np.array_equal(zurueck[1], maske)
     assert load_layer(lay, len(pts) + 1) is None, "falsche Punktzahl nicht erkannt"
     assert load_layer(os.path.join(tmp, "gibtsnicht"), 4) is None
-    print("  Ebene passt, falsche Punktzahl wird abgelehnt")
+    assert load_temperatur(lay, len(pts)) is None
+    save_layer(lay, rgb, maske, {"quelle": "selbsttest"},
+               temperatur=np.array([20.5, 21.0, np.nan, 30.0], np.float32))
+    t = load_temperatur(lay, len(pts))
+    assert t is not None and t[0] == 20.5 and np.isnan(t[2])
+    save_layer(lay, rgb, maske, {"quelle": "selbsttest"})
+    assert load_temperatur(lay, len(pts)) is None, "alte Temperatur blieb liegen"
+    print("  Ebene passt, falsche Punktzahl wird abgelehnt, Temperatur hin und zurueck")
     shutil.rmtree(tmp, ignore_errors=True)
     print("meander SELFTEST OK")

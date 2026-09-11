@@ -254,6 +254,66 @@ def bag_paths_after_import(src: str, manifest: dict) -> list:
     return out
 
 
+def oeffnen(src: str) -> dict:
+    """Exportordner an Ort und Stelle oeffnen — ohne Kopie, ohne Rueckfrage.
+
+    Gearbeitet wird direkt in ``src/projekt``: jede Aenderung (Einstellungen,
+    Ausrichtung, Einfaerbung) landet sofort dort. Frueher wurde der Ordner in
+    den Cache kopiert und bei einem vorhandenen Projekt gefragt, ob es
+    ersetzt werden soll; die Kopie ist entfallen, damit auch die Frage.
+
+    Die Bagpfade in der ``meta.json`` werden auf das gezogen, was hier liegt —
+    mitgenommene Bags im Ordner, sonst die urspruenglichen Pfade. Das geht
+    auch mehrfach und auf einem anderen Rechner, gesucht wird ueber den
+    Ordnernamen des Bags.
+    """
+    from core.project import Project  # noqa: PLC0415
+
+    src = os.path.abspath(src)
+    manifest = read_manifest(src)
+    projekt_dir = os.path.join(src, "projekt")
+    if not os.path.isdir(os.path.join(projekt_dir, "recording")):
+        raise RuntimeError(f"In '{src}' liegt kein Projekt (projekt/recording fehlt).")
+    neue = bag_paths_after_import(src, manifest)
+    alte = [q.get("bag") for q in (manifest.get("quellen") or [])]
+    nach_name = {os.path.basename(str(a).rstrip("/")): n
+                 for a, n in zip(alte, neue) if a and n}
+    meta_p = os.path.join(projekt_dir, "recording", "meta.json")
+    try:
+        with open(meta_p, encoding="utf-8") as fh:
+            meta = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"meta.json der Aufzeichnung nicht lesbar: {exc}") from exc
+
+    def neu(pfad):
+        if not pfad:
+            return pfad
+        ziel = nach_name.get(os.path.basename(str(pfad).rstrip("/")))
+        return ziel if ziel and ziel != pfad and os.path.exists(ziel) else pfad
+
+    geaendert = False
+    if neu(meta.get("bag")) != meta.get("bag"):
+        meta["bag"] = neu(meta["bag"])
+        geaendert = True
+    for s in meta.get("sources") or []:
+        if neu(s.get("bag")) != s.get("bag"):
+            s["bag"] = neu(s["bag"])
+            geaendert = True
+    if geaendert:
+        tmp = meta_p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(meta, fh, indent=2)
+        os.replace(tmp, meta_p)
+    project = Project.from_dir(projekt_dir)
+    name = (manifest.get("projekt") or {}).get("name")
+    if name:
+        project.bag_name = str(name)
+    bags = [neu(s.get("bag")) for s in (meta.get("sources") or [])] or [meta.get("bag")]
+    return {"manifest": manifest, "project": project, "bags": bags,
+            "fehlende_bags": [b for b in bags if b and not os.path.exists(b)],
+            "zusammengefuehrt": len(meta.get("sources") or []) >= 2}
+
+
 def import_project(src: str, project, progress=None, cancel=None) -> dict:
     """Ordner ``src`` in ``project`` einspielen und die Bagpfade nachziehen.
 

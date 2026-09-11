@@ -547,6 +547,169 @@ def kalibriere_thermal(pipe, rgb_faktor: float = 1.0, n_kalib: int = 12,
             "paare_kalib": len(kalib_namen), "paare_pruef": len(pruef_namen)}
 
 
+# ---------------------------------------------------- Feinausrichtung
+
+def feinausrichten(pipe, punkte: np.ndarray, yaw_deg: float, t, rgb_faktor: float,
+                   progress=None, cancel=None, log=None) -> dict:
+    """Fotomodell auf die Karte legen: Neigung, Hoehe, Versatz in der Ebene.
+
+    Die Pipeline sucht nur Gier und Verschiebung; beide Rahmen gelten als
+    lotrecht. Am DRZ-Flug stimmt das nicht ganz, und die Verschiebung sitzt
+    ein paar Dezimeter daneben. Hier zwei Stufen, jede auf dem Mass, das den
+    Freiheitsgrad wirklich festlegt:
+
+    1. **Neigung und Hoehe** — Fotopunkte per robustem Punkt-zu-Ebene-Abgleich
+       auf die Lidar-Oberflaeche. Boden und Daecher legen das scharf fest.
+    2. **Versatz in der Ebene** — auf dem Kantenmass der Pipeline (Farbkanten
+       gegen Hoehenkanten), mit der eingemessenen Optik, an zwei getrennten
+       Stichproben; genommen wird der Mittelwert.
+
+    Bewusst **nicht** gesucht: Gier und Blockmassstab. Gemessen am DRZ-Flug
+    ist das Kantenmass ueber ±0,5° Gier flach (zwei Stichproben fanden
+    +0,15° und +0,45°), und ein Blockmassstab zieht die Fotopunkte von der
+    Oberflaeche (50 % -> 34 %), weil er gegen Brennweite und Hoehe tauscht —
+    den Massstab, auf den es ankommt, legt ``einmessen`` ueber die Brennweite
+    fest. Die Verschiebung dagegen fanden beide Stichproben gleich.
+
+    Die Korrektur wird nur behalten, wenn die Farbkonsistenz — ein drittes,
+    unabhaengiges Mass — dabei nicht schlechter wird. Rueckgabe: Korrektur
+    ``{"M", "v", ...}`` fuer ``meander.korrektur_anwenden`` (bezogen auf die
+    Lage OHNE bisherige Korrektur) und Kennzahlen.
+    """
+    import open3d as o3d  # noqa: PLC0415
+    from scipy.spatial import cKDTree  # noqa: PLC0415
+    from scipy.spatial.transform import Rotation  # noqa: PLC0415
+    from core import meander as meander_mod  # noqa: PLC0415
+    meander_mod.find_pipeline()
+    from colorize_pipeline import colorize as cz  # noqa: PLC0415
+
+    def p_(f, m):
+        if progress is not None:
+            progress(f, m)
+        if cancel is not None and cancel():
+            raise RuntimeError("Abgebrochen")
+
+    def l_(m):
+        if log is not None:
+            log(m)
+
+    alt = getattr(pipe, "s360_korrektur", None)
+    pipe.s360_korrektur = None           # von der reinen Lage aus rechnen
+    try:
+        A0, b0 = meander_mod.lage_affine(pipe, yaw_deg, t)
+    finally:
+        pipe.s360_korrektur = alt
+    P = np.asarray(punkte, dtype=np.float64)
+    p_(0.02, "Feinausrichtung: Oberfläche der Karte …")
+    pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(P))
+    pc = pc.voxel_down_sample(0.12)
+    pc.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=0.5, max_nn=30))
+    Q, N = np.asarray(pc.points), np.asarray(pc.normals)
+    baum = cKDTree(Q)
+    xyz = np.asarray(pipe.cams["xyz"], float)
+    C_col = np.asarray(pipe.cams["C"], float)
+
+    def mit(M, v):
+        return M @ A0, M @ b0 + v
+
+    def fotopunkte(A, b):
+        C = C_col @ A.T + b
+        return foto_hoehe(xyz @ A.T + b, C, rgb_faktor), C
+
+    def auf(A, b):
+        F, _ = fotopunkte(A, b)
+        d, i = baum.query(F, distance_upper_bound=3.0, workers=-1)
+        ok = np.isfinite(d)
+        return float((np.abs(((F[ok] - Q[i[ok]]) * N[i[ok]]).sum(1)) < 0.5).sum() / len(F))
+
+    _, C0 = fotopunkte(A0, b0)
+    c = C0.mean(0)
+
+    # 1) Neigung und Hoehe
+    R, tz = np.eye(3), 0.0
+    for k, grenze in enumerate([2.0] * 4 + [1.0] * 4 + [0.5] * 6):
+        p_(0.05 + 0.15 * k / 14, "Feinausrichtung: Neigung und Höhe …")
+        M = R
+        v = c - R @ c + np.array([0.0, 0.0, tz])
+        F, _ = fotopunkte(*mit(M, v))
+        d, i = baum.query(F, distance_upper_bound=grenze, workers=-1)
+        ok = np.isfinite(d)
+        if ok.sum() < 100:
+            break
+        n, q, f = N[i[ok]], Q[i[ok]], F[ok]
+        r = ((f - q) * n).sum(1)
+        J = np.c_[np.cross(f - c, n)[:, :2], n[:, 2]]
+        w = 1.0 / np.maximum(1.0, np.abs(r) / 0.15)
+        dx = np.linalg.solve((J * w[:, None]).T @ J + np.eye(3) * 1e-6,
+                             -(J * w[:, None]).T @ r)
+        R = Rotation.from_rotvec([dx[0], dx[1], 0.0]).as_matrix() @ R
+        tz += float(dx[2])
+    neigung = Rotation.from_matrix(R).as_euler("xyz", degrees=True)[:2]
+
+    # 2) Versatz in der Ebene, zwei Stichproben
+    cams = rgb_cams(pipe, rgb_faktor)
+    sub = P[:: max(1, len(P) // 300_000)]
+    versaetze, werte = [], []
+    for s, (name, pk) in enumerate((("A", sub[::2]), ("B", sub[1::2]))):
+        kante = cz.edge_scorer(pk, cams, pipe._p("images"), res=0.25)
+
+        def wert(dxy):
+            return kante(*mit(R, c - R @ c + np.array([dxy[0], dxy[1], tz])))
+
+        x = np.zeros(2)
+        beste = wert(x)
+        n_ = 0
+        for h in (0.3, 0.1, 0.04):
+            weiter = True
+            while weiter and n_ < 60:
+                weiter = False
+                for j in range(2):
+                    for vz in (1.0, -1.0):
+                        p_(0.25 + 0.3 * s + 0.3 * min(n_, 40) / 40,
+                           f"Feinausrichtung: Versatz (Stichprobe {name}) …")
+                        xp = x.copy()
+                        xp[j] += vz * h
+                        val = wert(xp)
+                        n_ += 1
+                        if np.isfinite(val) and val > beste:
+                            beste, x, weiter = val, xp, True
+        versaetze.append(x)
+        werte.append(beste)
+    dxy = np.mean(versaetze, axis=0)
+    spreizung = float(np.linalg.norm(versaetze[0] - versaetze[1]))
+
+    # Gegenprobe
+    p_(0.88, "Feinausrichtung: Gegenprobe …")
+    fk = Farbkonsistenz(pipe.rgb_cams(), pipe._p("images"), cancel=cancel)
+    gp = P[:: max(1, len(P) // 60_000)]
+    M1, v1 = R, c - R @ c + np.array([0.0, 0.0, tz])
+    M2, v2 = R, c - R @ c + np.array([dxy[0], dxy[1], tz])
+    s0 = fk.streuung(gp, cams, A0, b0)
+    s1 = fk.streuung(gp, cams, *mit(M1, v1))
+    s2 = fk.streuung(gp, cams, *mit(M2, v2))
+    a0, a2 = auf(A0, b0), auf(*mit(M2, v2))
+    if s2 <= s1 and spreizung < 0.5:
+        M, v, stufe = M2, v2, "Neigung, Höhe und Versatz"
+    elif s1 <= s0:
+        M, v, stufe = M1, v1, "nur Neigung und Höhe"
+        dxy = np.zeros(2)
+    else:
+        M, v, stufe = np.eye(3), np.zeros(3), "nichts"
+        dxy, neigung, tz = np.zeros(2), np.zeros(2), 0.0
+    l_(f"Feinausrichtung: Neigung {neigung[0]:+.3f}°/{neigung[1]:+.3f}°, Höhe "
+       f"{tz:+.2f} m, Versatz {dxy[0]:+.2f}/{dxy[1]:+.2f} m (zwei Stichproben "
+       f"{spreizung:.2f} m auseinander). Übernommen: {stufe}. Fotopunkte auf der "
+       f"Oberfläche {a0 * 100:.1f} % -> {auf(*mit(M, v)) * 100:.1f} %, Bilder "
+       f"streuen {s0:.2f} -> {min(s0, s1, s2) if stufe != 'nichts' else s0:.2f}.")
+    return {"M": M.tolist(), "v": [float(x) for x in v],
+            "neigung_grad": [float(x) for x in neigung], "hoehe_m": float(tz),
+            "versatz_m": [float(x) for x in dxy], "stufe": stufe,
+            "streuung_vorher": s0, "streuung_nachher": min(s0, s1, s2),
+            "auf_flaeche_vorher": a0, "auf_flaeche_nachher": auf(*mit(M, v)),
+            "kantenmass": [float(w) for w in werte], "spreizung_m": spreizung,
+            "auf_flaeche_mit_versatz": a2}
+
+
 # ---------------------------------------------------------------- alles
 
 def einmessen(pipe, punkte: np.ndarray, yaw_deg: float, t, foto_ordner: str,

@@ -30,8 +30,9 @@ _DATEI = (
     (None, None, None, None, None),
     ("project_export", "Projekt exportieren …", "_on_export_project", "Ctrl+Shift+E",
      "Alle berechneten Daten in einen Ordner kopieren, den man weiterreichen kann."),
-    ("project_import", "Projekt importieren …", "_on_import_project", "Ctrl+I",
-     "Ein exportiertes Projekt aus seinem Ordner wieder öffnen."),
+    ("project_import", "Projektordner öffnen …", "_on_import_project", "Ctrl+I",
+     "Ein exportiertes Projekt direkt in seinem Ordner öffnen — ohne Kopie,\n"
+     "ohne Rückfrage. Änderungen werden sofort dort gespeichert."),
     (None, None, None, None, None),
     ("export_ply", "Exportieren als PLY/PCD …", "_on_export_plypcd", "Ctrl+E",
      "Die angezeigte Farbebene mitschreiben."),
