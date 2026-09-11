@@ -1,5 +1,7 @@
 # Super360 Studio
 
+![Punktwolke des DRZ-Geländes in fünf Ansichten, nacheinander überblendet](assets/modelle.gif)
+
 Bis 2026-09 hieß das Programm „RosBag Suite 360".
 
 PyQt5-GUI für die Auswertung der Drohnen-Rosbags (ROS2 Humble, Livox Mid-360 +
