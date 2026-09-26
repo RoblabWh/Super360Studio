@@ -388,14 +388,16 @@ class ColorizeParams:
     # >= _COLOR_RMAX (700) schaltet ab
     edge_r: float = 600.0
     blue_filter: bool = False     # Blaulicht-Proben zurueckstellen
-    # Standardbereich gemessen an rosbag_2026-09-19_02-52-40: Blaulicht
-    # erscheint in der Kamera cyanblau (Farbton 180-200 am haeufigsten, ueber-
-    # strahlt bis 170, weil Blau und Gruen zugleich saettigen), ein
-    # Viertel der angestrahlten Flaechen ist nur schwach gesaettigt
-    blue_hue_lo: float = 170.0    # Grad 0-360
-    blue_hue_hi: float = 250.0
-    blue_sat: float = 0.25        # Mindestsaettigung 0-1
-    blue_val: float = 40.0        # Mindesthelligkeit (HSV-V) 0-255
+    # Standardbereich iterativ am Nachtflug rosbag_2026-09-19_02-52-40
+    # eingestellt, bis kein Blaulicht mehr zu sehen war: Blaulicht erscheint
+    # in der Kamera cyanblau (180-200 am haeufigsten, ueberstrahlt bis 150,
+    # weil Blau und Gruen zugleich saettigen), gemischt mit Rotlicht violett
+    # bis 290; angestrahlte helle Flaechen sind nur blassblau (Saettigung ab
+    # ~0,05). Gruen (Baeume, unter 150) bleibt unberuehrt.
+    blue_hue_lo: float = 150.0    # Grad 0-360
+    blue_hue_hi: float = 290.0
+    blue_sat: float = 0.05        # Mindestsaettigung 0-1
+    blue_val: float = 10.0        # Mindesthelligkeit (HSV-V) 0-255
     # gibt es fuer einen Punkt nur blaue Proben, zaehlt die am wenigsten blaue
     # (kleinster Blauueberschuss B - max(R, G)) statt des Medians aller
     blue_least: bool = True

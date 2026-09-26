@@ -94,10 +94,10 @@ _DEFAULT_SETTINGS: dict = {
     "lens_best": True,
     "edge_r": 600,
     "blue_filter": False,
-    "blue_hue_lo": 170,
-    "blue_hue_hi": 250,
-    "blue_sat": 25,
-    "blue_val": 40,
+    "blue_hue_lo": 150,
+    "blue_hue_hi": 290,
+    "blue_sat": 5,
+    "blue_val": 10,
     "blue_neutral": 100,
     "mesh_voxel_cm": 5,
     "mesh_depth": 11,
@@ -728,8 +728,9 @@ class MainWindow(QMainWindow):
         form.addRow("Restblau neutralisieren (%):", row_bneu)
         self._btn_blue_defaults = QPushButton("Standardwerte")
         self._btn_blue_defaults.setToolTip(
-            "Farbton 170–250°, Sättigung ab 25 %, Helligkeit ab 40, Restblau\n"
-            "100 % — gemessen an einem Nachtflug mit Einsatzfahrzeugen.")
+            "Farbton 150–290°, Sättigung ab 5 %, Helligkeit ab 10, Restblau\n"
+            "100 % — eingestellt an einem Nachtflug mit Einsatzfahrzeugen, bis\n"
+            "kein Blaulicht mehr zu sehen war. Grün (Bäume) bleibt.")
         self._btn_blue_defaults.clicked.connect(self._on_blue_defaults)
         form.addRow(self._btn_blue_defaults)
         self._btn_blue_preview = QPushButton("Blaumaske im Frame zeigen")
@@ -1321,9 +1322,9 @@ class MainWindow(QMainWindow):
             d = _DEFAULT_SETTINGS
             blau = [s.get(k, d[k]) for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat",
                                                "blue_val")]
-            if blau == [200, 240, 40, 60] and "blue_neutral" not in s:
-                # unveraenderte alte Standardwerte: verfehlten das cyanblaue
-                # Blaulicht, daher auf die neuen
+            if blau in ([200, 240, 40, 60], [170, 250, 25, 40]):
+                # unveraenderte fruehere Standardwerte: liessen cyanblaues und
+                # blassblaues Blaulicht durch, daher auf die neuen
                 blau = [d[k] for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat", "blue_val")]
             self._sld_blue_lo.setValue(int(blau[0]))
             self._sld_blue_hi.setValue(int(blau[1]))
