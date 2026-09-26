@@ -13,7 +13,8 @@ Flow of run():
      pre-existing recording survives any failed/cancelled run.
   3. spawn `ros2 launch fast_lio mapping.launch.py config_file:=<cfg> rviz:=false`,
      wait for "Node init finished." (timeout 30 s).
-  4. wait for recorder READY (20 s), then `ros2 bag play <bag> --rate <rate>`;
+  4. wait for recorder READY (20 s), then `ros2 bag play <bag> --rate <rate> --topics <lid> <imu>`
+     (only the config's sensor topics — never the bag's own /Odometry, /tf);
      first SCAN line must appear within max(20, 20/rate) s.
   5. after bag play exits: >=3 s grace, SIGINT recorder, SIGINT fast_lio group,
      escalate TERM/KILL; guaranteed cleanup in finally.
@@ -27,6 +28,7 @@ import fcntl
 import json
 import os
 import queue
+import re
 import shlex
 import shutil
 import signal
@@ -285,7 +287,14 @@ class FastLioRunner:
                            f"{self.READY_TIMEOUT_S:.0f} s.")
 
                 self._progress(st, f"Spiele Bag ab (Rate {rate:g})…", frac=0.0)
-                play_cmd = f"exec ros2 bag play {shlex.quote(bag_path)} --rate {rate:g}"
+                # Only the sensor topics FAST-LIO consumes: bags from the drone
+                # also carry the onboard /Odometry (same stamps, other world
+                # frame) and /tf; replayed, the recorder would pair some scans
+                # with those foreign poses -> scans skewed through the cloud.
+                topics = self._input_topics(config)
+                self._log(st, f"[runner] Spiele nur ab: {' '.join(topics)}")
+                play_cmd = (f"exec ros2 bag play {shlex.quote(bag_path)} --rate {rate:g}"
+                            " --topics " + " ".join(shlex.quote(t) for t in topics))
                 procs["bag_play"] = self._spawn(play_cmd)
                 self._start_reader(procs["bag_play"], "bag_play", st)
 
@@ -575,6 +584,30 @@ class FastLioRunner:
         # active, so this cannot kill another GUI instance's fresh run.
         for pid in self._find_stale():
             self._kill_pid(pid, signal.SIGKILL)
+
+    DEFAULT_TOPICS = ("/livox/lidar", "/livox/imu")
+
+    def _input_topics(self, config: str) -> list[str]:
+        """lid_topic and imu_topic of the fast_lio config (installed copy
+        first, then config/fastlio/ in the repo); defaults if not found."""
+        candidates = [
+            Path(self.fastlio_ws) / "install" / "fast_lio" / "share" / "fast_lio"
+            / "config" / config,
+            Path(__file__).resolve().parent.parent / "config" / "fastlio" / config,
+        ]
+        for path in candidates:
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            found = {}
+            for key in ("lid_topic", "imu_topic"):
+                m = re.search(rf"^\s*{key}\s*:\s*[\"']?([^\"'#\s]+)", text, re.MULTILINE)
+                if m:
+                    found[key] = m.group(1)
+            if len(found) == 2:
+                return [found["lid_topic"], found["imu_topic"]]
+        return list(self.DEFAULT_TOPICS)
 
     @staticmethod
     def _count_lidar_scans(bag_path: str) -> int:
