@@ -99,9 +99,10 @@ _DEFAULT_SETTINGS: dict = {
     "blue_sat": 5,
     "blue_val": 10,
     "blue_neutral": 100,
-    "mesh_voxel_cm": 5,
-    "mesh_depth": 11,
+    "mesh_voxel_cm": 4,
+    "mesh_depth": 12,
     "mesh_trim": 0,
+    "mesh_hybrid": True,
     "mesh_an": False,
     "point_size": 2,
     "color_mode": "rgb",
@@ -1112,8 +1113,14 @@ class MainWindow(QMainWindow):
         self._spin_mesh_depth.setValue(d["mesh_depth"])
         self._spin_mesh_depth.setToolTip(
             "Poisson-Tiefe: 2^Tiefe Zellen über die größte Ausdehnung der Karte.\n"
-            "11 bei ~200 m sind ~10 cm; jede Stufe mehr halbiert die Zellen und\n"
+            "12 bei ~250 m sind ~6 cm; jede Stufe mehr halbiert die Zellen und\n"
             "kostet etwa das Vierfache an Zeit und Speicher.")
+        self._chk_mesh_hybrid = QCheckBox("Laub als Punkte (Hybrid)")
+        self._chk_mesh_hybrid.setChecked(bool(d["mesh_hybrid"]))
+        self._chk_mesh_hybrid.setToolTip(
+            "Nur Flächen vernetzen — Boden, Wände, Dächer, Fahrzeuge. Laub, Masten\n"
+            "und Rohre bleiben Punkte: als Mesh würden sie zu Klumpen und Wülsten.\n"
+            "Aus: alles wird vernetzt.")
         self._spin_mesh_trim = QSpinBox()
         self._spin_mesh_trim.setRange(0, 30)
         self._spin_mesh_trim.setValue(d["mesh_trim"])
@@ -1125,9 +1132,12 @@ class MainWindow(QMainWindow):
         for w in (self._spin_mesh_voxel, self._spin_mesh_depth, self._spin_mesh_trim):
             w.valueChanged.connect(self._on_setting_changed)
             w.valueChanged.connect(self._on_mesh_param_changed)
+        self._chk_mesh_hybrid.toggled.connect(self._on_setting_changed)
+        self._chk_mesh_hybrid.toggled.connect(self._on_mesh_param_changed)
         form.addRow("Mesh-Raster:", self._spin_mesh_voxel)
         form.addRow("Detail (Tiefe):", self._spin_mesh_depth)
         form.addRow("Ränder kürzen:", self._spin_mesh_trim)
+        form.addRow(self._chk_mesh_hybrid)
         lay.addLayout(form)
         self._btn_mesh_cc = QPushButton("Mesh erzeugen und in CloudCompare zeigen")
         self._btn_mesh_cc.setToolTip(
@@ -1350,10 +1360,17 @@ class MainWindow(QMainWindow):
             self._sld_blue_neutral.setValue(int(s.get("blue_neutral", d["blue_neutral"])))
             self._spin_mesh_voxel.setValue(int(s.get("mesh_voxel_cm", d["mesh_voxel_cm"])))
             self._spin_mesh_depth.setValue(int(s.get("mesh_depth", d["mesh_depth"])))
+            stand = int(s.get("mesh_stand", 0) or 0)
             trim = int(s.get("mesh_trim", d["mesh_trim"]))
-            if trim == 5 and s.get("mesh_stand") != 2:
+            if trim == 5 and stand < 2:
                 trim = 0      # frueherer Standard, stanzte kleine Loecher
             self._spin_mesh_trim.setValue(trim)
+            if stand < 3 and (self._spin_mesh_voxel.value(), self._spin_mesh_depth.value()) \
+                    == (5, 11):
+                # fruehere Standardwerte: zu grob (Poisson-Zelle ~12 cm)
+                self._spin_mesh_voxel.setValue(int(d["mesh_voxel_cm"]))
+                self._spin_mesh_depth.setValue(int(d["mesh_depth"]))
+            self._chk_mesh_hybrid.setChecked(bool(s.get("mesh_hybrid", d["mesh_hybrid"])))
             self._cloud_view.set_mesh_schalter(bool(s.get("mesh_an", False)))
             self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
             self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
@@ -1412,7 +1429,8 @@ class MainWindow(QMainWindow):
             "mesh_an": bool(self._cloud_view.mesh_an()),
             # Marke, ab der mesh_trim bewusst gesetzt ist (nicht in den
             # Standardwerten, sonst griffe die Uebernahme oben nie)
-            "mesh_stand": 2,
+            "mesh_stand": 3,
+            "mesh_hybrid": bool(self._chk_mesh_hybrid.isChecked()),
             "point_size": float(self._spin_pointsize.value()),
             "temperatur_anzeigen": bool(self._temperatur_anzeigen),
             "color_mode": self._combo_colormode.currentData(),
@@ -3048,9 +3066,9 @@ class MainWindow(QMainWindow):
         if an:
             self._mesh_sicherstellen()
 
-    def _mesh_param(self) -> tuple[float, int, float]:
+    def _mesh_param(self) -> tuple[float, int, float, bool]:
         return (self._spin_mesh_voxel.value() / 100.0, int(self._spin_mesh_depth.value()),
-                self._spin_mesh_trim.value() / 100.0)
+                self._spin_mesh_trim.value() / 100.0, bool(self._chk_mesh_hybrid.isChecked()))
 
     def _mesh_ziel(self) -> Optional[str]:
         """Ablage der Geometrie fuer die offene Wolke und die Mesh-Parameter."""
@@ -3058,9 +3076,9 @@ class MainWindow(QMainWindow):
             return None
         from core import mesh as mesh_mod
         from core.colorizer import rec_fingerprint
-        vox, tiefe, trim = self._mesh_param()
+        vox, tiefe, trim, hybrid = self._mesh_param()
         return mesh_mod.geometry_dir(self._project.dir, rec_fingerprint(self._rec),
-                                     vox, tiefe, trim)
+                                     vox, tiefe, trim, hybrid)
 
     def _mesh_vergessen(self) -> None:
         self._mesh_geom = None
@@ -3106,7 +3124,7 @@ class MainWindow(QMainWindow):
             return
         from core import mesh as mesh_mod
         world, rec = self._world, self._rec
-        vox, tiefe, trim = self._mesh_param()
+        vox, tiefe, trim, hybrid = self._mesh_param()
 
         def job(progress_cb, cancel, log_cb):
             geom = mesh_mod.load_geometry(ziel)
@@ -3117,7 +3135,7 @@ class MainWindow(QMainWindow):
             else:
                 geom = mesh_mod.build_geometry(
                     world, rec.path_positions(), voxel=vox, depth=tiefe, trim=trim,
-                    progress=lambda f, m: progress_cb(0.9 * f, m),
+                    hybrid=hybrid, progress=lambda f, m: progress_cb(0.9 * f, m),
                     cancel=lambda: cancel.is_set(), log=log_cb)
                 progress_cb(0.9, "Speichere Mesh …")
                 mesh_mod.save_geometry(geom, ziel)
@@ -3130,6 +3148,7 @@ class MainWindow(QMainWindow):
                 progress_cb(0.95, "Mesh: Intensität je Ecke …")
                 geom["intensity"] = mesh_mod.vertex_scalar(geom, rec.intensity)
                 np.save(ipfad, geom["intensity"])
+            geom["rest_punkte"] = mesh_mod.rest_maske(geom)
             return geom
 
         def on_done(geom) -> None:
@@ -3140,11 +3159,15 @@ class MainWindow(QMainWindow):
             self._mesh_geom_dir = ziel
             self._mesh_farbcache = {}
             self._cloud_view.set_mesh(geom["vertices"], geom["triangles"], geom["normals"])
+            self._cloud_view.set_mesh_restpunkte(geom.get("rest_punkte"))
             self._cloud_view.set_mesh_schalter(self._cloud_view.mesh_an())
             st = geom["stats"]
+            rest = (f", {100.0 * st['restzellen'] / max(st['zellen'], 1):.0f} % der Zellen "
+                    f"als Punkte" if st.get("hybrid") else "")
             self._log(f"Mesh bereit: {_fmt_int(st['dreiecke'])} Dreiecke aus "
-                      f"{_fmt_int(st['zellen'])} Zellen ({st['voxel_m'] * 100:g} cm, "
-                      f"Tiefe {st['tiefe']}, Normalen {str(st.get('normalen', '')).upper()}).")
+                      f"{_fmt_int(st.get('flaechenzellen', st['zellen']))} Flächenzellen "
+                      f"({st['voxel_m'] * 100:g} cm, Tiefe {st['tiefe']}{rest}; "
+                      f"Normalen {str(st.get('normalen', '')).upper()}).")
             self._mesh_farben_zeigen()
 
         def on_failed(msg: str) -> None:
@@ -3877,7 +3900,7 @@ class MainWindow(QMainWindow):
             return
         from core import mesh as mesh_mod
         ziel = self._mesh_ziel()
-        vox, tiefe, trim = self._mesh_param()
+        vox, tiefe, trim, hybrid = self._mesh_param()
         world, rec = self._world, self._rec
         vorhanden = self._mesh_geom if self._mesh_geom_dir == ziel else None
         farben, gueltig = self._colors, self._valid
@@ -3889,7 +3912,7 @@ class MainWindow(QMainWindow):
             if geom is None:
                 geom = mesh_mod.build_geometry(
                     world, rec.path_positions() if rec is not None else None,
-                    voxel=vox, depth=tiefe, trim=trim,
+                    voxel=vox, depth=tiefe, trim=trim, hybrid=hybrid,
                     progress=lambda f, m: progress_cb(0.9 * f, m),
                     cancel=lambda: cancel.is_set(), log=log_cb)
                 mesh_mod.save_geometry(geom, ziel)

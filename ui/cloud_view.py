@@ -27,7 +27,9 @@ ueber einem Punkt dessen Temperatur — in jedem Farbmodus.
 **Mesh**: der Schalter in der Leiste zeigt statt der Punkte das Dreiecksnetz
 (:meth:`CloudView.set_mesh`, gerechnet in core/mesh.py). Es hat einen eigenen
 Actor mit Beleuchtung, folgt Farbmodus, "nur eingefaerbte Punkte" (dann
-fehlen Dreiecke ohne Farbe) und Hoehenschnitt.
+fehlen Dreiecke ohne Farbe) und Hoehenschnitt. Als Hybrid bleiben die Punkte
+sichtbar, die nicht vernetzt sind (Laub, Masten, Einzelstrukturen —
+:meth:`CloudView.set_mesh_restpunkte`).
 """
 from __future__ import annotations
 
@@ -396,8 +398,10 @@ class CloudView(QtWidgets.QWidget):
         self._mesh_actor.SetMapper(self._mesh_mapper)
         mp = self._mesh_actor.GetProperty()
         mp.SetInterpolationToGouraud()
-        mp.SetAmbient(0.35)
-        mp.SetDiffuse(0.75)
+        # Die Farben kommen schon beleuchtet aus der Kamera: viel Grundlicht,
+        # damit sie nicht grau absaufen, etwas Streulicht fuer die Form
+        mp.SetAmbient(0.62)
+        mp.SetDiffuse(0.48)
         mp.SetSpecular(0.0)
         self._mesh_actor.SetVisibility(False)
         self._renderer.AddActor(self._mesh_actor)
@@ -405,6 +409,7 @@ class CloudView(QtWidgets.QWidget):
         self._mesh_poly: vtk.vtkPolyData | None = None
         self._mesh_refs: list = []
         self._mesh_an = False
+        self._mesh_rest: np.ndarray | None = None   # Punkte, die als Punkte bleiben
 
         # EDL (eye-dome lighting) — availability exposed as attribute.
         self.edl_available: bool = False
@@ -563,6 +568,7 @@ class CloudView(QtWidgets.QWidget):
                  normals: np.ndarray | None = None) -> None:
         """Mesh-Geometrie setzen (None entfernt sie). Farben: set_mesh_farben."""
         if vertices is None or triangles is None or len(triangles) == 0:
+            self._mesh_rest = None
             self._mesh = None
             self._mesh_poly = None
             self._mesh_refs = []
@@ -598,10 +604,28 @@ class CloudView(QtWidgets.QWidget):
             self._mesh_farben_setzen()
         self._render()
 
+    def set_mesh_restpunkte(self, maske: np.ndarray | None) -> None:
+        """Punkte (bool je Punkt), die neben dem Mesh als Punkte sichtbar bleiben;
+        None heisst: mit Mesh keine Punkte (reines Mesh)."""
+        if maske is not None:
+            maske = np.asarray(maske, bool).ravel()
+            if self._points is not None and len(maske) != len(self._points):
+                raise ValueError("Restpunkt-Maske passt nicht zur Punktanzahl.")
+        self._mesh_rest = maske
+        if self._mesh_an and self._mesh is not None:
+            self._rebuild_geometry()
+        self._mesh_sichtbarkeit()
+
+    def _hybrid(self) -> bool:
+        return self._mesh_an and self._mesh is not None and self._mesh_rest is not None
+
     def _mesh_sichtbarkeit(self) -> None:
         zeigen = self._mesh_an and self._mesh is not None
+        hybrid = zeigen and self._mesh_rest is not None
+        if hybrid != getattr(self, "_hybrid_gebaut", False) and self._points is not None:
+            self._rebuild_geometry()           # Punktauswahl wechselt
         self._mesh_actor.SetVisibility(zeigen)
-        self._actor.SetVisibility(not zeigen and self._points is not None)
+        self._actor.SetVisibility((not zeigen or hybrid) and self._points is not None)
         self._render()
 
     def _mesh_aufbauen(self) -> None:
@@ -1359,8 +1383,15 @@ class CloudView(QtWidgets.QWidget):
         if self._points is None:
             return
         sel: np.ndarray | None = None
+        maske = None
         if self._only_colored and self._valid is not None:
-            sel = np.flatnonzero(self._valid)
+            maske = self._valid
+        self._hybrid_gebaut = self._hybrid()
+        if self._hybrid_gebaut:
+            # neben dem Mesh nur die Punkte, die nicht vernetzt sind
+            maske = self._mesh_rest if maske is None else (maske & self._mesh_rest)
+        if maske is not None:
+            sel = np.flatnonzero(maske)
         if self._voxel > 0.0:
             pts = self._points if sel is None else self._points[sel]
             keep = _voxel_first_indices(pts, self._voxel)

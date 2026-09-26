@@ -6,28 +6,38 @@ wird je Aufzeichnung einmal gerechnet und im Projekt abgelegt
 Maeander, Fusion …) und die Intensitaet kommen danach in Sekunden dazu
 (:func:`vertex_colors`, :func:`vertex_scalar`).
 
-Weg:
-  1. Voxelraster ueber ALLE Punkte (auch ungefaerbte — die Form soll
+Weg (Hybrid, Standard):
+  1. Voxelraster (4 cm) ueber ALLE Punkte (auch ungefaerbte — die Form soll
      vollstaendig sein). Jeder Punkt merkt sich seine Zelle
      (``point_voxel``); darueber mittelt spaeter jede Farbebene je Zelle.
-  2. Normalen je Zelle aus den Nachbarzellen im Radius ``_NORMAL_R`` Zellen
-     (Hauptachsen der Kovarianz, kleinste = Normale). Auf der Grafikkarte per
-     OpenCL (:data:`_KERNEL`), sonst mit Open3D. Danach zur naechsten
-     Position der Flugbahn hin ausgerichtet: der Lidar hat jede Flaeche von
-     der Seite gesehen, auf der die Drohne war. Ohne das zeigen Normalen
-     zufaellig nach innen oder aussen und Poisson schliesst Fassaden zu Blasen.
-  3. Poisson-Rekonstruktion (Open3D, CPU); Tiefe d = 2^d Zellen ueber die
-     groesste Ausdehnung.
-  4. Beschnitt: Poisson schliesst die Flaeche auch dort, wo nichts gemessen
-     wurde. Alles weiter als ``max_gap`` Zellen von der naechsten Zelle faellt
-     weg. Wahlweise auch die Ecken mit der geringsten Dichte (``trim``); das
-     ist Standard 0, denn die duennsten Ecken liegen bei gleichmaessiger
-     Abtastung verstreut ueber alle Flaechen und stanzen dort kleine Loecher
-     (an Waenden des Nachtflugs sichtbar), waehrend der Abstand die
-     ueberstehenden Poisson-Flaechen schon fast allein entfernt (am ganzen
-     Flug 5 % Dichte-Beschnitt: nur ~1000 von 4,56 Mio. Dreiecken mehr weg).
-  5. Jede Ecke merkt sich ihre ``_K_VOX`` naechsten Zellen; ihre Farbe ist
-     das Mittel dieser Zellen, gewichtet mit der Zahl eingefaerbter Punkte.
+  2. OpenCL-Kernel (:data:`_KERNEL`) je Zelle ueber die Nachbarzellen:
+     Normale (Radius 3 Zellen) und Form der Nachbarschaft (Radius 6 Zellen,
+     Eigenwerte der Kovarianz l0 <= l1 <= l2). Die Normale zeigt danach zur
+     naechsten Position der Flugbahn — der Lidar hat jede Flaeche von der
+     Seite gesehen, auf der die Drohne war.
+  3. Einteilung: **Flaeche** ist, was auf 24 cm flach ist (Streuung
+     l0/(l0+l1+l2) < 0,09) und nicht linienhaft (Flachheit (l1-l0)/l2 >
+     0,3): Boden, Waende, Daecher, Fahrzeuge. Laub ist auf diesem Massstab
+     ungeordnet, Masten und Rohre sind linienhaft — Poisson machte aus
+     beidem zerknuellte Klumpen und Wuelste. Sie bleiben als Punkte stehen
+     (``zelle_rest``), ausser sie liegen dichter als ``rest_dist`` an einer
+     Flaeche (dann waeren sie nur Staub darauf).
+  4. Poisson (Open3D, CPU, ``linear_fit``) nur ueber die Flaechenzellen;
+     Tiefe 12 ist ~6 cm bei 250 m Ausdehnung. Weg faellt alles weiter als
+     ``max_gap`` Zellen von einer Flaechenzelle und jedes Stueck unter
+     ``min_tri`` Dreiecken (Splitter aus flachen Blaettern). Danach glaettet
+     Taubin (ohne Schrumpfen) das Rauschen der Flaechen.
+  5. Jede Ecke merkt sich ihre ``_K_VOX`` naechsten Flaechenzellen; ihre
+     Farbe ist das Mittel dieser Zellen, gewichtet mit der Zahl
+     eingefaerbter Punkte.
+
+Ohne Hybrid (``hybrid=False``) geht jede Zelle in die Poisson-Rekonstruktion
+und es gibt keine Restpunkte.
+
+Gemessen am ganzen Nachtflug rosbag_2026-09-19_02-52-40 (72 Mio. Punkte):
+17,5 Mio. Zellen, 44 % Flaeche, 8,2 Mio. Dreiecke, ~2 min (Poisson ~70 s).
+Beschnitt 2 Zellen und 5 Glaettschritte statt 3 und 10: kleinere Poisson-
+Blasen an einseitig gesehenen Kisten und Gelaendern, schaerfere Kanten.
 
 CloudCompare wird gesucht als Programm im PATH (``CloudCompare``, Snap
 ``cloudcompare.CloudCompare``) oder als Flatpak ``org.cloudcompare.CloudCompare``;
@@ -48,7 +58,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
-__all__ = ["build_geometry", "save_geometry", "load_geometry", "geometry_dir",
+__all__ = ["build_geometry", "rest_maske", "save_geometry", "load_geometry", "geometry_dir",
            "vertex_colors", "vertex_scalar", "to_open3d", "build_mesh", "write_mesh",
            "find_cloudcompare", "open_in_cloudcompare", "opencl_available",
            "INSTALL_HINT"]
@@ -61,9 +71,13 @@ INSTALL_HINT = ("CloudCompare nicht gefunden. Installieren ohne Root-Rechte:\n"
                 "oder systemweit:\n"
                 "  sudo snap install cloudcompare")
 
-_NORMAL_R = 3      # Nachbarzellen je Richtung fuer die Normale (3 x 5 cm = 15 cm)
+_NORMAL_R = 3      # Nachbarzellen je Richtung fuer die Normale (3 x 4 cm = 12 cm)
+_FORM_R = 6        # ... fuer die Form der Nachbarschaft (24 cm)
+_S_MAX = 0.09      # Streuung darunter: flach
+_PLAN_MIN = 0.3    # Flachheit darueber: nicht linienhaft
+_MIN_NACHBARN = 20
 _K_VOX = 4         # Zellen je Ecke fuer die Farbe
-_GEOM_VERSION = 1  # erhoehen, wenn sich das Verfahren aendert (alter Cache gilt nicht)
+_GEOM_VERSION = 2  # erhoehen, wenn sich das Verfahren aendert (alter Cache gilt nicht)
 _GRAU = 90         # Ecken ohne eingefaerbte Nachbarn, wie ungefaerbte Punkte
 
 
@@ -141,7 +155,7 @@ __kernel void normals(__global const long* keys, const int m,
                       __global const int* cells, __global const double* cen,
                       const long dx_, const long dy_, const long dz_,
                       const int r, const double rad2,
-                      __global float* out_n, __global int* out_k)
+                      __global float* out_n, __global int* out_k, __global float* out_l)
 {
     const int i = get_global_id(0);
     if (i >= m) return;
@@ -177,6 +191,7 @@ __kernel void normals(__global const long* keys, const int m,
     out_k[i] = n;
     if (n < 3) {
         out_n[3 * i] = 0.0f; out_n[3 * i + 1] = 0.0f; out_n[3 * i + 2] = 1.0f;
+        out_l[3 * i] = 0.0f; out_l[3 * i + 1] = 0.0f; out_l[3 * i + 2] = 0.0f;
         return;
     }
     const double mx = s[0] / n, my = s[1] / n, mz = s[2] / n;
@@ -190,6 +205,13 @@ __kernel void normals(__global const long* keys, const int m,
     if (a[2][2] < a[k][k]) k = 2;
     out_n[3 * i] = (float)v[0][k]; out_n[3 * i + 1] = (float)v[1][k];
     out_n[3 * i + 2] = (float)v[2][k];
+    /* Eigenwerte aufsteigend: Form der Nachbarschaft (flach, linienhaft, Laub) */
+    double l0 = a[0][0], l1 = a[1][1], l2 = a[2][2], t;
+    if (l0 > l1) { t = l0; l0 = l1; l1 = t; }
+    if (l1 > l2) { t = l1; l1 = l2; l2 = t; }
+    if (l0 > l1) { t = l0; l0 = l1; l1 = t; }
+    out_l[3 * i] = (float)fmax(l0, 0.0); out_l[3 * i + 1] = (float)fmax(l1, 0.0);
+    out_l[3 * i + 2] = (float)fmax(l2, 0.0);
 }
 """
 
@@ -203,7 +225,8 @@ def opencl_available() -> str | None:
     return colorizer_gpu.available()
 
 
-def _normals_opencl(keys, cells, cen, dims, voxel) -> np.ndarray:
+def _normals_opencl(keys, cells, cen, dims, voxel, r: int = _NORMAL_R):
+    """(Normalen (M,3) f32, Eigenwerte aufsteigend (M,3) f32, Nachbarn (M,) i32)."""
     import pyopencl as cl
     try:
         from . import colorizer_gpu
@@ -218,39 +241,58 @@ def _normals_opencl(keys, cells, cen, dims, voxel) -> np.ndarray:
             for a in (keys.astype(np.int64), cells.astype(np.int32), cen.astype(np.float64))]
     out_n = np.empty((m, 3), np.float32)
     out_k = np.empty(m, np.int32)
+    out_l = np.empty((m, 3), np.float32)
     d_n = cl.Buffer(ctx, mf.WRITE_ONLY, out_n.nbytes)
     d_k = cl.Buffer(ctx, mf.WRITE_ONLY, out_k.nbytes)
-    rad = (_NORMAL_R + 0.5) * voxel
+    d_l = cl.Buffer(ctx, mf.WRITE_ONLY, out_l.nbytes)
+    rad = (r + 0.5) * voxel
     k(queue, (((m + 255) // 256) * 256,), (256,), bufs[0], np.int32(m), bufs[1], bufs[2],
-      np.int64(dims[0]), np.int64(dims[1]), np.int64(dims[2]), np.int32(_NORMAL_R),
-      np.float64(rad * rad), d_n, d_k)
+      np.int64(dims[0]), np.int64(dims[1]), np.int64(dims[2]), np.int32(r),
+      np.float64(rad * rad), d_n, d_k, d_l)
     cl.enqueue_copy(queue, out_n, d_n)
     cl.enqueue_copy(queue, out_k, d_k)
+    cl.enqueue_copy(queue, out_l, d_l)
     queue.finish()
-    for b in bufs + [d_n, d_k]:
+    for b in bufs + [d_n, d_k, d_l]:
         b.release()
-    return out_n
+    return out_n, out_l, out_k
 
 
-def _normals_cpu(cen, voxel) -> np.ndarray:
+def _normals_cpu(cen, voxel, r: int = _NORMAL_R):
+    """CPU-Gegenstueck (Open3D-Normalen, Eigenwerte ueber KD-Baum)."""
     import open3d as o3d
+    from scipy.spatial import cKDTree
     pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cen))
     pc.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(
-        radius=(_NORMAL_R + 0.5) * voxel, max_nn=60))
-    return np.asarray(pc.normals, dtype=np.float32)
+        radius=(r + 0.5) * voxel, max_nn=60))
+    N = np.asarray(pc.normals, dtype=np.float32)
+    if r == _NORMAL_R:
+        return N, None, None
+    tree = cKDTree(cen)
+    L = np.zeros((len(cen), 3), np.float32)
+    K = np.zeros(len(cen), np.int32)
+    for a in range(0, len(cen), 200_000):
+        nb = tree.query_ball_point(cen[a:a + 200_000], (r + 0.5) * voxel, workers=-1)
+        for j, idx in enumerate(nb):
+            K[a + j] = len(idx)
+            if len(idx) >= 3:
+                L[a + j] = np.linalg.eigvalsh(np.cov(cen[idx].T, bias=True))
+    return N, L, K
 
 
 # ================================================================ Geometrie
 
 def build_geometry(points: np.ndarray, sensor_path: np.ndarray | None,
-                   voxel: float = 0.05, depth: int = 11, trim: float = 0.0,
-                   max_gap: float = 3.0, backend: str = "auto",
+                   voxel: float = 0.04, depth: int = 12, trim: float = 0.0,
+                   max_gap: float = 2.0, backend: str = "auto", hybrid: bool = True,
+                   rest_dist: float = 0.15, min_tri: int = 400, smooth: int = 5,
                    progress: ProgressCb = None, cancel=None, log=None) -> dict:
     """Mesh-Geometrie einer Punktwolke (alle Punkte, ohne Farben).
 
-    ``backend`` fuer die Normalen: "auto" (OpenCL, wenn da), "gpu", "cpu".
+    ``backend`` fuer Normalen und Form: "auto" (OpenCL, wenn da), "gpu", "cpu".
     Rueckgabe: dict mit vertices (V,3 f32), triangles (F,3 i32), normals
-    (V,3 f32), vertex_voxel (V,K i32), point_voxel (N i32), stats.
+    (V,3 f32), vertex_voxel (V,K i32), point_voxel (N i32), zelle_rest
+    (M bool, nur Hybrid: Zellen, die als Punkte sichtbar bleiben), stats.
     """
     import open3d as o3d
     from scipy.spatial import cKDTree
@@ -272,9 +314,18 @@ def build_geometry(points: np.ndarray, sensor_path: np.ndarray | None,
         gpu = opencl_available()
         if gpu is None and backend == "gpu":
             raise RuntimeError("Keine OpenCL-GPU für die Mesh-Normalen gefunden.")
-    _p(progress, 0.15, f"Mesh: Normalen ({'GPU' if gpu else 'CPU'}) …")
+    _p(progress, 0.1, f"Mesh: Normalen und Form ({'GPU' if gpu else 'CPU'}) …")
     t1 = time.time()
-    N = _normals_opencl(keys, cells, cen, dims, voxel) if gpu else _normals_cpu(cen, voxel)
+    rechne = _normals_opencl if gpu else _normals_cpu
+    N, _, _ = rechne(keys, cells, cen, dims, voxel) if gpu else rechne(cen, voxel)
+    flaeche = np.ones(m, bool)
+    if hybrid:
+        _, L, K = (rechne(keys, cells, cen, dims, voxel, _FORM_R) if gpu
+                   else rechne(cen, voxel, _FORM_R))
+        summe = np.maximum(L.sum(axis=1), 1e-12)
+        streu = L[:, 0] / summe
+        flach = (L[:, 1] - L[:, 0]) / np.maximum(L[:, 2], 1e-12)
+        flaeche = (streu < _S_MAX) & (flach > _PLAN_MIN) & (K >= _MIN_NACHBARN)
     t_norm = time.time() - t1
     if sensor_path is not None and len(sensor_path):
         bahn = np.asarray(sensor_path, np.float64)
@@ -284,63 +335,94 @@ def build_geometry(points: np.ndarray, sensor_path: np.ndarray | None,
         zum_sensor = cen - cen.mean(axis=0)
     flip = np.einsum("ij,ij->i", N, zum_sensor) < 0.0
     N[flip] *= -1.0
+    idx = np.flatnonzero(flaeche)
+    if len(idx) < 100:
+        raise RuntimeError("Zu wenige flächige Zellen für ein Mesh.")
+    say(f"Mesh: {len(idx):,} Flächenzellen ({100 * len(idx) / m:.0f} %).")
     _check(cancel)
 
-    _p(progress, 0.3, f"Mesh: Poisson-Rekonstruktion (Tiefe {depth}) …")
-    pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cen))
-    pc.normals = o3d.utility.Vector3dVector(N.astype(np.float64))
+    _p(progress, 0.2, f"Mesh: Poisson-Rekonstruktion (Tiefe {depth}) …")
+    pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cen[idx]))
+    pc.normals = o3d.utility.Vector3dVector(N[idx].astype(np.float64))
     t1 = time.time()
     with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Error):
         mesh, dens = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
-            pc, depth=int(depth), n_threads=-1)
+            pc, depth=int(depth), n_threads=-1, linear_fit=True)
     t_poisson = time.time() - t1
     del pc
     dens = np.asarray(dens)
     n_roh = len(mesh.triangles)
     _check(cancel)
 
-    _p(progress, 0.8, "Mesh: beschneiden, Ecken den Zellen zuordnen …")
+    _p(progress, 0.7, "Mesh: beschneiden, Splitter entfernen …")
     if trim > 0.0:
         mesh.remove_vertices_by_mask(dens < np.quantile(dens, float(trim)))
-    V = np.asarray(mesh.vertices)
-    dist, vv = cKDTree(cen).query(V, k=_K_VOX, workers=-1)
-    weg = dist[:, 0] > float(max_gap) * float(voxel)
-    mesh.remove_vertices_by_mask(weg)
-    vv = vv[~weg]
-    # remove_vertices_by_mask laesst die Reihenfolge der uebrigen Ecken
-    # stehen, vv passt also weiter zu den Ecken
+    baum = cKDTree(cen[idx])
+    dist, _ = baum.query(np.asarray(mesh.vertices), workers=-1)
+    mesh.remove_vertices_by_mask(dist > float(max_gap) * float(voxel))
+    if min_tri > 0:
+        tc, nc, _ = mesh.cluster_connected_triangles()
+        tc, nc = np.asarray(tc), np.asarray(nc)
+        if len(nc):
+            mesh.remove_triangles_by_mask(nc[tc] < int(min_tri))
+            mesh.remove_unreferenced_vertices()
+    _check(cancel)
+    if smooth > 0:
+        _p(progress, 0.8, "Mesh: glätten …")
+        mesh = mesh.filter_smooth_taubin(number_of_iterations=int(smooth))
     mesh.compute_vertex_normals()
+
+    _p(progress, 0.88, "Mesh: Ecken den Zellen zuordnen …")
     V = np.asarray(mesh.vertices, dtype=np.float32)
-    if len(V) != len(vv):
-        # Sicherheitsnetz: falls Open3D Ecken doch umsortiert hat, neu zuordnen
-        _, vv = cKDTree(cen).query(V, k=_K_VOX, workers=-1)
+    _, vv = baum.query(V, k=_K_VOX, workers=-1)
+    vv = idx[vv].astype(np.int32)
+    zelle_rest = None
+    if hybrid:
+        # Restpunkte: nicht flaechig und nicht bloss Staub auf einer Flaeche
+        rest_idx = np.flatnonzero(~flaeche)
+        d, _ = baum.query(cen[rest_idx], workers=-1, distance_upper_bound=rest_dist * 1.01)
+        zelle_rest = np.zeros(m, bool)
+        zelle_rest[rest_idx[d > rest_dist]] = True
     geom = {
         "vertices": np.ascontiguousarray(V),
         "triangles": np.ascontiguousarray(np.asarray(mesh.triangles, dtype=np.int32)),
         "normals": np.ascontiguousarray(np.asarray(mesh.vertex_normals, dtype=np.float32)),
-        "vertex_voxel": np.ascontiguousarray(vv.astype(np.int32)),
+        "vertex_voxel": np.ascontiguousarray(vv),
         "point_voxel": point_voxel,
+        "zelle_rest": zelle_rest,
     }
     geom["stats"] = {
         "version": _GEOM_VERSION, "punkte": int(len(pts)), "zellen": int(m),
         "voxel_m": float(voxel), "tiefe": int(depth), "trim": float(trim),
-        "max_gap_voxel": float(max_gap), "dreiecke_roh": int(n_roh),
+        "max_gap_voxel": float(max_gap), "hybrid": bool(hybrid),
+        "flaechenzellen": int(len(idx)),
+        "restzellen": int(zelle_rest.sum()) if zelle_rest is not None else 0,
+        "rest_dist_m": float(rest_dist), "min_tri": int(min_tri), "glaetten": int(smooth),
+        "dreiecke_roh": int(n_roh),
         "dreiecke": int(len(geom["triangles"])), "ecken": int(len(V)),
         "normalen": "gpu" if gpu else "cpu", "gpu": gpu,
         "normalen_s": round(t_norm, 1), "poisson_s": round(t_poisson, 1),
         "laufzeit_s": round(time.time() - t0, 1)}
-    say(f"Mesh: {len(geom['triangles']):,} Dreiecke (roh {n_roh:,}); Normalen "
+    say(f"Mesh: {len(geom['triangles']):,} Dreiecke (roh {n_roh:,}); Normalen/Form "
         f"{'GPU' if gpu else 'CPU'} {t_norm:.1f} s, Poisson {t_poisson:.1f} s, "
         f"gesamt {time.time() - t0:.1f} s.")
     _p(progress, 0.95, "Mesh fertig")
     return geom
 
 
+def rest_maske(geom: dict) -> np.ndarray | None:
+    """Je Punkt: bleibt neben dem Mesh als Punkt sichtbar (Hybrid), sonst None."""
+    zr = geom.get("zelle_rest")
+    if zr is None:
+        return None
+    return np.asarray(zr)[np.asarray(geom["point_voxel"])]
+
+
 def geometry_dir(project_dir: str, fingerprint: str, voxel: float, depth: int,
-                 trim: float) -> str:
+                 trim: float, hybrid: bool = True) -> str:
     """Ablage einer Geometrie im Projekt, eindeutig je Aufzeichnung und Parameter."""
     name = (f"v{_GEOM_VERSION}_{fingerprint}_{int(round(voxel * 1000))}mm_t{int(depth)}"
-            f"_r{int(round(trim * 100))}")
+            f"_r{int(round(trim * 100))}{'_hybrid' if hybrid else ''}")
     return os.path.join(project_dir, "mesh", "geometrie", name.replace("/", "_"))
 
 
@@ -350,8 +432,10 @@ def save_geometry(geom: dict, path: str) -> str:
     if os.path.isdir(tmp):
         shutil.rmtree(tmp)
     os.makedirs(tmp)
-    for k in ("vertices", "triangles", "normals", "vertex_voxel", "point_voxel"):
-        np.save(os.path.join(tmp, k + ".npy"), geom[k])
+    for k in ("vertices", "triangles", "normals", "vertex_voxel", "point_voxel",
+              "zelle_rest"):
+        if geom.get(k) is not None:
+            np.save(os.path.join(tmp, k + ".npy"), geom[k])
     with open(os.path.join(tmp, "meta.json"), "w", encoding="utf-8") as fh:
         json.dump(dict(geom["stats"], created=time.strftime("%Y-%m-%dT%H:%M:%S")), fh,
                   indent=2)
@@ -371,6 +455,8 @@ def load_geometry(path: str) -> dict | None:
         geom = {k: np.load(os.path.join(path, k + ".npy"),
                            mmap_mode="r" if k == "point_voxel" else None)
                 for k in ("vertices", "triangles", "normals", "vertex_voxel", "point_voxel")}
+        zr = os.path.join(path, "zelle_rest.npy")
+        geom["zelle_rest"] = np.load(zr) if os.path.isfile(zr) else None
     except (OSError, ValueError):
         return None
     geom["stats"] = stats
@@ -438,8 +524,8 @@ def to_open3d(geom: dict, rgb: np.ndarray | None = None):
 
 
 def build_mesh(points: np.ndarray, colors_rgb: np.ndarray | None,
-               sensor_path: np.ndarray | None, voxel: float = 0.05, depth: int = 11,
-               trim: float = 0.0, max_gap: float = 3.0, progress: ProgressCb = None,
+               sensor_path: np.ndarray | None, voxel: float = 0.04, depth: int = 12,
+               trim: float = 0.0, max_gap: float = 2.0, progress: ProgressCb = None,
                cancel=None, log=None, backend: str = "auto"):
     """Geometrie plus Farben in einem Schritt: (open3d.TriangleMesh, stats)."""
     geom = build_geometry(points, sensor_path, voxel=voxel, depth=depth, trim=trim,
@@ -517,6 +603,10 @@ if __name__ == "__main__":
     v = rng.normal(size=(200_000, 3))
     v /= np.linalg.norm(v, axis=1, keepdims=True)
     v = (v[v[:, 2] < 0.8] * 5.0).astype(np.float32)          # Kappe oben offen
+    # Laubballen neben der Kugel: ungeordnet, muss als Punkte bleiben
+    laub = (rng.normal(size=(60_000, 3)) * 0.6 + [9.0, 0.0, 0.0]).astype(np.float32)
+    n_kugel = len(v)
+    v = np.concatenate([v, laub])
     farbe = np.where(v[:, :1] > 0, [[200, 40, 30]], [[30, 60, 200]]).astype(np.uint8)
     gueltig = np.ones(len(v), bool)
     gueltig[v[:, 1] > 3.0] = False                           # ein Streifen ungefaerbt
@@ -524,6 +614,10 @@ if __name__ == "__main__":
         geom = build_geometry(v, np.zeros((1, 3)), voxel=0.05, depth=8, backend=be,
                               log=lambda m: print("  " + m))
         V, Nn = geom["vertices"], geom["normals"]
+        rest = rest_maske(geom)
+        assert rest[n_kugel:].mean() > 0.9, f"Laub wurde vernetzt ({rest[n_kugel:].mean():.2f})"
+        assert rest[:n_kugel].mean() < 0.05, "Kugel bleibt als Punkte"
+        assert (np.linalg.norm(V - [9.0, 0, 0], axis=1) > 1.0).all(), "Mesh im Laub"
         r = np.linalg.norm(V, axis=1)
         assert geom["stats"]["dreiecke"] > 1000, geom["stats"]
         assert np.abs(r - 5.0).max() < 0.3, f"Mesh weicht ab: {np.abs(r - 5).max()}"
@@ -543,16 +637,18 @@ if __name__ == "__main__":
         offen = int((anz == 1).sum())
         assert offen < 1500, f"Mesh hat Loecher: {offen} offene Kanten"
         hoehe = vertex_scalar(geom, v[:, 2])
-        assert np.abs(hoehe - V[:, 2]).max() < 0.2, "Skalar weicht von der Lage ab"
+        assert np.abs(hoehe - V[:, 2]).max() < 0.25, "Skalar weicht von der Lage ab"
         print(f"== Kugel {be}: {geom['stats']['dreiecke']:,} Dreiecke, Radiusfehler "
               f"{np.abs(r - 5).max() * 100:.1f} cm, Normalen innen {innen * 100:.0f} %, "
-              f"offene Kanten {offen}, ungefaerbt {100 * (~ok).mean():.1f} % der Ecken")
+              f"offene Kanten {offen}, ungefaerbt {100 * (~ok).mean():.1f} % der Ecken, "
+              f"Laub als Punkte {100 * rest[n_kugel:].mean():.0f} %")
 
     # ---------- Test 2: Speichern und Laden ----------
     d = save_geometry(geom, os.path.join(OUT, "geom_test"))
     g2 = load_geometry(d)
     assert g2 is not None and np.array_equal(g2["triangles"], geom["triangles"])
     assert np.array_equal(np.asarray(g2["point_voxel"]), geom["point_voxel"])
+    assert np.array_equal(g2["zelle_rest"], geom["zelle_rest"])
     path = write_mesh(to_open3d(g2, rgb), os.path.join(OUT, "kugel.ply"), g2["stats"])
     print(f"== Speichern/Laden gleich, PLY -> {path}")
     print(f"== CloudCompare: {find_cloudcompare() or 'nicht gefunden'}")
