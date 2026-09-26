@@ -3412,8 +3412,9 @@ class MainWindow(QMainWindow):
     def _on_colorize_done(self, res: dict) -> None:
         n_valid = int(res.get("n_valid", 0))
         frac = float(res.get("frac_valid", 0.0))
+        wo = f"GPU ({res['gpu']})" if res.get("gpu") else "CPU"
         self._log(f"Einfärbung fertig: {_fmt_int(n_valid)} Punkte gültig "
-                  f"({100.0 * frac:.1f} %).")
+                  f"({100.0 * frac:.1f} %), gerechnet auf {wo}.")
         n_sky = int(res.get("n_sky_blocked", 0))
         if n_sky:
             self._log(f"Himmelssaum-Sperre: {_fmt_int(n_sky)} Farbproben verworfen "

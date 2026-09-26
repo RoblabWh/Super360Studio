@@ -144,6 +144,25 @@ def _candidate_frames(cam_stamps: np.ndarray, t: float,
 _REMAP_MAX_W = 16384
 
 
+def _scan_candidates(cam_stamps: np.ndarray, t_scan: float, k_frames: int,
+                     max_dt: float, blue_on: bool) -> list[int]:
+    """Frames je Scan: k zeitnaechste, zwei Konsens-Frames (~+-0,8 s) und mit
+    Blaulichtfilter vier weitere bei +-0,2/0,4 s. Leer, wenn kein Frame nah genug."""
+    cands = _candidate_frames(cam_stamps, t_scan, max_dt, k_frames)
+    if not cands:
+        return cands
+    for t_off in (-_CONSENSUS_SPREAD_S, _CONSENSUS_SPREAD_S):
+        for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.25, 1):
+            if f not in cands:
+                cands.append(f)
+    if blue_on:
+        for t_off in _BLUE_EXTRA_S:
+            for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.1, 1):
+                if f not in cands:
+                    cands.append(f)
+    return cands
+
+
 def _blown_mask(img_half: np.ndarray, clip: int, grow: int) -> np.ndarray | None:
     """Ausgebrannte Flaechen (Himmel) plus Saum — dort ist keine Farbe zu holen.
 
@@ -344,7 +363,7 @@ class ColorizeParams:
 
 def colorize(rec, bag, calib_json: str, params: ColorizeParams,
              out_dir: str, progress_cb: ProgressCb = None, cancel=None,
-             parts: Sequence[tuple] | None = None) -> dict:
+             parts: Sequence[tuple] | None = None, backend: str = "auto") -> dict:
     """Faerbt alle Punkte der Aufzeichnung aus den Kamera-Frames ein.
 
     Je Scan werden bis zu k zeitnaechste Frames plus zwei zeitversetzte
@@ -367,6 +386,10 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     ``parts`` bedient zusammengefuehrte Aufzeichnungen (s. core/merge.py):
     eine Liste ``(bag, scan_von, scan_bis)``, je Abschnitt die Kamera des
     zugehoerigen Bags. Ohne ``parts`` gilt ``bag`` fuer alle Scans.
+
+    ``backend``: "auto" rechnet auf der Grafikkarte, wenn OpenCL da ist
+    (:mod:`core.colorizer_gpu`, bitgleich zur CPU), sonst auf der CPU;
+    "cpu" bzw. "gpu" erzwingen eins davon.
     """
     t_start = time.time()
     T = np.asarray(params.T_imu_cam0, dtype=np.float64)
@@ -435,133 +458,150 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             halves.popitem(last=False)
         return pair
 
-    R_all = Rotation.from_quat(rec.poses[:, 3:7]).as_matrix()
-    n_valid = 0
+    gpu_name = None
+    if backend not in ("auto", "cpu", "gpu"):
+        raise ValueError(f"backend muss auto, cpu oder gpu sein, nicht {backend!r}.")
+    if backend != "cpu":
+        try:
+            from . import colorizer_gpu
+        except ImportError:  # pragma: no cover - Direktstart
+            import colorizer_gpu  # type: ignore
+        gpu_name = colorizer_gpu.available()
+        if gpu_name is None and backend == "gpu":
+            raise RuntimeError("Keine OpenCL-GPU gefunden (pyopencl installiert? "
+                               "OpenCL-Treiber der Grafikkarte da?).")
+    if gpu_name is not None:
+        if progress_cb is not None:
+            progress_cb(0.0, f"Färbe auf der GPU ({gpu_name}) …")
+        colors, valid, st = colorizer_gpu.colorize_gpu(
+            rec, teile, teil_stamps, cam0, cam1, R01, t01, T_cam0_imu, params,
+            lambda cs, t: _scan_candidates(cs, t, params.k_frames, params.max_dt,
+                                           blue_on),
+            _inv_rigid, min(_CIRCLE_R, _COLOR_RMAX), progress_cb=progress_cb,
+            cancel=cancel, check_cancel=_check_cancel)
+        n_valid = st["n_valid"]
+        n_sky_blocked, n_sky_outvoted = st["n_sky_blocked"], st["n_sky_outvoted"]
+        n_edge_outvoted, n_blue_outvoted = st["n_edge_outvoted"], st["n_blue_outvoted"]
+        n_blue_kept, n_cam1 = st["n_blue_kept"], st["n_cam1"]
+    else:
+        R_all = Rotation.from_quat(rec.poses[:, 3:7]).as_matrix()
+        n_valid = 0
 
-    ti = 0
-    for i in range(S):
-        _check_cancel(cancel)
-        s, e = int(rec.offsets[i]), int(rec.offsets[i + 1])
-        if e <= s:
-            continue
-        while ti + 1 < len(teile) and i >= teile[ti][2]:
-            ti += 1
-        cam_stamps = teil_stamps[ti]
-        if len(cam_stamps) == 0:
-            continue
-        t_scan = float(rec.stamps[i])
-        cands = _candidate_frames(cam_stamps, t_scan, params.max_dt,
-                                  params.k_frames)
-        if not cands:
-            continue
-        # Konsens-Frames mit anderer Drohnenpose (~+-0,8 s) fuer den Median
-        for t_off in (-_CONSENSUS_SPREAD_S, _CONSENSUS_SPREAD_S):
-            for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.25, 1):
-                if f not in cands:
-                    cands.append(f)
-        if blue_on:
-            for t_off in _BLUE_EXTRA_S:
-                for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.1, 1):
-                    if f not in cands:
-                        cands.append(f)
-        p_body = np.asarray(rec.points[s:e], dtype=np.float32)
-        p_world = p_body @ R_all[i].T.astype(np.float32) \
-            + rec.poses[i, 0:3].astype(np.float32)
-
-        sample_ok: list[np.ndarray] = []
-        sample_col: list[np.ndarray] = []
-        sample_bad: list[np.ndarray] = []
-        for fidx in cands:
-            T_wi = rec.interpolate_pose(float(cam_stamps[fidx]))
-            if T_wi is None:
+        ti = 0
+        for i in range(S):
+            _check_cancel(cancel)
+            s, e = int(rec.offsets[i]), int(rec.offsets[i + 1])
+            if e <= s:
                 continue
-            M = (T_cam0_imu @ _inv_rigid(T_wi)).astype(np.float32)
-            pc0 = p_world @ M[:3, :3].T + M[:3, 3]
-            r2 = np.einsum("ni,ni->n", pc0, pc0)
-            rng_ok = r2 >= min_r2
+            while ti + 1 < len(teile) and i >= teile[ti][2]:
+                ti += 1
+            cam_stamps = teil_stamps[ti]
+            if len(cam_stamps) == 0:
+                continue
+            t_scan = float(rec.stamps[i])
+            # Konsens-Frames mit anderer Drohnenpose fuer den Median
+            cands = _scan_candidates(cam_stamps, t_scan, params.k_frames,
+                                     params.max_dt, blue_on)
+            if not cands:
+                continue
+            p_body = np.asarray(rec.points[s:e], dtype=np.float32)
+            p_world = p_body @ R_all[i].T.astype(np.float32) \
+                + rec.poses[i, 0:3].astype(np.float32)
 
-            uv0, geo0 = cam0.project(pc0)
-            geo0 &= rng_ok
-            geo0 &= _in_circle(uv0)
-
-            # cam1 fuer alle Punkte (Linsenwahl) oder nur, wo cam0 nicht hinsieht
-            need1 = rng_ok.copy() if lens_best else ~geo0 & rng_ok
-            pc1 = (pc0[need1] - t01) @ R01     # p_cam1 = R01^T (p_cam0 - t01)
-            uv1, geo1 = cam1.project(pc1)
-            geo1 &= _in_circle(uv1)
-
-            half0, half1, sky0, sky1 = get_halves((ti, fidx))
-            n = len(p_world)
-            ok = np.zeros(n, dtype=bool)
-            col = np.zeros((n, 3), dtype=np.float32)
-            bad = np.zeros(n, dtype=np.uint8)
-            # Rang je Punkt: erst die Stufe, dann der Abstand zum Bildzentrum
-            key = np.full(n, np.inf, dtype=np.float32)
-
-            for sel, uv, half, sky, lens in (
-                    (np.flatnonzero(geo0), uv0[geo0], half0, sky0, 0),
-                    (np.flatnonzero(need1)[geo1], uv1[geo1], half1, sky1, 1)):
-                if sel.size == 0:
+            sample_ok: list[np.ndarray] = []
+            sample_col: list[np.ndarray] = []
+            sample_bad: list[np.ndarray] = []
+            for fidx in cands:
+                T_wi = rec.interpolate_pose(float(cam_stamps[fidx]))
+                if T_wi is None:
                     continue
-                bgr = _sample_bgr(half, uv)
-                g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
-                bright = (g >= bmin) & (g <= bmax)
-                free = _not_blown(sky, uv)
-                n_sky_blocked += int((bright & ~free).sum())
-                keep = bright & free
-                sel, uv, bgr, g = sel[keep], uv[keep], bgr[keep], g[keep]
-                rad = np.hypot(uv[:, 0] - _CIRCLE_C, uv[:, 1] - _CIRCLE_C)
-                b = np.where(rad > edge_r, _BAD_EDGE, 0).astype(np.uint8)
-                if sky_prefer:
-                    b |= np.where(_is_skyish(bgr, g, sky_luma, sky_sat),
-                                  _BAD_SKY, 0).astype(np.uint8)
-                if blue_on:
-                    b |= np.where(_is_blue(bgr, *blue_args),
-                                  _BAD_BLUE, 0).astype(np.uint8)
-                k = b.astype(np.float32) * 1000.0 + rad.astype(np.float32)
-                better = k < key[sel]
-                sel = sel[better]
-                key[sel] = k[better]
-                col[sel] = bgr[better]
-                bad[sel] = b[better]
-                ok[sel] = True
-                if lens == 1:
-                    n_cam1 += int(better.sum())
-            if ok.any():
-                sample_ok.append(ok)
-                sample_col.append(col)
-                sample_bad.append(bad)
+                M = (T_cam0_imu @ _inv_rigid(T_wi)).astype(np.float32)
+                pc0 = p_world @ M[:3, :3].T + M[:3, 3]
+                r2 = np.einsum("ni,ni->n", pc0, pc0)
+                rng_ok = r2 >= min_r2
 
-        if sample_ok:
-            O = np.stack(sample_ok)                     # (k,n)
-            C = np.stack(sample_col)                    # (k,n,3)
-            B = np.stack(sample_bad)                    # (k,n)
-            # Nur die Proben der besten vorhandenen Stufe bestimmen den Median.
-            # Der Himmel liefert keine Lidar-Punkte, Blaulicht blinkt, der
-            # Linsenrand ist vignettiert: gibt es fuer einen Punkt eine bessere
-            # Probe, ist sie die glaubwuerdigere. Gibt es nur schlechte (echte
-            # helle Flaeche, blaues Auto), bleiben sie gueltig.
-            best = np.where(O, B, 255).min(axis=0)
-            use = O & (B == best[None, :])
-            drop = O & ~use
-            n_sky_outvoted += int((drop & (B & _BAD_SKY > 0)).sum())
-            n_blue_outvoted += int((drop & (B & _BAD_BLUE > 0)).sum())
-            n_edge_outvoted += int((drop & (B & _BAD_EDGE > 0)).sum())
-            C[~use] = np.nan
-            import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                med = np.nanmedian(C, axis=0)           # (n,3) BGR
-            any_ok = use.any(axis=0)
-            n_blue_kept += int((any_ok & (best & _BAD_BLUE > 0)).sum())
-            gsel = np.flatnonzero(any_ok) + s
-            colors[gsel] = np.nan_to_num(
-                med[any_ok])[:, ::-1].astype(np.uint8)  # BGR -> RGB
-            valid[gsel] = 1
-            n_valid += int(any_ok.sum())
+                uv0, geo0 = cam0.project(pc0)
+                geo0 &= rng_ok
+                geo0 &= _in_circle(uv0)
 
-        if progress_cb is not None and (i % _PROGRESS_EVERY == 0 or i == S - 1):
-            progress_cb((i + 1) / S, f"Faerbe Scan {i + 1}/{S}")
+                # cam1 fuer alle Punkte (Linsenwahl) oder nur, wo cam0 nicht hinsieht
+                need1 = rng_ok.copy() if lens_best else ~geo0 & rng_ok
+                pc1 = (pc0[need1] - t01) @ R01     # p_cam1 = R01^T (p_cam0 - t01)
+                uv1, geo1 = cam1.project(pc1)
+                geo1 &= _in_circle(uv1)
+
+                half0, half1, sky0, sky1 = get_halves((ti, fidx))
+                n = len(p_world)
+                ok = np.zeros(n, dtype=bool)
+                col = np.zeros((n, 3), dtype=np.float32)
+                bad = np.zeros(n, dtype=np.uint8)
+                # Rang je Punkt: erst die Stufe, dann der Abstand zum Bildzentrum
+                key = np.full(n, np.inf, dtype=np.float32)
+
+                for sel, uv, half, sky, lens in (
+                        (np.flatnonzero(geo0), uv0[geo0], half0, sky0, 0),
+                        (np.flatnonzero(need1)[geo1], uv1[geo1], half1, sky1, 1)):
+                    if sel.size == 0:
+                        continue
+                    bgr = _sample_bgr(half, uv)
+                    g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
+                    bright = (g >= bmin) & (g <= bmax)
+                    free = _not_blown(sky, uv)
+                    n_sky_blocked += int((bright & ~free).sum())
+                    keep = bright & free
+                    sel, uv, bgr, g = sel[keep], uv[keep], bgr[keep], g[keep]
+                    rad = np.hypot(uv[:, 0] - _CIRCLE_C, uv[:, 1] - _CIRCLE_C)
+                    b = np.where(rad > edge_r, _BAD_EDGE, 0).astype(np.uint8)
+                    if sky_prefer:
+                        b |= np.where(_is_skyish(bgr, g, sky_luma, sky_sat),
+                                      _BAD_SKY, 0).astype(np.uint8)
+                    if blue_on:
+                        b |= np.where(_is_blue(bgr, *blue_args),
+                                      _BAD_BLUE, 0).astype(np.uint8)
+                    k = b.astype(np.float32) * 1000.0 + rad.astype(np.float32)
+                    better = k < key[sel]
+                    sel = sel[better]
+                    key[sel] = k[better]
+                    col[sel] = bgr[better]
+                    bad[sel] = b[better]
+                    ok[sel] = True
+                    if lens == 1:
+                        n_cam1 += int(better.sum())
+                if ok.any():
+                    sample_ok.append(ok)
+                    sample_col.append(col)
+                    sample_bad.append(bad)
+
+            if sample_ok:
+                O = np.stack(sample_ok)                     # (k,n)
+                C = np.stack(sample_col)                    # (k,n,3)
+                B = np.stack(sample_bad)                    # (k,n)
+                # Nur die Proben der besten vorhandenen Stufe bestimmen den Median.
+                # Der Himmel liefert keine Lidar-Punkte, Blaulicht blinkt, der
+                # Linsenrand ist vignettiert: gibt es fuer einen Punkt eine bessere
+                # Probe, ist sie die glaubwuerdigere. Gibt es nur schlechte (echte
+                # helle Flaeche, blaues Auto), bleiben sie gueltig.
+                best = np.where(O, B, 255).min(axis=0)
+                use = O & (B == best[None, :])
+                drop = O & ~use
+                n_sky_outvoted += int((drop & (B & _BAD_SKY > 0)).sum())
+                n_blue_outvoted += int((drop & (B & _BAD_BLUE > 0)).sum())
+                n_edge_outvoted += int((drop & (B & _BAD_EDGE > 0)).sum())
+                C[~use] = np.nan
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    med = np.nanmedian(C, axis=0)           # (n,3) BGR
+                any_ok = use.any(axis=0)
+                n_blue_kept += int((any_ok & (best & _BAD_BLUE > 0)).sum())
+                gsel = np.flatnonzero(any_ok) + s
+                colors[gsel] = np.nan_to_num(
+                    med[any_ok])[:, ::-1].astype(np.uint8)  # BGR -> RGB
+                valid[gsel] = 1
+                n_valid += int(any_ok.sum())
+
+            if progress_cb is not None and (i % _PROGRESS_EVERY == 0 or i == S - 1):
+                progress_cb((i + 1) / S, f"Faerbe Scan {i + 1}/{S}")
 
     os.makedirs(out_dir, exist_ok=True)
     colors.tofile(os.path.join(out_dir, "colors.bin"))
@@ -589,6 +629,8 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "n_blue_outvoted": int(n_blue_outvoted),
         "n_blue_kept": int(n_blue_kept),
         "n_cam1_samples": int(n_cam1),
+        "backend": "gpu" if gpu_name else "cpu",
+        "gpu": gpu_name,
         "k_frames": params.k_frames,
         "max_dt": params.max_dt,
         "min_range": params.min_range,
@@ -613,7 +655,8 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             "n_sky_outvoted": int(n_sky_outvoted),
             "n_edge_outvoted": int(n_edge_outvoted),
             "n_blue_outvoted": int(n_blue_outvoted),
-            "n_blue_kept": int(n_blue_kept)}
+            "n_blue_kept": int(n_blue_kept),
+            "gpu": gpu_name}
 
 
 # ========================================================== overlay_preview

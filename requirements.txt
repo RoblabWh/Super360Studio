@@ -17,3 +17,5 @@ Pillow>=9.0            # 12.1.1   Bilder, EXIF/XMP
 laspy>=2.4             # 2.7.0    LAS-Export
 pyproj>=3.4            # 3.7.1    UTM-Projektion fuer den georeferenzierten Export
 pyqtdarktheme>=2.1     # 2.1.0    dunkles Theme; fehlt es, startet die App im Standard-Look
+pyopencl>=2024.1       # 2026.1.4 Einfaerben auf der GPU per OpenCL (fertiges Wheel, kein
+                       #          CUDA-Build); fehlt es, faerbt die CPU — gleiches Ergebnis
