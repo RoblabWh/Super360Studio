@@ -23,6 +23,11 @@ unter 5 Pixeln bleibt — gedreht werden kann also auch waehrend des Messens.
 **Leiste oben** wie dort: Farbe, Punktgroesse (in Vierteln), Messen,
 Temperatur anzeigen, Ansicht zuruecksetzen. Mit Temperatur zeigt die Maus
 ueber einem Punkt dessen Temperatur — in jedem Farbmodus.
+
+**Mesh**: der Schalter in der Leiste zeigt statt der Punkte das Dreiecksnetz
+(:meth:`CloudView.set_mesh`, gerechnet in core/mesh.py). Es hat einen eigenen
+Actor mit Beleuchtung, folgt Farbmodus, "nur eingefaerbte Punkte" (dann
+fehlen Dreiecke ohne Farbe) und Hoehenschnitt.
 """
 from __future__ import annotations
 
@@ -73,12 +78,16 @@ def _turbo_lut() -> np.ndarray:
 _TURBO = _turbo_lut()
 
 
-def _scalar_to_rgb(vals: np.ndarray, lut: np.ndarray | None) -> np.ndarray:
-    """Percentile-scale (2..98) scalars to uint8 RGB; lut=None gives greys."""
+def _scalar_to_rgb(vals: np.ndarray, lut: np.ndarray | None,
+                   rng: tuple[float, float] | None = None) -> np.ndarray:
+    """Percentile-scale (2..98) scalars to uint8 RGB; lut=None gives greys.
+
+    ``rng`` gibt die Skala vor (das Mesh nimmt die der Punkte, damit beide
+    Ansichten dieselben Farben zeigen)."""
     if vals.size == 0:
         return np.empty((0, 3), np.uint8)
     vals = vals.astype(np.float32, copy=False)
-    lo, hi = np.percentile(vals, [2.0, 98.0])
+    lo, hi = rng if rng is not None else np.percentile(vals, [2.0, 98.0])
     if hi - lo < 1e-9:
         hi = lo + 1e-9
     idx = (np.clip((vals - lo) / (hi - lo), 0.0, 1.0) * 255.0).astype(np.uint8)
@@ -281,6 +290,8 @@ class CloudView(QtWidgets.QWidget):
     messen_angefordert = QtCore.pyqtSignal()
     #: Leiste: Temperatur beim Hovern zeigen an/aus
     temperatur_umgeschaltet = QtCore.pyqtSignal(bool)
+    #: Leiste: Mesh statt Punkte zeigen an/aus
+    mesh_umgeschaltet = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -378,6 +389,22 @@ class CloudView(QtWidgets.QWidget):
         self._cprev_refs: list = []
         self._renderer.AddActor(self._prev_actor)
         self._prev_refs: list = []
+        # Mesh: eigener Actor mit Beleuchtung, damit die Form lesbar ist
+        self._mesh_mapper = vtk.vtkPolyDataMapper()
+        self._mesh_mapper.SetColorModeToDirectScalars()
+        self._mesh_actor = vtk.vtkActor()
+        self._mesh_actor.SetMapper(self._mesh_mapper)
+        mp = self._mesh_actor.GetProperty()
+        mp.SetInterpolationToGouraud()
+        mp.SetAmbient(0.35)
+        mp.SetDiffuse(0.75)
+        mp.SetSpecular(0.0)
+        self._mesh_actor.SetVisibility(False)
+        self._renderer.AddActor(self._mesh_actor)
+        self._mesh: dict | None = None      # vertices, triangles, normals, rgb, ok, intensity
+        self._mesh_poly: vtk.vtkPolyData | None = None
+        self._mesh_refs: list = []
+        self._mesh_an = False
 
         # EDL (eye-dome lighting) — availability exposed as attribute.
         self.edl_available: bool = False
@@ -468,6 +495,15 @@ class CloudView(QtWidgets.QWidget):
         self._chk_temp.toggled.connect(self._temp_umgeschaltet)
         gruppe(self._chk_temp)
 
+        self._btn_mesh = QtWidgets.QPushButton("Mesh")
+        self._btn_mesh.setCheckable(True)
+        self._btn_mesh.setToolTip(
+            "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\n"
+            "einmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\n"
+            "Projekt gespeichert; Raster und Detail stehen im Abschnitt Export.")
+        self._btn_mesh.toggled.connect(self._mesh_umgeschaltet)
+        gruppe(self._btn_mesh)
+
         knopf = QtWidgets.QPushButton("Ansicht zurücksetzen")
         knopf.setToolTip("R")
         knopf.clicked.connect(self.reset_camera)
@@ -506,6 +542,136 @@ class CloudView(QtWidgets.QWidget):
         self._render()
         self.punktgroesse_geaendert.emit(wert)
 
+    def _mesh_umgeschaltet(self, an: bool) -> None:
+        self._mesh_an = bool(an)
+        self._mesh_sichtbarkeit()
+        self.mesh_umgeschaltet.emit(bool(an))
+
+    def set_mesh_schalter(self, an: bool, text: str | None = None) -> None:
+        """Schalter der Leiste setzen (ohne Signal); ``text`` z. B. 'Mesh …'."""
+        self._btn_mesh.blockSignals(True)
+        self._btn_mesh.setChecked(bool(an))
+        self._btn_mesh.blockSignals(False)
+        self._btn_mesh.setText(text or "Mesh")
+        self._mesh_an = bool(an)
+        self._mesh_sichtbarkeit()
+
+    def mesh_an(self) -> bool:
+        return self._mesh_an
+
+    def set_mesh(self, vertices: np.ndarray | None, triangles: np.ndarray | None = None,
+                 normals: np.ndarray | None = None) -> None:
+        """Mesh-Geometrie setzen (None entfernt sie). Farben: set_mesh_farben."""
+        if vertices is None or triangles is None or len(triangles) == 0:
+            self._mesh = None
+            self._mesh_poly = None
+            self._mesh_refs = []
+            self._mesh_mapper.SetInputData(vtk.vtkPolyData())
+            self._mesh_sichtbarkeit()
+            return
+        V = np.ascontiguousarray(vertices, dtype=np.float32)
+        T = np.ascontiguousarray(triangles, dtype=_ID_DTYPE)
+        self._mesh = {"vertices": V, "triangles": T,
+                      "normals": None if normals is None
+                      else np.ascontiguousarray(normals, dtype=np.float32),
+                      "rgb": None, "ok": None, "intensity": None}
+        self._mesh_aufbauen()
+        self._mesh_sichtbarkeit()
+
+    def set_mesh_farben(self, rgb: np.ndarray | None, ok: np.ndarray | None = None,
+                        intensity: np.ndarray | None = None) -> None:
+        """Eckfarben der aktuellen Ebene (uint8), gueltig-Maske, Intensitaet je Ecke."""
+        if self._mesh is None:
+            return
+        n = len(self._mesh["vertices"])
+        for name, arr in (("rgb", rgb), ("ok", ok), ("intensity", intensity)):
+            if arr is not None and len(arr) != n:
+                raise ValueError(f"Mesh-{name} passt nicht zur Eckenzahl.")
+        neu_ok = ok is not None or self._mesh["ok"] is not None
+        self._mesh["rgb"] = None if rgb is None else np.ascontiguousarray(rgb, np.uint8)
+        self._mesh["ok"] = None if ok is None else np.asarray(ok, bool)
+        if intensity is not None:
+            self._mesh["intensity"] = np.asarray(intensity, np.float32)
+        if neu_ok and self._only_colored:
+            self._mesh_aufbauen()        # andere Dreiecke fallen weg
+        else:
+            self._mesh_farben_setzen()
+        self._render()
+
+    def _mesh_sichtbarkeit(self) -> None:
+        zeigen = self._mesh_an and self._mesh is not None
+        self._mesh_actor.SetVisibility(zeigen)
+        self._actor.SetVisibility(not zeigen and self._points is not None)
+        self._render()
+
+    def _mesh_aufbauen(self) -> None:
+        """Polydata aus Ecken und (ggf. gefilterten) Dreiecken bauen."""
+        m = self._mesh
+        T = m["triangles"]
+        if (self._only_colored and self._color_mode == "rgb" and m["ok"] is not None):
+            T = T[m["ok"][T].any(axis=1)]      # Dreiecke ganz ohne Farbe weglassen
+            T = np.ascontiguousarray(T, dtype=_ID_DTYPE)
+        refs: list = [m["vertices"], T]
+        pts = vtk.vtkPoints()
+        pts.SetData(_strip_numpy_ref(numpy_to_vtk(m["vertices"], deep=False,
+                                                  array_type=vtk.VTK_FLOAT)))
+        poly = vtk.vtkPolyData()
+        poly.SetPoints(pts)
+        cells = vtk.vtkCellArray()
+        offsets = np.arange(0, 3 * len(T) + 1, 3, dtype=_ID_DTYPE)
+        conn = np.ascontiguousarray(T.ravel())
+        cells.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
+                      _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
+        refs += [offsets, conn]
+        poly.SetPolys(cells)
+        if m["normals"] is not None:
+            nrm = _strip_numpy_ref(numpy_to_vtk(m["normals"], deep=False,
+                                                array_type=vtk.VTK_FLOAT))
+            nrm.SetName("normalen")
+            poly.GetPointData().SetNormals(nrm)
+            refs.append(m["normals"])
+        self._mesh_refs = refs
+        self._mesh_poly = poly
+        self._mesh_mapper.SetInputData(poly)
+        self._mesh_farben_setzen()
+
+    def _mesh_farben_setzen(self) -> None:
+        if self._mesh_poly is None:
+            return
+        m = self._mesh
+        mode = self._color_mode
+        rgb = None
+        if mode == "rgb" and m["rgb"] is not None:
+            rgb = m["rgb"]
+        elif mode == "hoehe":
+            z = m["vertices"][:, 2]
+            rng = None
+            if self._disp_points is not None and len(self._disp_points):
+                pz = self._disp_points[:: max(1, len(self._disp_points) // 500_000), 2]
+                rng = tuple(np.percentile(pz, [2.0, 98.0]))
+            rgb = _scalar_to_rgb(z, _TURBO, rng)
+        elif mode == "intensitaet" and m["intensity"] is not None:
+            rng = None
+            if self._intensity is not None and len(self._intensity):
+                pi = np.asarray(self._intensity[:: max(1, len(self._intensity) // 500_000)])
+                rng = tuple(np.percentile(pi, [2.0, 98.0]))
+            rgb = _scalar_to_rgb(m["intensity"], None, rng)
+        if rgb is None:
+            self._mesh_mapper.ScalarVisibilityOff()
+            self._mesh_actor.GetProperty().SetColor(*_UNIFORM_COLOR[self._background])
+        else:
+            rgb = np.ascontiguousarray(rgb, dtype=np.uint8)
+            self._mesh_refs = [r for r in self._mesh_refs if r is not m.get("_rgb_ref")]
+            m["_rgb_ref"] = rgb
+            self._mesh_refs.append(rgb)
+            arr = _strip_numpy_ref(numpy_to_vtk(rgb, deep=False,
+                                                array_type=vtk.VTK_UNSIGNED_CHAR))
+            arr.SetName("farben")
+            self._mesh_poly.GetPointData().SetScalars(arr)
+            self._mesh_mapper.SetColorModeToDirectScalars()
+            self._mesh_mapper.ScalarVisibilityOn()
+        self._mesh_poly.Modified()
+
     def _temp_umgeschaltet(self, an: bool) -> None:
         self._temp_an = bool(an)
         if not an:
@@ -542,11 +708,13 @@ class CloudView(QtWidgets.QWidget):
         self._plane_lo.SetOrigin(0.0, 0.0, lo)
         self._plane_hi.SetOrigin(0.0, 0.0, hi)
         if aktiv and not self._cut_active:
-            for m in (self._mapper, self._prev_mapper, self._cprev_mapper):
+            for m in (self._mapper, self._prev_mapper, self._cprev_mapper,
+                      self._mesh_mapper):
                 m.AddClippingPlane(self._plane_lo)
                 m.AddClippingPlane(self._plane_hi)
         elif not aktiv and self._cut_active:
-            for m in (self._mapper, self._prev_mapper, self._cprev_mapper):
+            for m in (self._mapper, self._prev_mapper, self._cprev_mapper,
+                      self._mesh_mapper):
                 m.RemoveClippingPlane(self._plane_lo)
                 m.RemoveClippingPlane(self._plane_hi)
         self._cut_active = aktiv
@@ -892,8 +1060,7 @@ class CloudView(QtWidgets.QWidget):
             self._cprev_actor.SetVisibility(False)
             self._cprev_mapper.SetInputData(vtk.vtkPolyData())
             self._cprev_refs = []
-            self._actor.SetVisibility(True)
-            self._render()
+            self._mesh_sichtbarkeit()           # Punkte oder Mesh, wie gewaehlt
             return
         pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
         poly, refs = self._point_poly(pts)
@@ -912,7 +1079,10 @@ class CloudView(QtWidgets.QWidget):
         self._cprev_refs = refs
         self._cprev_mapper.SetInputData(poly)
         self._cprev_actor.SetVisibility(True)
-        self._actor.SetVisibility(not solo)
+        self._mesh_sichtbarkeit()
+        if solo:
+            self._actor.SetVisibility(False)
+            self._mesh_actor.SetVisibility(False)
         if self._cut_active:
             self._cprev_mapper.RemoveAllClippingPlanes()
             self._cprev_mapper.AddClippingPlane(self._plane_lo)
@@ -924,10 +1094,10 @@ class CloudView(QtWidgets.QWidget):
 
     def set_preview_solo(self, on: bool) -> None:
         """Karte waehrend der Vorschau aus- oder wieder einblenden."""
-        if not self.has_color_preview():
-            self._actor.SetVisibility(True)
-        else:
-            self._actor.SetVisibility(not bool(on))
+        self._mesh_sichtbarkeit()
+        if self.has_color_preview() and on:
+            self._actor.SetVisibility(False)
+            self._mesh_actor.SetVisibility(False)
         self._render()
 
     def map_visible(self) -> bool:
@@ -1002,6 +1172,7 @@ class CloudView(QtWidgets.QWidget):
             # sonst bleiben ~Hunderte MB der alten Wolke fuer die Session liegen.
             self._points = self._colors = self._intensity = self._valid = None
             self.set_temperatur(None)
+            self.set_mesh(None)
             self._mapper.SetInputData(vtk.vtkPolyData())
             self._poly = None
             self._sel = None
@@ -1040,9 +1211,11 @@ class CloudView(QtWidgets.QWidget):
         # sich die Wolke darunter aendert, passt sie nicht mehr — und eine
         # Solo-Vorschau wuerde die neue Wolke sonst weiter verdecken.
         self.set_color_preview(None)
-        self._actor.SetVisibility(True)
         self._refresh_cut_range()
         self._rebuild_geometry()
+        self._mesh_sichtbarkeit()
+        if self._mesh is not None:
+            self._mesh_farben_setzen()    # Hoehenskala folgt den Punkten
         if not self._had_cloud:
             self._had_cloud = True
             self.reset_camera()
@@ -1101,6 +1274,11 @@ class CloudView(QtWidgets.QWidget):
         if mode != self._color_mode:
             self._color_mode = mode
             self._update_colors()
+            if self._mesh is not None:
+                if self._only_colored:
+                    self._mesh_aufbauen()     # Filter gilt nur im RGB-Modus
+                else:
+                    self._mesh_farben_setzen()
             self._render()
 
     def set_only_colored(self, on: bool) -> None:
@@ -1108,6 +1286,8 @@ class CloudView(QtWidgets.QWidget):
         if on != self._only_colored:
             self._only_colored = on
             self._rebuild_geometry()
+            if self._mesh is not None:
+                self._mesh_aufbauen()
             self._render()
 
     def set_voxel_display(self, voxel: float) -> None:
@@ -1123,6 +1303,7 @@ class CloudView(QtWidgets.QWidget):
         self._background = name
         self._renderer.SetBackground(*_BG[name])
         self._actor.GetProperty().SetColor(*_UNIFORM_COLOR[name])  # used in uniform mode
+        self._mesh_actor.GetProperty().SetColor(*_UNIFORM_COLOR[name])
         self._render()
 
     def set_eyedome(self, on: bool) -> None:

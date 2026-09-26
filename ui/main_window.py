@@ -101,7 +101,8 @@ _DEFAULT_SETTINGS: dict = {
     "blue_neutral": 100,
     "mesh_voxel_cm": 5,
     "mesh_depth": 11,
-    "mesh_trim": 5,
+    "mesh_trim": 0,
+    "mesh_an": False,
     "point_size": 2,
     "color_mode": "rgb",
     "layer": "onboard",
@@ -383,6 +384,16 @@ class MainWindow(QMainWindow):
         self._loading_ui = False
         self._closing = False
         self._pano_failed = False
+        # Mesh der offenen Punktwolke (core/mesh.py): Geometrie einmal je
+        # Aufzeichnung, Eckfarben je Ebene zwischengespeichert
+        self._mesh_geom: Optional[dict] = None
+        self._mesh_geom_dir: Optional[str] = None
+        self._mesh_farbcache: dict = {}
+        self._mesh_wartet = False
+        self._mesh_laeuft = False
+        self._mesh_timer = QTimer(self)
+        self._mesh_timer.setSingleShot(True)
+        self._mesh_timer.setInterval(1500)
         self._overlay_dialogs: list[_ImageDialog] = []
         self.rvizLog.connect(self._log)
         self._rviz_player = RvizPlayer(log_cb=self.rvizLog.emit)
@@ -500,6 +511,8 @@ class MainWindow(QMainWindow):
         self._cloud_view.punktgroesse_geaendert.connect(self._on_leiste_punktgroesse)
         self._cloud_view.messen_angefordert.connect(self._on_toggle_measure)
         self._cloud_view.temperatur_umgeschaltet.connect(self._on_leiste_temperatur)
+        self._cloud_view.mesh_umgeschaltet.connect(self._on_leiste_mesh)
+        self._mesh_timer.timeout.connect(self._mesh_sicherstellen)
         self._pano_view.frameChanged.connect(self._on_pano_frame)
         self._gps_panel.georefReady.connect(self._on_georef_ready)
 
@@ -1106,10 +1119,12 @@ class MainWindow(QMainWindow):
         self._spin_mesh_trim.setValue(d["mesh_trim"])
         self._spin_mesh_trim.setSuffix(" %")
         self._spin_mesh_trim.setToolTip(
-            "Poisson schließt die Fläche auch, wo nichts gemessen wurde. Die\n"
-            "Ecken mit der geringsten Punktdichte fallen weg.")
+            "Zusätzlich die Ecken mit der geringsten Punktdichte entfernen. Flächen\n"
+            "ohne Messung in der Nähe fallen ohnehin weg; mehr als 0 stanzt kleine\n"
+            "Löcher in gleichmäßig abgetastete Wände.")
         for w in (self._spin_mesh_voxel, self._spin_mesh_depth, self._spin_mesh_trim):
             w.valueChanged.connect(self._on_setting_changed)
+            w.valueChanged.connect(self._on_mesh_param_changed)
         form.addRow("Mesh-Raster:", self._spin_mesh_voxel)
         form.addRow("Detail (Tiefe):", self._spin_mesh_depth)
         form.addRow("Ränder kürzen:", self._spin_mesh_trim)
@@ -1270,6 +1285,7 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             self._log(traceback.format_exc())
             self._show_error("Interner Fehler", str(exc))
+        QTimer.singleShot(0, self._mesh_nachholen)
 
     def _worker_failed(self, worker: Worker, title: str, msg: str,
                        on_failed: Callable[[str], None] | None = None) -> None:
@@ -1285,6 +1301,7 @@ class MainWindow(QMainWindow):
         if self._closing:
             return  # Fenster schließt bereits — keine Dialoge/Folgeschritte mehr
         self._set_busy(False, "Bereit")
+        QTimer.singleShot(0, self._mesh_nachholen)
         if msg == "Abgebrochen":
             self._log(f"Abgebrochen — {title}")
             self._status_lbl.setText("Abgebrochen.")
@@ -1333,7 +1350,11 @@ class MainWindow(QMainWindow):
             self._sld_blue_neutral.setValue(int(s.get("blue_neutral", d["blue_neutral"])))
             self._spin_mesh_voxel.setValue(int(s.get("mesh_voxel_cm", d["mesh_voxel_cm"])))
             self._spin_mesh_depth.setValue(int(s.get("mesh_depth", d["mesh_depth"])))
-            self._spin_mesh_trim.setValue(int(s.get("mesh_trim", d["mesh_trim"])))
+            trim = int(s.get("mesh_trim", d["mesh_trim"]))
+            if trim == 5 and s.get("mesh_stand") != 2:
+                trim = 0      # frueherer Standard, stanzte kleine Loecher
+            self._spin_mesh_trim.setValue(trim)
+            self._cloud_view.set_mesh_schalter(bool(s.get("mesh_an", False)))
             self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
             self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
             self._cloud_view.set_temperatur_anzeigen(self._temperatur_anzeigen)
@@ -1388,6 +1409,10 @@ class MainWindow(QMainWindow):
             "mesh_voxel_cm": int(self._spin_mesh_voxel.value()),
             "mesh_depth": int(self._spin_mesh_depth.value()),
             "mesh_trim": int(self._spin_mesh_trim.value()),
+            "mesh_an": bool(self._cloud_view.mesh_an()),
+            # Marke, ab der mesh_trim bewusst gesetzt ist (nicht in den
+            # Standardwerten, sonst griffe die Uebernahme oben nie)
+            "mesh_stand": 2,
             "point_size": float(self._spin_pointsize.value()),
             "temperatur_anzeigen": bool(self._temperatur_anzeigen),
             "color_mode": self._combo_colormode.currentData(),
@@ -1594,6 +1619,7 @@ class MainWindow(QMainWindow):
         self._pano_view.set_source(None)
         self._cloud_view.set_cloud(None)
         self._cloud_view.set_path(None)
+        self._mesh_vergessen()
         self._parts = None
         self._layers = {}
         self._meander_pipe = None
@@ -1795,6 +1821,9 @@ class MainWindow(QMainWindow):
         self._cloud_view.set_cloud(self._world, self._colors,
                                    self._rec.intensity, self._valid)
         self._push_display_settings()
+        # neue Punktwolke, neues Mesh: das alte gehoerte zu einer anderen
+        self._mesh_vergessen()
+        self._mesh_sicherstellen()
         if self._quality is not None:
             self._gps_panel.set_quality(self._quality, self._fixes, self._rec)
         meta = self._rec.meta
@@ -3009,6 +3038,143 @@ class MainWindow(QMainWindow):
             self._world, self._colors,
             self._rec.intensity if self._rec is not None else None, self._valid)
         self._push_display_settings()
+        self._mesh_farben_zeigen()
+
+    # =============================================================== Mesh
+
+    def _on_leiste_mesh(self, an: bool) -> None:
+        self._settings["mesh_an"] = bool(an)
+        self._save_settings()
+        if an:
+            self._mesh_sicherstellen()
+
+    def _mesh_param(self) -> tuple[float, int, float]:
+        return (self._spin_mesh_voxel.value() / 100.0, int(self._spin_mesh_depth.value()),
+                self._spin_mesh_trim.value() / 100.0)
+
+    def _mesh_ziel(self) -> Optional[str]:
+        """Ablage der Geometrie fuer die offene Wolke und die Mesh-Parameter."""
+        if self._rec is None or self._project is None:
+            return None
+        from core import mesh as mesh_mod
+        from core.colorizer import rec_fingerprint
+        vox, tiefe, trim = self._mesh_param()
+        return mesh_mod.geometry_dir(self._project.dir, rec_fingerprint(self._rec),
+                                     vox, tiefe, trim)
+
+    def _mesh_vergessen(self) -> None:
+        self._mesh_geom = None
+        self._mesh_geom_dir = None
+        self._mesh_farbcache = {}
+        self._cloud_view.set_mesh(None)
+        self._cloud_view.set_mesh_schalter(self._cloud_view.mesh_an())
+
+    def _mesh_nachholen(self) -> None:
+        if self._busy:
+            return
+        if self._mesh_laeuft:
+            # Mesh-Lauf endete ohne Ergebnis (abgebrochen): Schalter loesen
+            self._mesh_laeuft = False
+            self._cloud_view.set_mesh_schalter(False)
+            self._settings["mesh_an"] = False
+            self._save_settings()
+            return
+        if self._mesh_wartet:
+            self._mesh_wartet = False
+            self._mesh_sicherstellen()
+
+    def _on_mesh_param_changed(self, *_a) -> None:
+        if self._cloud_view.mesh_an() and not self._loading_ui:
+            self._mesh_timer.start()      # nicht bei jedem Pfeilklick neu rechnen
+
+    def _mesh_sicherstellen(self) -> None:
+        """Ist der Schalter an, gehoert zur offenen Wolke ein Mesh: laden oder rechnen.
+
+        Laeuft gerade ein anderer Schritt, wartet das Mesh und kommt danach.
+        """
+        if not self._cloud_view.mesh_an() or self._world is None or self._closing:
+            return
+        ziel = self._mesh_ziel()
+        if ziel is None:
+            return
+        if self._mesh_geom is not None and self._mesh_geom_dir == ziel:
+            self._mesh_farben_zeigen()
+            return
+        if self._busy:
+            self._mesh_wartet = True
+            self._cloud_view.set_mesh_schalter(True, "Mesh (wartet)")
+            return
+        from core import mesh as mesh_mod
+        world, rec = self._world, self._rec
+        vox, tiefe, trim = self._mesh_param()
+
+        def job(progress_cb, cancel, log_cb):
+            geom = mesh_mod.load_geometry(ziel)
+            if geom is not None:
+                progress_cb(0.5, "Lade gespeichertes Mesh …")
+                log_cb(f"Mesh aus dem Projekt: {_fmt_int(geom['stats']['dreiecke'])} "
+                       f"Dreiecke.")
+            else:
+                geom = mesh_mod.build_geometry(
+                    world, rec.path_positions(), voxel=vox, depth=tiefe, trim=trim,
+                    progress=lambda f, m: progress_cb(0.9 * f, m),
+                    cancel=lambda: cancel.is_set(), log=log_cb)
+                progress_cb(0.9, "Speichere Mesh …")
+                mesh_mod.save_geometry(geom, ziel)
+                geom = mesh_mod.load_geometry(ziel) or geom
+            # Intensitaet je Ecke einmal rechnen und ablegen (liest alle Punkte)
+            ipfad = os.path.join(ziel, "vertex_intensity.npy")
+            if os.path.isfile(ipfad):
+                geom["intensity"] = np.load(ipfad)
+            elif rec is not None and getattr(rec, "intensity", None) is not None:
+                progress_cb(0.95, "Mesh: Intensität je Ecke …")
+                geom["intensity"] = mesh_mod.vertex_scalar(geom, rec.intensity)
+                np.save(ipfad, geom["intensity"])
+            return geom
+
+        def on_done(geom) -> None:
+            self._mesh_laeuft = False
+            if self._world is not world:
+                return                          # Wolke wurde inzwischen gewechselt
+            self._mesh_geom = geom
+            self._mesh_geom_dir = ziel
+            self._mesh_farbcache = {}
+            self._cloud_view.set_mesh(geom["vertices"], geom["triangles"], geom["normals"])
+            self._cloud_view.set_mesh_schalter(self._cloud_view.mesh_an())
+            st = geom["stats"]
+            self._log(f"Mesh bereit: {_fmt_int(st['dreiecke'])} Dreiecke aus "
+                      f"{_fmt_int(st['zellen'])} Zellen ({st['voxel_m'] * 100:g} cm, "
+                      f"Tiefe {st['tiefe']}, Normalen {str(st.get('normalen', '')).upper()}).")
+            self._mesh_farben_zeigen()
+
+        def on_failed(msg: str) -> None:
+            self._mesh_laeuft = False
+            self._cloud_view.set_mesh_schalter(False)
+            self._settings["mesh_an"] = False
+            self._save_settings()
+            if msg != "Abgebrochen":
+                self._show_error("Mesh", msg)
+
+        self._cloud_view.set_mesh_schalter(True, "Mesh …")
+        self._mesh_laeuft = True
+        self._start_worker("Berechne Mesh der Punktwolke …", job, on_done,
+                           on_failed=on_failed)
+
+    def _mesh_farben_zeigen(self) -> None:
+        """Farben der angezeigten Ebene auf das Mesh legen (je Ebene gemerkt)."""
+        geom = self._mesh_geom
+        if geom is None:
+            return
+        from core import mesh as mesh_mod
+        rgb = ok = None
+        if self._colors is not None:
+            schluessel = (self._layer_key, id(self._colors), id(self._valid))
+            paar = self._mesh_farbcache.get(schluessel)
+            if paar is None:
+                paar = mesh_mod.vertex_colors(geom, self._colors, self._valid)
+                self._mesh_farbcache = {schluessel: paar}   # nur die aktuelle halten
+            rgb, ok = paar
+        self._cloud_view.set_mesh_farben(rgb, ok, geom.get("intensity"))
 
     # =============================================================== Menü
 
@@ -3704,32 +3870,43 @@ class MainWindow(QMainWindow):
                   f"({', '.join(os.path.basename(p) for p in paths)}).")
 
     def _on_mesh_cloudcompare(self) -> None:
+        """Mesh der offenen Wolke mit den Farben der angezeigten Ebene als PLY
+        schreiben und in CloudCompare oeffnen. Dieselbe Geometrie wie in der
+        Ansicht: ist sie schon gerechnet, kostet das nur das Schreiben."""
         if self._world is None or self._project is None:
             return
         from core import mesh as mesh_mod
-        pts, cols = self._cc_arrays()
-        voxel = self._spin_mesh_voxel.value() / 100.0
-        depth = int(self._spin_mesh_depth.value())
-        trim = self._spin_mesh_trim.value() / 100.0
-        bahn = self._rec.path_positions() if self._rec is not None else None
+        ziel = self._mesh_ziel()
+        vox, tiefe, trim = self._mesh_param()
+        world, rec = self._world, self._rec
+        vorhanden = self._mesh_geom if self._mesh_geom_dir == ziel else None
+        farben, gueltig = self._colors, self._valid
         path = os.path.join(self._project.dir, "mesh",
-                            f"mesh_{self._spin_mesh_voxel.value()}cm_t{depth}.ply")
+                            f"mesh_{self._spin_mesh_voxel.value()}cm_t{tiefe}.ply")
 
         def job(progress_cb, cancel, log_cb):
-            m, st = mesh_mod.build_mesh(pts, cols, bahn, voxel=voxel, depth=depth,
-                                        trim=trim, progress=progress_cb,
-                                        cancel=lambda: cancel.is_set(), log=log_cb)
-            progress_cb(0.97, f"Schreibe {os.path.basename(path)} …")
-            mesh_mod.write_mesh(m, path, st)
-            return path, st
+            geom = vorhanden or mesh_mod.load_geometry(ziel)
+            if geom is None:
+                geom = mesh_mod.build_geometry(
+                    world, rec.path_positions() if rec is not None else None,
+                    voxel=vox, depth=tiefe, trim=trim,
+                    progress=lambda f, m: progress_cb(0.9 * f, m),
+                    cancel=lambda: cancel.is_set(), log=log_cb)
+                mesh_mod.save_geometry(geom, ziel)
+            rgb = None
+            if farben is not None:
+                progress_cb(0.92, "Mesh: Farben der Ebene …")
+                rgb, _ok = mesh_mod.vertex_colors(geom, farben, gueltig)
+            progress_cb(0.96, f"Schreibe {os.path.basename(path)} …")
+            mesh_mod.write_mesh(mesh_mod.to_open3d(geom, rgb), path, geom["stats"])
+            return path, geom["stats"]
 
         def on_done(res) -> None:
             p, st = res
-            self._log(f"Mesh gespeichert: {p} — {_fmt_int(st['dreiecke'])} Dreiecke aus "
-                      f"{_fmt_int(st['voxelpunkte'])} Rasterpunkten, {st['laufzeit_s']} s.")
+            self._log(f"Mesh gespeichert: {p} — {_fmt_int(st['dreiecke'])} Dreiecke.")
             self._cc_open([p])
 
-        self._start_worker("Erzeuge Mesh …", job, on_done)
+        self._start_worker("Schreibe Mesh für CloudCompare …", job, on_done)
 
     def _on_cloud_cloudcompare(self) -> None:
         if self._world is None or self._project is None:
