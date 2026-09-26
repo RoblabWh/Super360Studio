@@ -157,7 +157,7 @@ __kernel void colorize(
     __global const float* R01t01,      /* R01 (3x3 zeilenweise), t01 */
     __global const float* fp,          /* Parameter, s. _fparams */
     __global const float* bp,          /* Blaubereich */
-    const int flags,                   /* 1 lens_best, 2 sky_prefer, 4 blue */
+    const int flags,                   /* 1 lens_best, 2 sky_prefer, 4 blue, 8 blue_least */
     const int n,
     __global uchar* out_rgb, __global uchar* out_valid, __global uchar* out_stat)
 {
@@ -233,12 +233,22 @@ __kernel void colorize(
     uchar best = 255;
     for (int c = 0; c < nc; ++c)
         if (ok[c] && bad[c] < best) best = bad[c];
+    /* nur blaue Proben: die am wenigsten blaue zaehlt (B - max(R, G)) */
+    const int least = (flags & 8) && best != 255 && (best & 2);
+    int emin = 1 << 20;
+    if (least)
+        for (int c = 0; c < nc; ++c)
+            if (ok[c] && bad[c] == best) {
+                const int e = (int)cb[c] - max((int)cg[c], (int)cr[c]);
+                if (e < emin) emin = e;
+            }
     int d_sky = 0, d_blue = 0, d_edge = 0;
     uchar vb[KMAX], vg[KMAX], vr[KMAX];
     int m = 0;
     for (int c = 0; c < nc; ++c) {
         if (!ok[c]) continue;
-        if (bad[c] == best) {
+        if (bad[c] == best
+                && (!least || (int)cb[c] - max((int)cg[c], (int)cr[c]) == emin)) {
             vb[m] = cb[c]; vg[m] = cg[c]; vr[m] = cr[c]; ++m;
         } else {
             if (bad[c] & 4) ++d_sky;
@@ -366,19 +376,21 @@ def _cam_params(cam) -> list[float]:
 
 
 def colorize_gpu(rec, teile, teil_stamps, cam0, cam1, R01, t01, T_cam0_imu,
-                 params, candidates, inv_rigid, rmax: float, progress_cb=None, cancel=None,
+                 params, candidates, inv_rigid, rmax: float, n_blue_extra: int,
+                 progress_cb=None, cancel=None,
                  check_cancel=None) -> tuple[np.ndarray, np.ndarray, dict]:
     """GPU-Gegenstueck der Scan-Schleife in colorize().
 
     ``candidates(cam_stamps, t_scan)`` liefert die Frame-Indizes je Scan
     (dieselbe Funktion wie auf der CPU), ``rmax`` den Radius des nutzbaren
-    Bildkreises in Pixeln (wie ``colorizer._in_circle``). Rueckgabe: (colors RGB uint8 (N,3),
+    Bildkreises in Pixeln (wie ``colorizer._in_circle``), ``n_blue_extra`` die
+    Zahl der Zusatzframes mit Blaulichtfilter. Rueckgabe: (colors RGB uint8 (N,3),
     valid uint8 (N,), Zaehler wie in colorize()).
     """
     import pyopencl as cl
     ctx, queue, _dev = _context()
     blue_on = bool(params.blue_filter)
-    kmax = int(params.k_frames) + 2 + (4 if blue_on else 0)
+    kmax = int(params.k_frames) + 2 + (n_blue_extra if blue_on else 0)
     k_blown, k_color = _kernels(kmax)
     mf = cl.mem_flags
 
@@ -403,7 +415,7 @@ def colorize_gpu(rec, teile, teil_stamps, cam0, cam1, R01, t01, T_cam0_imu,
         [params.blue_hue_lo, params.blue_hue_hi, params.blue_sat, params.blue_val],
         np.float32))
     flags = (1 if params.lens_best else 0) | (2 if params.sky_prefer else 0) \
-        | (4 if blue_on else 0)
+        | (4 if blue_on else 0) | (8 if blue_on and params.blue_least else 0)
 
     clip, grow = int(params.sky_clip), int(params.sky_grow)
     if grow < 0 or clip > 255:

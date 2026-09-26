@@ -234,6 +234,39 @@ def _is_blue(bgr: np.ndarray, hue_lo: float, hue_hi: float, sat_min: float,
     return in_hue & (sat >= sat_min) & (val >= val_min)
 
 
+def neutralize_blue(colors_rgb: np.ndarray, valid: np.ndarray, hue_lo: float,
+                    hue_hi: float, sat_min: float, val_min: float,
+                    strength: float, chunk: int = 4_000_000) -> int:
+    """Restblau entfernen: Farben im Blaubereich Richtung Grau ziehen (in place).
+
+    Blaulicht, das eine Flaeche in allen Frames anstrahlt, kann die Rangfolge
+    nicht ueberstimmen — es gibt keine andere Probe. Die wahre Farbe ist dort
+    unbekannt; Grau gleicher Helligkeit (Luma) ist die neutrale Schaetzung.
+    ``strength`` 0-1 mischt zwischen Originalfarbe und Grau. Nur gueltige
+    Punkte, die Dichte bleibt. Rueckgabe: Zahl der geaenderten Punkte.
+    """
+    s = float(np.clip(strength, 0.0, 1.0))
+    if s <= 0.0:
+        return 0
+    n = 0
+    for a in range(0, len(colors_rgb), chunk):
+        c = colors_rgb[a:a + chunk]
+        v = valid[a:a + chunk] > 0
+        idx = np.flatnonzero(v)
+        if idx.size == 0:
+            continue
+        rgb = c[idx].astype(np.float32)
+        m = _is_blue(rgb[:, ::-1], hue_lo, hue_hi, sat_min, val_min)
+        if not m.any():
+            continue
+        x = rgb[m]
+        y = 0.299 * x[:, 0] + 0.587 * x[:, 1] + 0.114 * x[:, 2]
+        x += s * (y[:, None] - x)
+        c[idx[m]] = np.clip(np.rint(x), 0, 255).astype(np.uint8)
+        n += int(m.sum())
+    return n
+
+
 def blue_preview(img_bgr: np.ndarray, hue_lo: float, hue_hi: float,
                  sat_min: float, val_min: float) -> tuple[np.ndarray, float]:
     """Bild mit markiertem Blaulicht-Bereich (magenta) und dessen Anteil.
@@ -275,8 +308,9 @@ _CONSENSUS_SPREAD_S = 0.8
 # Mit Blaulichtfilter zusaetzlich: das Blaulicht blinkt mit ~0,3-0,5 s Periode
 # (gemessen an rosbag_2026-09-19_02-52-40, Kamera ~11 fps). Die k zeitnaechsten
 # Frames (80 ms) liegen oft alle in derselben Blinkphase; Frames bei +-0,2 und
-# +-0,4 s treffen fast immer auch eine dunkle Phase.
-_BLUE_EXTRA_S = (-0.4, -0.2, 0.2, 0.4)
+# +-0,4 s treffen fast immer auch eine dunkle Phase, +-0,6 und +-1,2 s eine
+# andere Blickrichtung auf angestrahlte Flaechen.
+_BLUE_EXTRA_S = (-1.2, -0.6, -0.4, -0.2, 0.2, 0.4, 0.6, 1.2)
 
 # Rangfolge der Proben (Bitmaske, groesser = schlechter). Je Punkt zaehlen nur
 # die Proben der besten vorhandenen Stufe fuer den Median — schlechtere werden
@@ -354,10 +388,20 @@ class ColorizeParams:
     # >= _COLOR_RMAX (700) schaltet ab
     edge_r: float = 600.0
     blue_filter: bool = False     # Blaulicht-Proben zurueckstellen
-    blue_hue_lo: float = 200.0    # Grad 0-360
-    blue_hue_hi: float = 240.0
-    blue_sat: float = 0.40        # Mindestsaettigung 0-1
-    blue_val: float = 60.0        # Mindesthelligkeit (HSV-V) 0-255
+    # Standardbereich gemessen an rosbag_2026-09-19_02-52-40: Blaulicht
+    # erscheint in der Kamera cyanblau (Farbton 180-200 am haeufigsten, ueber-
+    # strahlt bis 170, weil Blau und Gruen zugleich saettigen), ein
+    # Viertel der angestrahlten Flaechen ist nur schwach gesaettigt
+    blue_hue_lo: float = 170.0    # Grad 0-360
+    blue_hue_hi: float = 250.0
+    blue_sat: float = 0.25        # Mindestsaettigung 0-1
+    blue_val: float = 40.0        # Mindesthelligkeit (HSV-V) 0-255
+    # gibt es fuer einen Punkt nur blaue Proben, zaehlt die am wenigsten blaue
+    # (kleinster Blauueberschuss B - max(R, G)) statt des Medians aller
+    blue_least: bool = True
+    # Restblau: Punkte, deren Farbe am Ende im Blaubereich liegt, bei gleicher
+    # Helligkeit um diesen Anteil Richtung Grau ziehen (0 = aus, 1 = ganz grau)
+    blue_neutral: float = 1.0
     T_imu_cam0: np.ndarray = field(default_factory=lambda: np.eye(4))
 
 
@@ -477,7 +521,8 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             rec, teile, teil_stamps, cam0, cam1, R01, t01, T_cam0_imu, params,
             lambda cs, t: _scan_candidates(cs, t, params.k_frames, params.max_dt,
                                            blue_on),
-            _inv_rigid, min(_CIRCLE_R, _COLOR_RMAX), progress_cb=progress_cb,
+            _inv_rigid, min(_CIRCLE_R, _COLOR_RMAX), len(_BLUE_EXTRA_S),
+            progress_cb=progress_cb,
             cancel=cancel, check_cancel=_check_cancel)
         n_valid = st["n_valid"]
         n_sky_blocked, n_sky_outvoted = st["n_sky_blocked"], st["n_sky_outvoted"]
@@ -583,6 +628,13 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
                 # helle Flaeche, blaues Auto), bleiben sie gueltig.
                 best = np.where(O, B, 255).min(axis=0)
                 use = O & (B == best[None, :])
+                if blue_on and bool(params.blue_least):
+                    # nur blaue Proben: die am wenigsten blaue zaehlt (bei
+                    # Gleichstand der Median der gleich blauen)
+                    E = C[..., 0] - np.maximum(C[..., 1], C[..., 2])
+                    emin = np.where(use, E, np.inf).min(axis=0)
+                    nur_blau = (best & _BAD_BLUE) > 0
+                    use &= ~(nur_blau[None, :] & (E > emin[None, :]))
                 drop = O & ~use
                 n_sky_outvoted += int((drop & (B & _BAD_SKY > 0)).sum())
                 n_blue_outvoted += int((drop & (B & _BAD_BLUE > 0)).sum())
@@ -602,6 +654,11 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
 
             if progress_cb is not None and (i % _PROGRESS_EVERY == 0 or i == S - 1):
                 progress_cb((i + 1) / S, f"Faerbe Scan {i + 1}/{S}")
+
+    n_blue_neutral = 0
+    if blue_on and float(params.blue_neutral) > 0.0:
+        n_blue_neutral = neutralize_blue(colors, valid, *blue_args,
+                                         float(params.blue_neutral))
 
     os.makedirs(out_dir, exist_ok=True)
     colors.tofile(os.path.join(out_dir, "colors.bin"))
@@ -628,6 +685,9 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "n_edge_outvoted": int(n_edge_outvoted),
         "n_blue_outvoted": int(n_blue_outvoted),
         "n_blue_kept": int(n_blue_kept),
+        "blue_least": bool(params.blue_least),
+        "blue_neutral": float(params.blue_neutral),
+        "n_blue_neutral": int(n_blue_neutral),
         "n_cam1_samples": int(n_cam1),
         "backend": "gpu" if gpu_name else "cpu",
         "gpu": gpu_name,
@@ -656,6 +716,7 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             "n_edge_outvoted": int(n_edge_outvoted),
             "n_blue_outvoted": int(n_blue_outvoted),
             "n_blue_kept": int(n_blue_kept),
+            "n_blue_neutral": int(n_blue_neutral),
             "gpu": gpu_name}
 
 
@@ -1212,6 +1273,14 @@ if __name__ == "__main__":
     assert abs(anteil - 0.5) < 1e-9, anteil
     print(f"  Blau erkannt {blau.tolist()}, Umlauf ueber Rot {rot.tolist()}, "
           f"Vorschau-Anteil {anteil:.2f}")
+    farben = np.array([[20, 90, 230], [200, 40, 30], [20, 90, 230]], np.uint8)  # RGB
+    gueltig = np.array([1, 1, 0], np.uint8)
+    n_neu = neutralize_blue(farben, gueltig, 170, 250, 0.25, 40, 1.0)
+    assert n_neu == 1, n_neu
+    assert np.ptp(farben[0].astype(int)) <= 1, farben[0]        # grau
+    assert farben[1].tolist() == [200, 40, 30], "Rot darf nicht neutralisiert werden"
+    assert farben[2].tolist() == [20, 90, 230], "ungueltige Punkte bleiben"
+    print(f"  Restblau: {n_neu} Punkt grau {farben[0].tolist()}, Rot und ungueltige bleiben")
 
     # ---------- Test 0b: check_extrinsic ----------
     print("== Test 0b: check_extrinsic ==")

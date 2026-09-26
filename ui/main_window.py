@@ -94,10 +94,11 @@ _DEFAULT_SETTINGS: dict = {
     "lens_best": True,
     "edge_r": 600,
     "blue_filter": False,
-    "blue_hue_lo": 200,
-    "blue_hue_hi": 240,
-    "blue_sat": 40,
-    "blue_val": 60,
+    "blue_hue_lo": 170,
+    "blue_hue_hi": 250,
+    "blue_sat": 25,
+    "blue_val": 40,
+    "blue_neutral": 100,
     "point_size": 2,
     "color_mode": "rgb",
     "layer": "onboard",
@@ -604,6 +605,15 @@ class MainWindow(QMainWindow):
                 "blue_sat": float(self._sld_blue_sat.value()) / 100.0,
                 "blue_val": float(self._sld_blue_val.value())}
 
+    def _on_blue_defaults(self) -> None:
+        """Blaulicht-Regler auf die Standardwerte (gemessen am Nachtflug)."""
+        d = _DEFAULT_SETTINGS
+        self._sld_blue_lo.setValue(int(d["blue_hue_lo"]))
+        self._sld_blue_hi.setValue(int(d["blue_hue_hi"]))
+        self._sld_blue_sat.setValue(int(d["blue_sat"]))
+        self._sld_blue_val.setValue(int(d["blue_val"]))
+        self._sld_blue_neutral.setValue(int(d["blue_neutral"]))
+
     def _on_blue_preview_clicked(self) -> None:
         if self._bag is None:
             return
@@ -680,22 +690,30 @@ class MainWindow(QMainWindow):
         self._chk_blue = QCheckBox("Blaulicht filtern")
         self._chk_blue.setToolTip(
             "Proben im gewählten Blaubereich zählen nur, wenn es für den Punkt\n"
-            "keine andere gibt. Dazu kommen Frames bei ±0,2 s und ±0,4 s, damit\n"
-            "eine dunkle Blinkphase dabei ist. Echt blaue Flächen sind in allen\n"
-            "Frames blau und bleiben es. Der Lauf dauert etwas länger.")
+            "keine andere gibt; gibt es nur blaue, zählt die am wenigsten blaue.\n"
+            "Dazu kommen Frames bei ±0,2 bis ±1,2 s, damit eine dunkle Blinkphase\n"
+            "dabei ist. Was danach noch blau ist, zieht 'Restblau neutralisieren'\n"
+            "Richtung Grau.")
         self._chk_blue.toggled.connect(self._on_setting_changed)
         self._chk_blue.toggled.connect(self._update_blue_widgets)
         form.addRow(self._chk_blue)
-        self._sld_blue_lo, _, row_blo = self._slider_row(0, 360, 200)
-        self._sld_blue_hi, _, row_bhi = self._slider_row(0, 360, 240)
-        self._sld_blue_sat, _, row_bsat = self._slider_row(0, 100, 40)
-        self._sld_blue_val, _, row_bval = self._slider_row(0, 255, 60)
+        d = _DEFAULT_SETTINGS
+        self._sld_blue_lo, _, row_blo = self._slider_row(0, 360, d["blue_hue_lo"])
+        self._sld_blue_hi, _, row_bhi = self._slider_row(0, 360, d["blue_hue_hi"])
+        self._sld_blue_sat, _, row_bsat = self._slider_row(0, 100, d["blue_sat"])
+        self._sld_blue_val, _, row_bval = self._slider_row(0, 255, d["blue_val"])
+        self._sld_blue_neutral, _, row_bneu = self._slider_row(0, 100, d["blue_neutral"])
+        self._sld_blue_neutral.setToolTip(
+            "Wo Blaulicht eine Fläche in jedem Frame anstrahlt, gibt es keine\n"
+            "unbeleuchtete Probe. Punkte, deren Farbe am Ende im Blaubereich liegt,\n"
+            "werden bei gleicher Helligkeit so weit Richtung Grau gezogen.\n"
+            "0 = aus, 100 = ganz grau. Echt blaue Flächen werden dabei auch grau.")
         self._lbl_blue_band = QLabel()
         self._lbl_blue_band.setToolTip(
             "Farbton 0–360°: der helle Bereich wird als Blaulicht behandelt.\n"
             "Ist 'von' größer als 'bis', läuft der Bereich über Rot hinweg.")
         for sld in (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
-                    self._sld_blue_val):
+                    self._sld_blue_val, self._sld_blue_neutral):
             sld.valueChanged.connect(self._on_setting_changed)
         self._sld_blue_lo.valueChanged.connect(self._update_blue_widgets)
         self._sld_blue_hi.valueChanged.connect(self._update_blue_widgets)
@@ -704,13 +722,21 @@ class MainWindow(QMainWindow):
         form.addRow(self._lbl_blue_band)
         form.addRow("Sättigung min (%):", row_bsat)
         form.addRow("Helligkeit min:", row_bval)
+        form.addRow("Restblau neutralisieren (%):", row_bneu)
+        self._btn_blue_defaults = QPushButton("Standardwerte")
+        self._btn_blue_defaults.setToolTip(
+            "Farbton 170–250°, Sättigung ab 25 %, Helligkeit ab 40, Restblau\n"
+            "100 % — gemessen an einem Nachtflug mit Einsatzfahrzeugen.")
+        self._btn_blue_defaults.clicked.connect(self._on_blue_defaults)
+        form.addRow(self._btn_blue_defaults)
         self._btn_blue_preview = QPushButton("Blaumaske im Frame zeigen")
         self._btn_blue_preview.setToolTip(
             "Markiert im aktuellen Kamerabild magenta, was als Blaulicht gilt.")
         self._btn_blue_preview.clicked.connect(self._on_blue_preview_clicked)
         form.addRow(self._btn_blue_preview)
         self._blue_widgets = (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
-                              self._sld_blue_val, self._lbl_blue_band,
+                              self._sld_blue_val, self._sld_blue_neutral,
+                              self._btn_blue_defaults, self._lbl_blue_band,
                               self._btn_blue_preview)
         self._update_blue_widgets()
 
@@ -1247,10 +1273,18 @@ class MainWindow(QMainWindow):
             self._chk_lens.setChecked(bool(s.get("lens_best", True)))
             self._spin_edge.setValue(int(s.get("edge_r", 600)))
             self._chk_blue.setChecked(bool(s.get("blue_filter", False)))
-            self._sld_blue_lo.setValue(int(s.get("blue_hue_lo", 200)))
-            self._sld_blue_hi.setValue(int(s.get("blue_hue_hi", 240)))
-            self._sld_blue_sat.setValue(int(s.get("blue_sat", 40)))
-            self._sld_blue_val.setValue(int(s.get("blue_val", 60)))
+            d = _DEFAULT_SETTINGS
+            blau = [s.get(k, d[k]) for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat",
+                                               "blue_val")]
+            if blau == [200, 240, 40, 60] and "blue_neutral" not in s:
+                # unveraenderte alte Standardwerte: verfehlten das cyanblaue
+                # Blaulicht, daher auf die neuen
+                blau = [d[k] for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat", "blue_val")]
+            self._sld_blue_lo.setValue(int(blau[0]))
+            self._sld_blue_hi.setValue(int(blau[1]))
+            self._sld_blue_sat.setValue(int(blau[2]))
+            self._sld_blue_val.setValue(int(blau[3]))
+            self._sld_blue_neutral.setValue(int(s.get("blue_neutral", d["blue_neutral"])))
             self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
             self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
             self._cloud_view.set_temperatur_anzeigen(self._temperatur_anzeigen)
@@ -1301,6 +1335,7 @@ class MainWindow(QMainWindow):
             "blue_hue_hi": int(self._sld_blue_hi.value()),
             "blue_sat": int(self._sld_blue_sat.value()),
             "blue_val": int(self._sld_blue_val.value()),
+            "blue_neutral": int(self._sld_blue_neutral.value()),
             "point_size": float(self._spin_pointsize.value()),
             "temperatur_anzeigen": bool(self._temperatur_anzeigen),
             "color_mode": self._combo_colormode.currentData(),
@@ -3378,6 +3413,7 @@ class MainWindow(QMainWindow):
             lens_best=bool(self._chk_lens.isChecked()),
             edge_r=float(self._spin_edge.value()),
             blue_filter=bool(self._chk_blue.isChecked()),
+            blue_neutral=float(self._sld_blue_neutral.value()) / 100.0,
             **self._blue_args(),
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
@@ -3427,7 +3463,11 @@ class MainWindow(QMainWindow):
         if n_blue or res.get("n_blue_kept"):
             self._log(f"Blaulicht: {_fmt_int(n_blue)} blaue Farbproben zurückgestellt; "
                       f"{_fmt_int(int(res.get('n_blue_kept', 0)))} Punkte hatten nur "
-                      f"blaue Proben und bleiben blau.")
+                      f"blaue Proben.")
+        n_neu = int(res.get("n_blue_neutral", 0))
+        if n_neu:
+            self._log(f"Restblau: {_fmt_int(n_neu)} Punkte Richtung Grau gezogen "
+                      f"({self._sld_blue_neutral.value()} %).")
         # Bei einer zusammengefuehrten Karte je Abschnitt ausweisen: sonst
         # sieht man nur eine Gesamtquote und merkt nicht, dass ein ganzer Flug
         # leer geblieben ist.
