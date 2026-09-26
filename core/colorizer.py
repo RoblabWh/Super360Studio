@@ -161,13 +161,16 @@ def _blown_mask(img_half: np.ndarray, clip: int, grow: int) -> np.ndarray | None
     """
     if grow < 0 or clip > 255:
         return None
-    blown = img_half.min(axis=2) >= clip
-    if not blown.any():
+    # alle drei Kanaele >= clip; inRange statt img.min(axis=2) — das Numpy-
+    # Minimum ueber die Kanalachse kostete ~28 ms je Bildhaelfte und damit
+    # mehr als die Haelfte der ganzen Einfaerbung, inRange ~1 ms
+    blown = cv2.inRange(img_half, (clip, clip, clip), (255, 255, 255))
+    if cv2.countNonZero(blown) == 0:
         return None
     if grow > 0:
         ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * grow + 1, 2 * grow + 1))
-        blown = cv2.dilate(blown.view(np.uint8), ker).view(bool)
-    return blown
+        blown = cv2.dilate(blown, ker)
+    return blown > 0
 
 
 def _not_blown(mask: np.ndarray | None, uv: np.ndarray) -> np.ndarray:
