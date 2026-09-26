@@ -38,6 +38,10 @@ _DATEI = (
      "Die angezeigte Farbebene mitschreiben."),
     ("export_las", "Exportieren als LAS …", "_on_export_las", "",
      "Georeferenziert, sofern das GPS brauchbar war."),
+    ("mesh_cc", "Mesh in CloudCompare zeigen", "_on_mesh_cloudcompare", "",
+     "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Export)\n"
+     "und in CloudCompare öffnen."),
+    ("cloud_cc", "Punktwolke in CloudCompare öffnen", "_on_cloud_cloudcompare", "", ""),
     ("screenshot", "Ansicht als Bild speichern …", "_on_screenshot", "Ctrl+P", ""),
     (None, None, None, None, None),
     ("quit", "Beenden", "close", "Ctrl+Q", ""),
