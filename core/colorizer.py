@@ -2,7 +2,10 @@
 
 - :func:`colorize`         faerbt die FAST-LIO-Punktwolke aus den zeitnaechsten
                            Kamera-Frames ein (Helligkeitsfilter, Himmelssaum-
-                           Sperre, k Kandidaten).
+                           Sperre, k Kandidaten, Rangfolge Linse/Rand/Blaulicht/
+                           Himmel).
+- :func:`blue_preview`     markiert im Bild, was der Blaulichtfilter als Blau
+                           zurueckstellt.
 - :func:`overlay_preview`  Pano + projizierte Lidar-Punkte (Tiefe->Turbo) zur
                            visuellen Extrinsik-Justage.
 - :func:`auto_calibrate`   grobe Rotationssuche fuer T_imu_cam0 ueber
@@ -42,7 +45,7 @@ except ImportError:  # pragma: no cover - nur "python3 core/colorizer.py"
 # Fisheye-Bildkreis-Pruefung (ARCHITECTURE: Radius <= 740 px um Zentrum 760/760)
 _CIRCLE_C = 760.0
 _CIRCLE_R = 740.0
-_FRAME_LRU = 8          # dekodierte Frame-Haelften je colorize-Lauf
+_FRAME_LRU = 24         # Frame-Haelften je colorize-Lauf (ein Frame dient Scans ueber +-0,8 s)
 _SKY_CLIP_DEFAULT = 250  # alle Kanaele >= : Pixel ist ausgebrannt (Himmel)
 _SKY_GROW_DEFAULT = 4    # px Saum um die ausgebrannte Flaeche, s. _blown_mask
 _SKY_LUMA_DEFAULT = 200  # ab hier gilt eine Probe als himmelsartig hell
@@ -188,6 +191,41 @@ def _is_skyish(bgr: np.ndarray, luma: np.ndarray, luma_min: float,
     return (luma >= luma_min) & (sat <= sat_max)
 
 
+def _is_blue(bgr: np.ndarray, hue_lo: float, hue_hi: float, sat_min: float,
+             val_min: float) -> np.ndarray:
+    """Probe liegt im gewaehlten Blaubereich (Blaulicht).
+
+    Farbton in Grad 0-360 (``hue_lo > hue_hi`` laeuft ueber 0 hinweg),
+    Saettigung 0-1, Helligkeit (HSV-V) 0-255. Blaulicht strahlt Flaechen
+    gesaettigt blau an; flaues Blaugrau (Daemmerung, Schatten) faellt ueber
+    ``sat_min`` heraus.
+    """
+    if len(bgr) == 0:
+        return np.zeros(0, dtype=bool)
+    hsv = cv2.cvtColor((np.asarray(bgr, np.float32) / 255.0).reshape(-1, 1, 3),
+                       cv2.COLOR_BGR2HSV).reshape(-1, 3)
+    h, sat, val = hsv[:, 0], hsv[:, 1], hsv[:, 2] * 255.0
+    if hue_lo <= hue_hi:
+        in_hue = (h >= hue_lo) & (h <= hue_hi)
+    else:
+        in_hue = (h >= hue_lo) | (h <= hue_hi)
+    return in_hue & (sat >= sat_min) & (val >= val_min)
+
+
+def blue_preview(img_bgr: np.ndarray, hue_lo: float, hue_hi: float,
+                 sat_min: float, val_min: float) -> tuple[np.ndarray, float]:
+    """Bild mit markiertem Blaulicht-Bereich (magenta) und dessen Anteil.
+
+    Grundlage fuer die Einstellung des Blaufilters: was hier markiert ist,
+    stellt :func:`colorize` hinter nicht-blaue Proben zurueck.
+    """
+    px = img_bgr.reshape(-1, 3).astype(np.float32)
+    m = _is_blue(px, hue_lo, hue_hi, sat_min, val_min).reshape(img_bgr.shape[:2])
+    out = (img_bgr.astype(np.float32) * 0.45).astype(np.uint8)
+    out[m] = (255, 0, 255)
+    return out, float(m.mean())
+
+
 def _sample_bgr(img_half: np.ndarray, uv: np.ndarray) -> np.ndarray:
     """Bilineares Farbsampling: (N,2) float32-Pixel -> (N,3) float32 BGR."""
     n = int(uv.shape[0])
@@ -212,6 +250,19 @@ def _sample_bgr(img_half: np.ndarray, uv: np.ndarray) -> np.ndarray:
 _COLOR_RMAX = 700.0
 # zeitlicher Versatz der zusaetzlichen Konsens-Frames (andere Drohnenpose)
 _CONSENSUS_SPREAD_S = 0.8
+# Mit Blaulichtfilter zusaetzlich: das Blaulicht blinkt mit ~0,3-0,5 s Periode
+# (gemessen an rosbag_2026-09-19_02-52-40, Kamera ~11 fps). Die k zeitnaechsten
+# Frames (80 ms) liegen oft alle in derselben Blinkphase; Frames bei +-0,2 und
+# +-0,4 s treffen fast immer auch eine dunkle Phase.
+_BLUE_EXTRA_S = (-0.4, -0.2, 0.2, 0.4)
+
+# Rangfolge der Proben (Bitmaske, groesser = schlechter). Je Punkt zaehlen nur
+# die Proben der besten vorhandenen Stufe fuer den Median — schlechtere werden
+# zurueckgestellt, nie verworfen: gibt es nur schlechte, faerben sie trotzdem.
+# Damit bleibt jeder Punkt eingefaerbt, der es ohne die Filter auch war.
+_BAD_EDGE = 1   # Linsenrand: Vignettierung und Farbkippen, Intrinsik-Restfehler
+_BAD_BLUE = 2   # im Blaubereich (Blaulicht)
+_BAD_SKY = 4    # himmelsartig hell und flau
 
 
 def _in_circle(uv: np.ndarray) -> np.ndarray:
@@ -274,6 +325,17 @@ class ColorizeParams:
     k_frames: int = 3             # bis zu K zeitnaechste Frames je Scan
     max_dt: float = 0.08          # s; Frames weiter weg ignorieren
     min_range: float = 0.5        # m; naeher an der Kamera nicht einfaerben
+    # je Frame die Linse, die den Punkt naeher am Bildzentrum sieht (sonst
+    # cam0 bis zum Rand und cam1 nur, wo cam0 nicht hinsieht)
+    lens_best: bool = True
+    # Proben weiter als edge_r px vom Fisheye-Zentrum zurueckstellen;
+    # >= _COLOR_RMAX (700) schaltet ab
+    edge_r: float = 600.0
+    blue_filter: bool = False     # Blaulicht-Proben zurueckstellen
+    blue_hue_lo: float = 200.0    # Grad 0-360
+    blue_hue_hi: float = 240.0
+    blue_sat: float = 0.40        # Mindestsaettigung 0-1
+    blue_val: float = 60.0        # Mindesthelligkeit (HSV-V) 0-255
     T_imu_cam0: np.ndarray = field(default_factory=lambda: np.eye(4))
 
 
@@ -290,6 +352,13 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     Der Median ueberstimmt einzelne Silhouetten-Fehlgriffe (Baumkrone/
     Dachkante sampelt Himmel durch Luecken), die beim frueheren
     Erster-Treffer-Verfahren dauerhaft in der Wolke landeten.
+
+    Vor dem Median gilt eine Rangfolge (s. ``_BAD_*``): Proben vom Linsenrand,
+    im Blaubereich (nur mit ``blue_filter``) oder himmelsartige zaehlen nur,
+    wenn es fuer den Punkt keine bessere gibt. Der Anteil eingefaerbter Punkte
+    sinkt dadurch nicht. Mit ``lens_best`` nimmt jeder Frame die Linse, die den
+    Punkt naeher am Bildzentrum sieht; faellt dort die Probe durch, springt die
+    andere Linse ein.
     Schreibt colors.bin (uint8 N x 3, RGB!), valid.bin (uint8 N), meta.json.
 
     ``parts`` bedient zusammengefuehrte Aufzeichnungen (s. core/merge.py):
@@ -326,8 +395,17 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
     sky_prefer = bool(params.sky_prefer)
     sky_luma = float(params.sky_luma)
     sky_sat = float(params.sky_sat)
+    lens_best = bool(params.lens_best)
+    edge_r = float(params.edge_r)
+    blue_on = bool(params.blue_filter)
+    blue_args = (float(params.blue_hue_lo), float(params.blue_hue_hi),
+                 float(params.blue_sat), float(params.blue_val))
     n_sky_blocked = 0
     n_sky_outvoted = 0
+    n_edge_outvoted = 0
+    n_blue_outvoted = 0
+    n_blue_kept = 0          # Punkte, fuer die nur blaue Proben da waren
+    n_cam1 = 0               # Proben aus cam1 (Linsenwahl sichtbar machen)
 
     # kleiner LRU fuer kontiguierliche Frame-Haelften (Dekodierung cacht BagReader)
     halves: OrderedDict[int, tuple[np.ndarray, np.ndarray]] = OrderedDict()
@@ -378,13 +456,18 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.25, 1):
                 if f not in cands:
                     cands.append(f)
+        if blue_on:
+            for t_off in _BLUE_EXTRA_S:
+                for f in _candidate_frames(cam_stamps, t_scan + t_off, 0.1, 1):
+                    if f not in cands:
+                        cands.append(f)
         p_body = np.asarray(rec.points[s:e], dtype=np.float32)
         p_world = p_body @ R_all[i].T.astype(np.float32) \
             + rec.poses[i, 0:3].astype(np.float32)
 
         sample_ok: list[np.ndarray] = []
         sample_col: list[np.ndarray] = []
-        sample_sky: list[np.ndarray] = []
+        sample_bad: list[np.ndarray] = []
         for fidx in cands:
             T_wi = rec.interpolate_pose(float(cam_stamps[fidx]))
             if T_wi is None:
@@ -398,64 +481,76 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             geo0 &= rng_ok
             geo0 &= _in_circle(uv0)
 
-            need1 = ~geo0 & rng_ok
+            # cam1 fuer alle Punkte (Linsenwahl) oder nur, wo cam0 nicht hinsieht
+            need1 = rng_ok.copy() if lens_best else ~geo0 & rng_ok
             pc1 = (pc0[need1] - t01) @ R01     # p_cam1 = R01^T (p_cam0 - t01)
             uv1, geo1 = cam1.project(pc1)
             geo1 &= _in_circle(uv1)
 
             half0, half1, sky0, sky1 = get_halves((ti, fidx))
-            ok = np.zeros(len(p_world), dtype=bool)
-            col = np.zeros((len(p_world), 3), dtype=np.float32)
-            skyish = np.zeros(len(p_world), dtype=bool)
+            n = len(p_world)
+            ok = np.zeros(n, dtype=bool)
+            col = np.zeros((n, 3), dtype=np.float32)
+            bad = np.zeros(n, dtype=np.uint8)
+            # Rang je Punkt: erst die Stufe, dann der Abstand zum Bildzentrum
+            key = np.full(n, np.inf, dtype=np.float32)
 
-            if geo0.any():
-                bgr = _sample_bgr(half0, uv0[geo0])
+            for sel, uv, half, sky, lens in (
+                    (np.flatnonzero(geo0), uv0[geo0], half0, sky0, 0),
+                    (np.flatnonzero(need1)[geo1], uv1[geo1], half1, sky1, 1)):
+                if sel.size == 0:
+                    continue
+                bgr = _sample_bgr(half, uv)
                 g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
                 bright = (g >= bmin) & (g <= bmax)
-                free = _not_blown(sky0, uv0[geo0])
+                free = _not_blown(sky, uv)
                 n_sky_blocked += int((bright & ~free).sum())
                 keep = bright & free
-                sel = np.flatnonzero(geo0)[keep]
+                sel, uv, bgr, g = sel[keep], uv[keep], bgr[keep], g[keep]
+                rad = np.hypot(uv[:, 0] - _CIRCLE_C, uv[:, 1] - _CIRCLE_C)
+                b = np.where(rad > edge_r, _BAD_EDGE, 0).astype(np.uint8)
+                if sky_prefer:
+                    b |= np.where(_is_skyish(bgr, g, sky_luma, sky_sat),
+                                  _BAD_SKY, 0).astype(np.uint8)
+                if blue_on:
+                    b |= np.where(_is_blue(bgr, *blue_args),
+                                  _BAD_BLUE, 0).astype(np.uint8)
+                k = b.astype(np.float32) * 1000.0 + rad.astype(np.float32)
+                better = k < key[sel]
+                sel = sel[better]
+                key[sel] = k[better]
+                col[sel] = bgr[better]
+                bad[sel] = b[better]
                 ok[sel] = True
-                col[sel] = bgr[keep]
-                skyish[sel] = _is_skyish(bgr[keep], g[keep], sky_luma, sky_sat)
-            if geo1.any():
-                bgr = _sample_bgr(half1, uv1[geo1])
-                g = 0.299 * bgr[:, 2] + 0.587 * bgr[:, 1] + 0.114 * bgr[:, 0]
-                bright = (g >= bmin) & (g <= bmax)
-                free = _not_blown(sky1, uv1[geo1])
-                n_sky_blocked += int((bright & ~free).sum())
-                keep = bright & free
-                sel = np.flatnonzero(need1)[geo1][keep]
-                ok[sel] = True
-                col[sel] = bgr[keep]
-                skyish[sel] = _is_skyish(bgr[keep], g[keep], sky_luma, sky_sat)
+                if lens == 1:
+                    n_cam1 += int(better.sum())
             if ok.any():
                 sample_ok.append(ok)
                 sample_col.append(col)
-                sample_sky.append(skyish)
+                sample_bad.append(bad)
 
         if sample_ok:
             O = np.stack(sample_ok)                     # (k,n)
             C = np.stack(sample_col)                    # (k,n,3)
-            use = O
-            if sky_prefer and len(sample_sky) > 1:
-                # Der Himmel liefert keine Lidar-Punkte. Wenn fuer einen Punkt
-                # eine nicht-himmelsartige Probe existiert, ist sie die einzig
-                # physikalisch moegliche — himmelsartige Proben duerfen den
-                # Median dann nicht mehr mitbestimmen. Gibt es nur himmelsartige
-                # (echte helle Flaeche, z. B. weisse Wand), bleibt alles gueltig.
-                K = np.stack(sample_sky)
-                good = O & ~K
-                has_good = good.any(axis=0)
-                use = np.where(has_good[None, :], good, O)
-                n_sky_outvoted += int((O & ~use).sum())
+            B = np.stack(sample_bad)                    # (k,n)
+            # Nur die Proben der besten vorhandenen Stufe bestimmen den Median.
+            # Der Himmel liefert keine Lidar-Punkte, Blaulicht blinkt, der
+            # Linsenrand ist vignettiert: gibt es fuer einen Punkt eine bessere
+            # Probe, ist sie die glaubwuerdigere. Gibt es nur schlechte (echte
+            # helle Flaeche, blaues Auto), bleiben sie gueltig.
+            best = np.where(O, B, 255).min(axis=0)
+            use = O & (B == best[None, :])
+            drop = O & ~use
+            n_sky_outvoted += int((drop & (B & _BAD_SKY > 0)).sum())
+            n_blue_outvoted += int((drop & (B & _BAD_BLUE > 0)).sum())
+            n_edge_outvoted += int((drop & (B & _BAD_EDGE > 0)).sum())
             C[~use] = np.nan
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 med = np.nanmedian(C, axis=0)           # (n,3) BGR
             any_ok = use.any(axis=0)
+            n_blue_kept += int((any_ok & (best & _BAD_BLUE > 0)).sum())
             gsel = np.flatnonzero(any_ok) + s
             colors[gsel] = np.nan_to_num(
                 med[any_ok])[:, ::-1].astype(np.uint8)  # BGR -> RGB
@@ -480,6 +575,17 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "sky_sat": params.sky_sat,
         "n_sky_blocked": int(n_sky_blocked),
         "n_sky_outvoted": int(n_sky_outvoted),
+        "lens_best": lens_best,
+        "edge_r": edge_r,
+        "blue_filter": blue_on,
+        "blue_hue_lo": blue_args[0],
+        "blue_hue_hi": blue_args[1],
+        "blue_sat": blue_args[2],
+        "blue_val": blue_args[3],
+        "n_edge_outvoted": int(n_edge_outvoted),
+        "n_blue_outvoted": int(n_blue_outvoted),
+        "n_blue_kept": int(n_blue_kept),
+        "n_cam1_samples": int(n_cam1),
         "k_frames": params.k_frames,
         "max_dt": params.max_dt,
         "min_range": params.min_range,
@@ -501,7 +607,10 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         progress_cb(1.0, f"Einfaerbung fertig: {n_valid}/{N} Punkte gueltig")
     return {"n_valid": int(n_valid), "frac_valid": frac, "out_dir": out_dir,
             "n_sky_blocked": int(n_sky_blocked),
-            "n_sky_outvoted": int(n_sky_outvoted)}
+            "n_sky_outvoted": int(n_sky_outvoted),
+            "n_edge_outvoted": int(n_edge_outvoted),
+            "n_blue_outvoted": int(n_blue_outvoted),
+            "n_blue_kept": int(n_blue_kept)}
 
 
 # ========================================================== overlay_preview
@@ -1039,6 +1148,24 @@ if __name__ == "__main__":
     assert _not_blown(None, uv).all(), "ohne Maske muss alles frei sein"
     print(f"  geklippt={m0.sum()} px, mit 4 px Saum={m4.sum()} px, "
           f"Saumpixel gesperrt={not frei[0]}, ausserhalb frei={frei[1]}")
+
+    # ---------- Test 0a: Blaulicht-Test (rein synthetisch) ----------
+    print("== Test 0a: Blaulicht ==")
+    proben = np.array([[230, 90, 20],     # Blaulicht (BGR), Farbton ~218 Grad
+                       [140, 120, 110],   # blaugrau, zu flau
+                       [20, 20, 200],     # rot
+                       [50, 8, 4]],       # blau, aber zu dunkel
+                      np.float32)
+    blau = _is_blue(proben, 200, 240, 0.4, 60)
+    assert blau.tolist() == [True, False, False, False], blau
+    rot = _is_blue(proben, 340, 20, 0.4, 60)          # Bereich ueber 0 Grad
+    assert rot.tolist() == [False, False, True, False], rot
+    bild = np.zeros((4, 4, 3), np.uint8)
+    bild[:2] = (230, 90, 20)
+    _, anteil = blue_preview(bild, 200, 240, 0.4, 60)
+    assert abs(anteil - 0.5) < 1e-9, anteil
+    print(f"  Blau erkannt {blau.tolist()}, Umlauf ueber Rot {rot.tolist()}, "
+          f"Vorschau-Anteil {anteil:.2f}")
 
     # ---------- Test 0b: check_extrinsic ----------
     print("== Test 0b: check_extrinsic ==")

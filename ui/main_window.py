@@ -91,6 +91,13 @@ _DEFAULT_SETTINGS: dict = {
     "brightness_max": 235,
     "k_frames": 3,
     "sky_grow": 4,
+    "lens_best": True,
+    "edge_r": 600,
+    "blue_filter": False,
+    "blue_hue_lo": 200,
+    "blue_hue_hi": 240,
+    "blue_sat": 40,
+    "blue_val": 60,
     "point_size": 2,
     "color_mode": "rgb",
     "layer": "onboard",
@@ -573,6 +580,55 @@ class MainWindow(QMainWindow):
         lay.addWidget(lbl)
         return slider, lbl, holder
 
+    def _update_blue_widgets(self, *_args) -> None:
+        """Farbtonband neu zeichnen, Blaulicht-Regler nur mit Filter aktiv."""
+        an = self._chk_blue.isChecked()
+        for w in self._blue_widgets:
+            w.setEnabled(an)
+        lo, hi = self._sld_blue_lo.value(), self._sld_blue_hi.value()
+        w, h = 240, 14
+        hue = np.linspace(0.0, 360.0, w, endpoint=False, dtype=np.float32)
+        drin = (hue >= lo) & (hue <= hi) if lo <= hi else (hue >= lo) | (hue <= hi)
+        hsv = np.stack([hue, np.ones(w, np.float32),
+                        np.where(drin, 1.0, 0.3).astype(np.float32)], axis=1)
+        import cv2
+        rgb = cv2.cvtColor(hsv.reshape(1, w, 3), cv2.COLOR_HSV2RGB)
+        rgb = np.ascontiguousarray(
+            np.repeat((rgb * 255).astype(np.uint8), h, axis=0))
+        img = QImage(rgb.data, w, h, 3 * w, QImage.Format_RGB888).copy()
+        self._lbl_blue_band.setPixmap(QPixmap.fromImage(img))
+
+    def _blue_args(self) -> dict:
+        return {"blue_hue_lo": float(self._sld_blue_lo.value()),
+                "blue_hue_hi": float(self._sld_blue_hi.value()),
+                "blue_sat": float(self._sld_blue_sat.value()) / 100.0,
+                "blue_val": float(self._sld_blue_val.value())}
+
+    def _on_blue_preview_clicked(self) -> None:
+        if self._bag is None:
+            return
+        try:
+            colorizer = self._import_colorizer()
+        except RuntimeError as exc:
+            self._show_error("Blaumaske", str(exc))
+            return
+        frame_idx = self._pano_view.current_index
+        if frame_idx < 0:
+            frame_idx = max(0, self._n_frames // 2)
+        a = self._blue_args()
+        try:
+            img = self._bag.read_camera(frame_idx)
+        except Exception as exc:  # noqa: BLE001 - Bag-Lesefehler anzeigen
+            self._show_error("Blaumaske", f"Frame {frame_idx} nicht lesbar: {exc}")
+            return
+        bild, anteil = colorizer.blue_preview(
+            img, a["blue_hue_lo"], a["blue_hue_hi"], a["blue_sat"], a["blue_val"])
+        dlg = _ImageDialog(f"Blaumaske — Frame {frame_idx}: {100.0 * anteil:.1f} % "
+                           f"der Pixel gelten als Blaulicht", bild, self)
+        self._overlay_dialogs = [d for d in self._overlay_dialogs if d.isVisible()]
+        self._overlay_dialogs.append(dlg)
+        dlg.show()
+
     def _group_colorize(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
@@ -597,6 +653,66 @@ class MainWindow(QMainWindow):
             "durchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.")
         self._spin_sky.valueChanged.connect(self._on_setting_changed)
         form.addRow("Himmelssaum:", self._spin_sky)
+
+        # Linsenrand: dort ist das Bild vignettiert und kippt ins Gruenblaue,
+        # an der Grenze der beiden Fisheyes entstehen daraus sichtbare Kanten.
+        self._chk_lens = QCheckBox("Bessere Linse je Frame")
+        self._chk_lens.setChecked(True)
+        self._chk_lens.setToolTip(
+            "Sieht ein Frame den Punkt mit beiden Fisheyes, zählt die Linse, die\n"
+            "ihn näher am Bildzentrum hat. Sonst gilt cam0 bis zum Rand.")
+        self._chk_lens.toggled.connect(self._on_setting_changed)
+        form.addRow(self._chk_lens)
+        self._spin_edge = QSpinBox()
+        self._spin_edge.setRange(400, 700)
+        self._spin_edge.setSingleStep(10)
+        self._spin_edge.setValue(600)
+        self._spin_edge.setSuffix(" px")
+        self._spin_edge.setToolTip(
+            "Farbproben weiter als so viele Pixel vom Fisheye-Zentrum zählen nur,\n"
+            "wenn ein anderer Frame den Punkt nicht näher an der Mitte sieht.\n"
+            "Keine Probe wird verworfen, die Dichte bleibt. 700 schaltet ab.")
+        self._spin_edge.valueChanged.connect(self._on_setting_changed)
+        form.addRow("Linsenrand ab:", self._spin_edge)
+
+        # Blaulicht: blinkt, also gibt es fast immer einen Frame ohne
+        form.addRow(QLabel("<b>Blaulicht</b>"))
+        self._chk_blue = QCheckBox("Blaulicht filtern")
+        self._chk_blue.setToolTip(
+            "Proben im gewählten Blaubereich zählen nur, wenn es für den Punkt\n"
+            "keine andere gibt. Dazu kommen Frames bei ±0,2 s und ±0,4 s, damit\n"
+            "eine dunkle Blinkphase dabei ist. Echt blaue Flächen sind in allen\n"
+            "Frames blau und bleiben es. Der Lauf dauert etwas länger.")
+        self._chk_blue.toggled.connect(self._on_setting_changed)
+        self._chk_blue.toggled.connect(self._update_blue_widgets)
+        form.addRow(self._chk_blue)
+        self._sld_blue_lo, _, row_blo = self._slider_row(0, 360, 200)
+        self._sld_blue_hi, _, row_bhi = self._slider_row(0, 360, 240)
+        self._sld_blue_sat, _, row_bsat = self._slider_row(0, 100, 40)
+        self._sld_blue_val, _, row_bval = self._slider_row(0, 255, 60)
+        self._lbl_blue_band = QLabel()
+        self._lbl_blue_band.setToolTip(
+            "Farbton 0–360°: der helle Bereich wird als Blaulicht behandelt.\n"
+            "Ist 'von' größer als 'bis', läuft der Bereich über Rot hinweg.")
+        for sld in (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
+                    self._sld_blue_val):
+            sld.valueChanged.connect(self._on_setting_changed)
+        self._sld_blue_lo.valueChanged.connect(self._update_blue_widgets)
+        self._sld_blue_hi.valueChanged.connect(self._update_blue_widgets)
+        form.addRow("Farbton von (°):", row_blo)
+        form.addRow("Farbton bis (°):", row_bhi)
+        form.addRow(self._lbl_blue_band)
+        form.addRow("Sättigung min (%):", row_bsat)
+        form.addRow("Helligkeit min:", row_bval)
+        self._btn_blue_preview = QPushButton("Blaumaske im Frame zeigen")
+        self._btn_blue_preview.setToolTip(
+            "Markiert im aktuellen Kamerabild magenta, was als Blaulicht gilt.")
+        self._btn_blue_preview.clicked.connect(self._on_blue_preview_clicked)
+        form.addRow(self._btn_blue_preview)
+        self._blue_widgets = (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
+                              self._sld_blue_val, self._lbl_blue_band,
+                              self._btn_blue_preview)
+        self._update_blue_widgets()
 
         # Extrinsik: grob und fein je Wert — Winkel bis 0,005°, Versatz bis
         # auf den Millimeter.
@@ -1128,6 +1244,13 @@ class MainWindow(QMainWindow):
             self._sld_bmax.setValue(int(s.get("brightness_max", 235)))
             self._spin_kframes.setValue(int(s.get("k_frames", 3)))
             self._spin_sky.setValue(int(s.get("sky_grow", 4)))
+            self._chk_lens.setChecked(bool(s.get("lens_best", True)))
+            self._spin_edge.setValue(int(s.get("edge_r", 600)))
+            self._chk_blue.setChecked(bool(s.get("blue_filter", False)))
+            self._sld_blue_lo.setValue(int(s.get("blue_hue_lo", 200)))
+            self._sld_blue_hi.setValue(int(s.get("blue_hue_hi", 240)))
+            self._sld_blue_sat.setValue(int(s.get("blue_sat", 40)))
+            self._sld_blue_val.setValue(int(s.get("blue_val", 60)))
             self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
             self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
             self._cloud_view.set_temperatur_anzeigen(self._temperatur_anzeigen)
@@ -1171,6 +1294,13 @@ class MainWindow(QMainWindow):
             "brightness_max": int(self._sld_bmax.value()),
             "k_frames": int(self._spin_kframes.value()),
             "sky_grow": int(self._spin_sky.value()),
+            "lens_best": bool(self._chk_lens.isChecked()),
+            "edge_r": int(self._spin_edge.value()),
+            "blue_filter": bool(self._chk_blue.isChecked()),
+            "blue_hue_lo": int(self._sld_blue_lo.value()),
+            "blue_hue_hi": int(self._sld_blue_hi.value()),
+            "blue_sat": int(self._sld_blue_sat.value()),
+            "blue_val": int(self._sld_blue_val.value()),
             "point_size": float(self._spin_pointsize.value()),
             "temperatur_anzeigen": bool(self._temperatur_anzeigen),
             "color_mode": self._combo_colormode.currentData(),
@@ -3245,6 +3375,10 @@ class MainWindow(QMainWindow):
             brightness_max=int(self._sld_bmax.value()),
             k_frames=int(self._spin_kframes.value()),
             sky_grow=int(self._spin_sky.value()),
+            lens_best=bool(self._chk_lens.isChecked()),
+            edge_r=float(self._spin_edge.value()),
+            blue_filter=bool(self._chk_blue.isChecked()),
+            **self._blue_args(),
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
         parts = self._parts
@@ -3284,6 +3418,15 @@ class MainWindow(QMainWindow):
         if n_sky:
             self._log(f"Himmelssaum-Sperre: {_fmt_int(n_sky)} Farbproben verworfen "
                       f"(Saum {self._spin_sky.value()} px um ausgebrannte Flächen).")
+        n_edge = int(res.get("n_edge_outvoted", 0))
+        if n_edge:
+            self._log(f"Linsenrand: {_fmt_int(n_edge)} Farbproben hinter Proben näher "
+                      f"an der Bildmitte zurückgestellt.")
+        n_blue = int(res.get("n_blue_outvoted", 0))
+        if n_blue or res.get("n_blue_kept"):
+            self._log(f"Blaulicht: {_fmt_int(n_blue)} blaue Farbproben zurückgestellt; "
+                      f"{_fmt_int(int(res.get('n_blue_kept', 0)))} Punkte hatten nur "
+                      f"blaue Proben und bleiben blau.")
         # Bei einer zusammengefuehrten Karte je Abschnitt ausweisen: sonst
         # sieht man nur eine Gesamtquote und merkt nicht, dass ein ganzer Flug
         # leer geblieben ist.
