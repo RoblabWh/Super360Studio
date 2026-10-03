@@ -75,9 +75,20 @@ _ANSICHT_ENDE = (
 
 _WERKZEUGE = (
     ("fastlio", "Karte berechnen (FAST-LIO2)", "_on_fastlio_clicked", "F5", ""),
+    ("exploration", "Explorationsgrad neu berechnen", "_on_exploration_neu", "",
+     "Den Wert oben rechts noch einmal aus dem Bag rechnen, am Cache vorbei."),
     ("colorize", "Einfärben (360°-Kamera)", "_on_colorize_clicked", "F6", ""),
     ("meander_run", "Mäander-Einfärbung …", "_on_meander_run", "F7",
      "Punktwolke aus den Bildern eines Kartierungsfluges einfärben."),
+    ("splat_meander", "Mäander per Gaussian Splat", "_on_splat_maeander", "",
+     "Farben aus allen Bildern des Mäanderfluges zugleich lernen (GPU)."),
+    ("splat_onboard", "Onboard per Gaussian Splat", "_on_splat_onboard", "",
+     "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU)."),
+    ("splat_gemeinsam", "Onboard + Mäander per Gaussian Splat", "_on_splat_gemeinsam", "",
+     "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU)."),
+    ("fusion", "Onboard + Mäander fusionieren", "_on_fusion", "",
+     "Onboard-Farben an den Mäander angleichen und nach Flächenlage mischen:\n"
+     "Dächer und Boden aus dem Mäander, Fassaden aus der 360°-Kamera."),
     ("merge_apply", "Flüge zusammenführen", "_on_merge_apply", "", ""),
     (None, None, None, None, None),
     ("measure", "Messen", "_on_toggle_measure", "M",

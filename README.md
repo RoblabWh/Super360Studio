@@ -34,6 +34,9 @@ klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. `Strg+B`
 blendet die Leiste ganz aus, der Trenner dazwischen lässt sich ziehen. Welche
 Abschnitte offen sind, merkt sich das Projekt.
 
+Ganz oben rechts steht der **Explorationsgrad** des offenen Fluges — wie viel des
+Zielgebiets die Drohne im Explorationsmodus gesehen hat (s. unten).
+
 Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
 `F6` einfärben, `F7` Mäander, `M` messen, `R` Kamera zurück, `Esc` Messung weg, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
 
@@ -56,6 +59,7 @@ Was man braucht, hängt davon ab, was man machen will:
 | Interpreter mit `pycolmap` | neue COLMAP-Rekonstruktion eines Mäanderfluges | nur ohne fertiges Modell |
 | ROS 2 Humble + Livox-Treiber + FAST_LIO_ROS2 | **Karte berechnen** aus einem Rosbag | nur dafür |
 | EPIC_ros2 | RViz-Wiedergabe (`traj_utils`/`quadrotor_msgs`) | nur dafür |
+| Interpreter mit torch + gsplat, NVIDIA-GPU | Einfärben per Gaussian Splat | nur dafür |
 
 Ein fertiges Projekt (z. B. ein exportierter Ordner) lässt sich also mit den
 Pflichtteilen allein öffnen, ansehen, messen, einfärben aus der Mäander-Ebene
@@ -166,6 +170,62 @@ mit der Umgebungsvariable `SUPER360_CACHE_ROOT`.
 5. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 6. **Export** — berücksichtigt „Nur eingefärbte Punkte".
 
+## Explorationsgrad
+
+Oben rechts in der Menüleiste steht die Kennzahl des Fluges: **welchen Anteil des
+vorgegebenen Zielgebiets die Drohne beobachtet hat.** Sie wird beim Öffnen eines
+Bags mitgerechnet (rund 3 s für 1000 Scans) und bleibt in jedem Bereich sichtbar.
+
+![Explorationsgrad oben rechts](assets/explorationsgrad.png)
+
+So entsteht der Wert (`core/exploration.py`, gleiche Rechnung wie die Auswertung
+der Bachelorarbeit):
+
+* Das **Zielgebiet** ist die Explorationsbox aus `/exploration/box`. Sie wird in
+  Würfel von 0,5 m zerlegt — die Kartenauflösung von EPIC.
+* Als **beobachtet** gilt ein Würfel, sobald ein LiDAR-Strahl ihn berührt hat:
+  jeder Strahl vom Sensor (`/quad_0/lidar_slam/odom`) zum Messpunkt
+  (`/quad0_pcl_render_node/cloud`) wird in Schritten einer halben Kante
+  abgetastet. Bekannter Raum ist also der freie Raum entlang des Strahls **plus**
+  die getroffene Oberfläche.
+* Der **Explorationsmodus** sind die Zeiten, in denen EPIC wirklich flog:
+  `FEEDING` aus `/epic/bridge_status`, ersatzweise `OFFBOARD` aus `/mavros/state`.
+  Gezählt werden nur die Scans aus diesen Zeiten — der manuelle An- und Abflug
+  davor und danach geht nicht in die Zahl ein.
+
+Unter der Zahl steht immer, **worauf sie sich bezieht**: `Explorationsmodus` mit
+seiner Dauer — oder `ganzer Flug`, wenn niemand autonom flog (die Brücke bleibt
+dann in `HOLD`, die EPIC-FSM in `WAIT_TRIGGER`). Dieselbe Prozentzahl bedeutet in
+beiden Fällen etwas anderes, deshalb steht der Bezug daneben und nicht im
+Kleingedruckten. Die Farbe ist eine grobe Ampel: ab 85 % grün, ab 60 % gelb,
+darunter orange.
+
+Ein **Klick auf die Kachel** öffnet den vollen Bericht: Abmessungen und Volumen
+des Zielgebiets, Dauer und Flugstrecke im Explorationsmodus, der Wert für den
+ganzen Flug zum Vergleich, der Stand bei Beginn und Ende der Exploration und der
+Zuwachs in Prozentpunkten. **Werkzeuge → Explorationsgrad neu berechnen** rechnet
+am Cache vorbei noch einmal; sonst liegt das Ergebnis als `exploration.json` im
+Projekt und ist beim nächsten Öffnen sofort da.
+
+Zwei Dinge gehören zur Zahl dazu:
+
+* **Neben dem Volumen steht die Grundfläche.** Liegt der untere Teil der Box
+  unter dem Boden, ist er prinzipiell nicht beobachtbar, und 100 % im Volumen
+  sind nicht erreichbar. Die Draufsicht zeigt dann, ob das Gebiet trotzdem
+  vollständig abgeflogen wurde.
+* **Ohne EPIC im Bag gibt es keinen Grad.** Fehlen Box, Scans oder Flugbahn,
+  zeigt die Kachel einen Strich und im Tooltip, was fehlt — das ist kein Fehler,
+  ein reiner Kartierungsflug hat schlicht kein Zielgebiet.
+
+Nachgerechnet gegen `BA_Evaluation/auswertung_exploration.py` (dieselbe Bag,
+dasselbe Raster), die Zahlen stimmen auf die Nachkommastelle überein:
+
+| Flug | Explorationsmodus | ganzer Flug | Grundfläche (ganzer Flug) |
+|---|---|---|---|
+| `rosbag_2026-09-18_10-50-39` (neuester, 60,0 s autonom in zwei Abschnitten) | 92,1 % | 98,4 % | 100,0 % |
+| `rosbag_2026-09-08_12-53-52` (ganz von Hand geflogen) | — (keine Phase) | 96,8 % | 100,0 % |
+| `rosbag_2026-08-08_11-21-26_Flug6_Haus` (83,0 s autonom) | 59,7 % | 69,9 % | 99,2 % |
+
 ## 3D-Ansicht: Maus und Leiste
 
 Die Maus steuert die Wolke **genau wie der VS-Code-Punktwolken-Viewer**
@@ -183,7 +243,7 @@ Die Maus steuert die Wolke **genau wie der VS-Code-Punktwolken-Viewer**
 Oben liegt die **Leiste** wie dort:
 
 * **Farbe** — Einheitsfarbe, Intensität, Höhe, RGB Onboard, RGB Mäander,
-  Thermal Mäander. Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
+  Thermal Mäander, dazu dieselben Quellen aus dem Gaussian Splat. Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
   ist ausgegraut. Seitenleiste und Menü ziehen mit.
 * **Punkte** — 0,5 bis 10 px in Viertelschritten. Gebrochene Größen wirken
   wirklich (bei 1 / 1,5 / 2 px gemessen 18,6 / 22,2 / 23,4 % bedeckte Pixel).
@@ -468,6 +528,146 @@ je Optik, weil es zwei Objektive sind. Bewusst ohne Automatik: eine
 Kennzahl dafür ist nicht zu finden, ein sonnenwarmes Dach ist thermisch
 gleichmäßig und optisch strukturiert, ein Schatten umgekehrt.
 
+## Gaussian Splat
+
+Zweiter Weg zur Farbe, für beide Kameras: statt jeden Punkt aus einem Bild (Mäander)
+oder dem Median weniger Frames (Onboard) zu holen, werden die Farben so gelernt, dass
+**alle Bilder zugleich** erklärt sind. Abschnitt **5 · Gaussian Splat (GPU)** in der
+Seitenleiste, oder **Werkzeuge → Mäander/Onboard per Gaussian Splat**. Die Ergebnisse
+sind eigene Ebenen neben der direkten Einfärbung, beide lassen sich umschalten und
+vergleichen.
+
+### Warum es besser sein kann — und wo nicht
+
+Die direkte Projektion übernimmt alles, was im einzelnen Bild steckt:
+
+| Fehler der direkten Projektion | Splat |
+|---|---|
+| Nähte, wo das Nachbarbild anders belichtet ist (Mäander), Belichtungsautomatik der 360°-Kamera (Onboard) | Belichtung je Bild wird mitgelernt (3×3-Matrix und Versatz), die Farbe bleibt frei davon |
+| Pose oder Optik um Bruchteile eines Pixels daneben: Bilder wirken zueinander verzerrt | Posen je Bild werden gegen die feste Lidar-Geometrie nachgeführt |
+| Spiegelungen, Glanz auf Dächern und Autos | landen in den blickabhängigen Anteilen, nicht in der Grundfarbe |
+| Verdeckung: Onboard gar nicht behandelt, Mäander über eine Tiefenkarte | beim Rendern: eine verdeckte Gaussian bekommt keinen Gradienten und bleibt ungefärbt |
+| Palette der Thermalbilder skaliert je Bild anders | gelernt werden Temperaturen in °C, gefärbt mit einer festen Palette |
+
+Nicht besser wird, was in keinem Bild steht: ausgebrannter Himmel und Gegenlicht,
+Unterholz, das Innere einer Halle, bewegte Autos zwischen Lidar- und Fotoflug. Und
+**das Splat ist nicht feiner als sein Ankerraster**: bei 24 Mio. Punkten und 4 Mio.
+Gaussians sind das rund 7 cm, der Mäanderflug löst am Boden 5 cm auf. Dafür ist
+**„Feinstruktur aus der direkten Einfärbung“** da (Vorgabe an): der Mittelwert jeder
+Zelle kommt aus dem Splat, die Abweichung der Punkte darin aus der direkten Ebene.
+
+### Kein freies Splat
+
+Ein Splat allein aus den Fotos legt seine Gaussians dahin, wo die Photogrammetrie
+Oberfläche vermutet. Der erste Versuch in PointCloudMerger (Avata-360-Splat) ist genau
+daran gescheitert: die Wolke ließ sich nicht auf die Lidar-Karte registrieren. Hier ist
+die Geometrie die Karte selbst:
+
+1. **Anker**: die Karte auf ein Voxelraster (ab 5 cm), der Schwerpunkt jeder Zelle wird
+   eine Gaussian — eine flache Scheibe entlang der Normalen. Sie darf eine halbe Zelle
+   entlang der Normalen gleiten, gelernt werden Farbe, Deckkraft, Form. Das Raster
+   wächst, bis die Zahl passt: an der DRZ-Karte 12,9 Mio. Zellen bei 3 cm, gemessen
+   wächst ihre Zahl mit dem Raster hoch 1,34 bis 1,69 (Bewuchs ist keine Fläche).
+2. **Bilder als Lochkameras im Rahmen der Karte**. Mäander: die COLMAP-Kameras über
+   dieselbe Kette wie beim Einfärben, entzerrt. Onboard: je Fisheye fünf Würfelseiten
+   zu 90°, jede aus dem Zentrum ihrer Linse — kein Stitching, keine Parallaxe zwischen
+   den Linsen. Frames werden nach Bewegung gewählt (0,3 m oder 8°).
+3. **Maske je Bild**: nur Pixel, hinter denen die Karte eine Oberfläche hat; Onboard
+   zusätzlich Bildkreis, Helligkeitsfenster und Himmelssaum aus Abschnitt 3 und die
+   **Drohnenteile** — Motoren und Arme stehen fest im Bild und streuen zeitlich kaum
+   (gemessen 2,0 % und 2,6 % des Bildkreises).
+4. **Training** in einem eigenen Interpreter mit torch und gsplat
+   (`scripts/splat_train.py`). Danach wird je Gaussian aufsummiert, wie viel sie zu den
+   Bildern beigetragen hat; unter einem halben Pixel gilt sie als ungesehen, ihre
+   Punkte bleiben ungefärbt.
+
+### Gegenprobe
+
+Mit **„Gegenprobe mit zurückgehaltenen Bildern“** (Vorgabe an) wird zuerst ohne jedes
+achte Bild trainiert (Onboard: jeden zehnten Frame). An diesen Bildern werden dann das
+Splat, die direkte Projektion ohne dieselben Bilder und die Kombination mit Feinstruktur
+gemessen — nur an Punkten, die dort sichtbar sind und in allen drei Varianten eine
+Farbe haben, und nach einem Belichtungsangleich je Bild, weil kein Verfahren die
+Belichtung eines unbekannten Bildes kennen kann. Das Ergebnis steht im Protokoll und in
+der `meta.json` der Ebene („Gegenprobe an … Bildern, … Punkte: Splat …, direkt …
+(0–255) Abweichung nach Belichtungsangleich … — … besser um … %“). Danach wird mit allen
+Bildern für die Ebene trainiert, die Zeit verdoppelt sich.
+
+Damit die Probe fair bleibt, bekommt die direkte Projektion dabei die Tiefenkarte aus
+allen Ankern: gefärbt wird nur eine Stichprobe, und aus verstreuten Punkten allein
+entstünde keine Oberfläche — jeder verdeckte Punkt gälte als sichtbar, und der Vergleich
+fiele zugunsten des Splats aus.
+
+Onboard kann die direkte Einfärbung nicht ohne die Prüfframes neu gerechnet werden;
+verglichen wird mit der vorhandenen Ebene, die diese Frames kannte. Die Probe begünstigt
+dort die direkte Projektion.
+
+### Stand der Prüfung
+
+Nachgeprüft ohne GPU:
+
+* Kamerakette und Entzerrung treffen die Projektion der Mäander-Einfärbung auf
+  0,016 px; auf den echten Bildern liegen die projizierten Ebenen deckungsgleich.
+* Das Training auf einer synthetischen Szene (CPU, eigener dichter Renderer): die
+  Farben kommen trotz Belichtung 0,7 bis 1,3 je Bild auf 0,029 zurück (ohne Ausgleich
+  0,045); der Boden unter einem Dach bekommt Gewicht 0,02 gegen 2,4 frei.
+* Datensätze, Gegenprobe, Feinstruktur und Ebenen auf dem Projekt 09-08 12-53-52 mit
+  einem Ersatz für das Training.
+
+**Gemessen am is7-Projekt** (RTX 3060 Ti, 3,9 Mio. Gaussians, 4,4 GB auf der Karte),
+Fehler an zurückgehaltenen Prüfbildern: für die Mäanderbilder der rohe L1-Fehler des
+Renderings (Farbraum des Mäanders), für die Onboard-Bilder mit der gelernten Farbmatrix.
+
+| Lauf | Schritte | Dauer | Mäander L1 | Mäander PSNR | Onboard L1 | gefärbt |
+|---|---|---|---|---|---|---|
+| nur Mäander | 3000 | 9 min | 0,0828 | 21,2 dB | – | 67 % |
+| gemeinsam 1:1 | 3000 | 12 min | 0,0866 | 20,6 dB | 0,132 | 96 % |
+| gemeinsam 4:1 | 3000 | 13 min | 0,0839 | 21,1 dB | 0,143 | 96 % |
+| **gemeinsam 4:1** | 12000 | 37 min | **0,0795** | **21,5 dB** | 0,133 | 96 % |
+
+„4:1“ heißt: der Mäander wird viermal so oft gezogen wie Onboard (Vorgabe). Je stärker
+er zählt, desto näher kommt das gemeinsame Splat an die Mäander-Genauigkeit, bei
+gleicher Abdeckung — Wände und Unterseiten sieht ohnehin nur Onboard.
+
+Am is7-Projekt passen Onboard und Mäander inhaltlich schlecht zusammen: Onboard flog
+am 08.09. in 2,5–3 m Höhe, der Mäander am 09.09., dazwischen wurden Autos umgeparkt,
+und Hallendächer sieht Onboard nur von innen. Beide sind richtig ausgerichtet (der
+blaue Container hat in beiden dieselbe Farbe), eine Farbabbildung zwischen ihnen
+gibt es aber nicht — die Fusion ohne Splat taugt dort nicht, das gemeinsame Splat
+schon.
+
+### Voraussetzungen
+
+Ein Interpreter mit torch und gsplat, gesucht unter `SUPER360_SPLAT_PYTHON`,
+`~/.venvs/splat` und der venv im DRZ-Datensatz; **„GPU und Interpreter prüfen“** sagt,
+was fehlt. Die Prüfung rechnet einen echten gsplat-Kernel: gsplat ist für bestimmte
+Kartenarchitekturen gebaut, und ein Bau nur für eine RTX 50xx (sm_120) bricht auf
+einer RTX 3060 Ti (sm_86) erst im Training mit „no kernel image is available“ ab.
+Teilen sich Rechner die venv, für alle bauen:
+
+```bash
+TORCH_CUDA_ARCH_LIST="8.6;12.0" CUDA_HOME=~/.venvs/splat/cuda PATH=~/.venvs/splat/cuda/bin:$PATH \
+  ~/.venvs/splat/bin/pip install --no-build-isolation --no-deps --force-reinstall \
+  --no-binary gsplat gsplat==1.5.3        # rund 15 Minuten
+``` Sieht PyTorch keine GPU, weil kein `/dev/nvidiactl` da ist, und Secure Boot
+ist an: das DKMS-Modul ist mit dem lokalen MOK-Schlüssel signiert, der eingeschrieben
+sein muss —
+
+```bash
+sudo mokutil --import /var/lib/shim-signed/mok/MOK.der   # Passwort vergeben
+# neu starten, im blauen MOK-Manager "Enroll MOK" bestätigen
+```
+
+Datensatz und Ergebnis liegen unter `<projekt>/splat/<ebene>/`, abgeleitet und jederzeit
+löschbar; `vergleich/*.jpg` zeigt Prüfbild, Render und Differenz nebeneinander.
+
+Mit 8 GB auf der Karte und wenig Arbeitsspeicher ist es knapp: ein Onboard-Datensatz
+mit 3000 Würfelseiten wäre als Tensoren rund 5 GB, deshalb hält der Trainer Bilder nur
+bis zu einem Drittel des freien Speichers im RAM und lädt den Rest je Schritt von der
+Platte. Die
+Ankergrenze ist aus demselben Grund auf 8 Mio. gedeckelt (Vorgabe 4 Mio. ≈ 1,4 GB auf
+der Karte).
+
 ## Farbquellen
 
 Drei Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
@@ -478,6 +678,9 @@ Drei Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
 | **Onboard RGB** | 360°-Kamera an der Super-Drohne, `colors/` |
 | **Mäander RGB** | `_V.JPG` des DJI-Fluges, `colors_meander_rgb/` |
 | **Mäander Thermal** | `_T.JPG` desselben Fluges, `colors_meander_thermal/` |
+| **Onboard RGB, Gaussian Splat** | dieselben Frames, gemeinsam gelernt, `colors_onboard_splat/` |
+| **Mäander RGB, Gaussian Splat** | dieselben `_V.JPG`, gemeinsam gelernt, `colors_meander_splat/` |
+| **Mäander Temperatur, Gaussian Splat** | Temperaturen der R-JPEGs, `colors_meander_thermal_splat/` |
 
 Nach dem Einfärben einer zusammengeführten Karte steht im Protokoll die Quote je
 Abschnitt, nicht nur eine Gesamtzahl — sonst merkt man nicht, wenn ein ganzer
@@ -625,7 +828,8 @@ die Umgebungsvariable `SUPER360_CACHE_ROOT`.
 
 `<cache_root>/<bagname>-<pfad-hash>/` enthält `recording/` (Punkte/Posen),
 `colors/`, `pano_<Breite>/` (gestitchte JPEGs), `extrinsic.json`,
-`settings.json`. Löschen ist jederzeit erlaubt (wird neu berechnet).
+`settings.json` und `exploration.json` (Explorationsgrad). Löschen ist jederzeit
+erlaubt (wird neu berechnet).
 
 Ein fehlgeschlagener/abgebrochener FAST-LIO-Lauf lässt eine vorhandene
 Aufzeichnung unangetastet (Schreiben in `recording.tmp`, Promotion nur bei
@@ -633,8 +837,14 @@ Erfolg).
 
 ## Bekannte Grenzen
 
-- GPS in den Juli-Bags ist tot (fix_type=0, 0 Satelliten) — die GUI zeigt das
-  als „GPS unbrauchbar" mit Gründen; Georeferenzierung ist dann deaktiviert.
+- **GPS ist in allen bisherigen Aufnahmen tot.** Nachgezählt am 2026-09-18 über
+  alle 27 Bags in `~/RosBagSuper`: kein einziger Fix mit einer Position, überall
+  `lat=lon=0`, `status=-1`, `fix_type=0`, 0 Satelliten, `eph=epv=9999`
+  (Sentinel), und `/mavros/global_position/global` bleibt leer. `fix_type=0`
+  heißt in MAVLink nicht „kein Fix" (das wäre 1), sondern **kein GPS-Gerät
+  erkannt** — es ist also kein Empfangsproblem, sondern der Empfänger meldet
+  sich beim Autopiloten gar nicht. Die GUI zeigt das als „GPS unbrauchbar" mit
+  Gründen; Georeferenzierung und LAS-Export in UTM sind damit nicht möglich.
 - Kamera↔Lidar-Extrinsik ist nicht werksseitig kalibriert; die
   Auto-Kalibrierung ist grob (Rotation, ±wenige Grad) — Feinjustage über die
   Spinboxen, Ergebnis wird pro Bag gespeichert.

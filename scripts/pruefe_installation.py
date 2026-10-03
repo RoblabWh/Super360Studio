@@ -87,6 +87,20 @@ zeile(bool(colmap), f"Interpreter mit pycolmap{': ' + colmap if colmap else ''} 
       "(nur für eine neue COLMAP-Rekonstruktion)",
       "python3 -m venv ~/.venvs/colmap && ~/.venvs/colmap/bin/pip install pycolmap", False)
 
+print("\nGaussian Splat (Einfärbung über alle Bilder zugleich, braucht eine NVIDIA-GPU):")
+sys.path.insert(0, ROOT)
+try:
+    from core import splat as splat_mod
+    py, info = splat_mod.find_splat_python()
+except Exception as exc:  # noqa: BLE001
+    py, info = None, {"fehler": f"{type(exc).__name__}: {exc}"}
+zeile(bool(py), f"Interpreter mit torch und gsplat{': ' + py if py else ''}",
+      "python3 -m venv ~/.venvs/splat && ~/.venvs/splat/bin/pip install torch gsplat "
+      "(oder SUPER360_SPLAT_PYTHON setzen)", False)
+if py:
+    gpu = f" {info['gpu']} ({info['vram_gb']} GB)" if info.get("cuda") else ""
+    zeile(bool(info.get("cuda")), f"CUDA-GPU{gpu}", splat_mod.hinweis(info) or "", False)
+
 print("\nKarte berechnen (FAST-LIO2, braucht ROS 2 Humble):")
 for pfad, hinweis in (
         ("/opt/ros/humble/setup.bash", "ROS 2 Humble: sudo apt install ros-humble-ros-base"),

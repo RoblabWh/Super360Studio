@@ -44,7 +44,7 @@ TEILE = {
     "bags": ("Rosbags (Rohdaten)", False),
 }
 
-_KLEINKRAM = ("gps.json", "extrinsic.json", "settings.json")
+_KLEINKRAM = ("gps.json", "extrinsic.json", "settings.json", "exploration.json")
 
 
 def _dir_size(path: str) -> int:

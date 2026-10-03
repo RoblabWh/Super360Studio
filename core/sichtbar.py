@@ -34,6 +34,8 @@ import numpy as np
 
 MIN_COS = 0.12            # streifender als ~83° zur Normalen: nicht verwenden
 TIEFE_SKALA = 0.5         # Tiefenkarte in halber Bildaufloesung
+TOLERANZ_M = 0.30         # so weit hinter der naechsten Flaeche gilt noch als sichtbar,
+TOLERANZ_REL = 0.01       # dazu dieser Anteil der Tiefe
 _FALLBACK = (107, 107, 107)
 
 
@@ -61,6 +63,14 @@ def normalen(punkte: np.ndarray, raster: float = 0.15, progress=None) -> np.ndar
     return N[idx]
 
 
+def _zellen(u, v, W, H, skala):
+    """Zellindex je Bildpunkt (und die Rastergroesse)."""
+    w, h = max(1, int(W * skala)), max(1, int(H * skala))
+    iu = np.clip((u * skala).astype(np.int64), 0, w - 1)
+    iv = np.clip((v * skala).astype(np.int64), 0, h - 1)
+    return iv * w + iu, w, h
+
+
 def _tiefenkarte(u, v, z, W, H, skala):
     """Naechste Tiefe je Zelle.
 
@@ -69,10 +79,7 @@ def _tiefenkarte(u, v, z, W, H, skala):
     Tiefe ihrer Oberkante ueber mehrere Zellen und die Wand hielte sich selbst
     fuer verdeckt — so verlor ein erster Versuch die Haelfte der Karte.
     """
-    w, h = max(1, int(W * skala)), max(1, int(H * skala))
-    iu = np.clip((u * skala).astype(np.int64), 0, w - 1)
-    iv = np.clip((v * skala).astype(np.int64), 0, h - 1)
-    lin = iv * w + iu
+    lin, w, h = _zellen(u, v, W, H, skala)
     karte = np.full(w * h, np.inf, np.float32)
     np.minimum.at(karte, lin, z.astype(np.float32))
     return karte, lin
@@ -80,7 +87,8 @@ def _tiefenkarte(u, v, z, W, H, skala):
 
 def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
                       normalen_welt: np.ndarray | None = None, progress=None,
-                      cancel=None, log=None, temperatur=None) -> tuple:
+                      cancel=None, log=None, temperatur=None,
+                      tiefe_punkte: np.ndarray | None = None) -> tuple:
     """Wie ``meander.colorize_points``, aber mit Verdeckung und Blickwinkel.
 
     ``normalen_welt`` (N, 3) im Rahmen der Karte; fehlen sie, werden sie
@@ -89,6 +97,12 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
     ``temperatur`` ist optional eine Funktion ``(index, name) -> Bild in °C``
     (s. ``core.temperatur.quelle``); dann kommt als drittes Element je Punkt
     die Temperatur aus demselben Bild und Pixel wie seine Farbe (NaN, wo keine).
+
+    ``tiefe_punkte`` sind die Punkte, aus denen die Tiefenkarte gebaut wird —
+    ohne sie ``points`` selbst. Das ist noetig, sobald nur eine Stichprobe
+    gefaerbt wird: aus verstreuten Punkten entsteht keine Oberflaeche, jeder
+    sitzt allein in seiner Tiefenzelle und gilt als sichtbar. Wer eine Probe
+    faerbt, gibt hier die ganze Karte (oder ihre Anker) hinein.
     """
     from PIL import Image  # noqa: PLC0415
     from core.meander import find_pipeline  # noqa: PLC0415
@@ -125,6 +139,10 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
     ordnung = np.argsort(P[:, 0], kind="stable")
     xs = P[ordnung, 0]
     boden = float(np.percentile(P[:, 2], 5))
+    TP = None if tiefe_punkte is None else np.asarray(tiefe_punkte, dtype=np.float64)
+    if TP is not None:
+        ordnung_t = np.argsort(TP[:, 0], kind="stable")
+        xs_t = TP[ordnung_t, 0]
 
     beste = np.zeros(N_, dtype=np.float32)
     farbe = np.empty((N_, 3), dtype=np.uint8)
@@ -151,11 +169,21 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
         if not drin.any():
             continue
         idx, u, v, z, rad = idx[drin], u[drin], v[drin], pc[drin, 2], rad[drin]
-        karte, lin = _tiefenkarte(u, v, z, W, H, TIEFE_SKALA)
+        if TP is None:
+            karte, lin = _tiefenkarte(u, v, z, W, H, TIEFE_SKALA)
+        else:
+            lo_t, hi_t = np.searchsorted(xs_t, [C_welt[i, 0] - reich, C_welt[i, 0] + reich])
+            jdx = ordnung_t[lo_t:hi_t]
+            jdx = jdx[np.abs(TP[jdx, 1] - C_welt[i, 1]) < reich]
+            pt = ((TP[jdx] - b) @ Ainv.T) @ Rcw[i].T + tcw[i]
+            ut, vt, vorn_t, _ = cz._project(pt, size[i], params[i], model)
+            drin_t = vorn_t & (ut >= 0) & (ut < W) & (vt >= 0) & (vt < H)
+            karte, _ = _tiefenkarte(ut[drin_t], vt[drin_t], pt[drin_t, 2], W, H, TIEFE_SKALA)
+            lin, _, _ = _zellen(u, v, W, H, TIEFE_SKALA)
         # sichtbar: nicht merklich hinter der naechsten Flaeche in dieser Zelle
         # (30 cm plus 1 % der Tiefe: auf einer schraeg gesehenen Wand liegen
         # die Punkte einer Zelle bis dahin hintereinander)
-        sichtbar = z <= karte[lin] + (0.30 / massstab + 0.01 * z)
+        sichtbar = z <= karte[lin] + (TOLERANZ_M / massstab + TOLERANZ_REL * z)
         if not sichtbar.any():
             continue
         idx, u, v, z, rad = idx[sichtbar], u[sichtbar], v[sichtbar], z[sichtbar], rad[sichtbar]
@@ -241,4 +269,20 @@ if __name__ == "__main__":
                               normalen_welt=nw)
     assert mw.mean() < 0.05, "streifend gesehene Wand wurde gefaerbt"
     print("Wand unter streifendem Blick bleibt ungefärbt")
+    print("== Probe mit eigener Tiefenwolke ==")
+    # Nur jeden 40. Punkt faerben: aus der Probe allein entsteht keine
+    # Oberflaeche, der verdeckte Boden gaelte als sichtbar.
+    probe = np.arange(0, len(P), 40)
+    _, m_ohne = colorize_sichtbar(P[probe], cams, tmp, np.eye(3), np.zeros(3),
+                                  normalen_welt=n[probe])
+    _, m_mit = colorize_sichtbar(P[probe], cams, tmp, np.eye(3), np.zeros(3),
+                                 normalen_welt=n[probe], tiefe_punkte=P)
+    verdeckt = (probe >= a) & (probe < a + bo)
+    print(f"verdeckter Boden in der Probe: ohne Tiefenwolke "
+          f"{m_ohne[verdeckt].mean() * 100:.0f} % gefaerbt, mit {m_mit[verdeckt].mean() * 100:.0f} %")
+    # Ohne Tiefenwolke faerbt sich ein guter Teil des verdeckten Bodens ein
+    # (gemessen die Haelfte: die Dachpunkte der Probe verdecken den Rest).
+    assert m_ohne[verdeckt].mean() > 0.3, "Test taugt nicht: Probe war schon verdeckt"
+    assert m_mit[verdeckt].mean() < 0.05, "Tiefenwolke wirkt nicht"
+    assert m_mit[~verdeckt].mean() > 0.9, "freie Punkte verloren"
     print("sichtbar SELFTEST OK")

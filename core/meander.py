@@ -146,6 +146,7 @@ def align(pipe, progress=None) -> dict:
     # liest sie unveraendert ein, und jedes spaetere affine() bricht dann ab.
     pipe.t = as_t3(pipe.t)
     k = dict(pipe.kennwerte or {})
+    k.update(_guete_mit_optik(pipe))
     k.update({"yaw_deg": float(np.degrees(pipe.yaw)),
               "t": [float(x) for x in np.asarray(pipe.t).ravel()],
               # Frisch gesucht heisst: Hoehenkorrektur und Feinausrichtung
@@ -156,9 +157,39 @@ def align(pipe, progress=None) -> dict:
     return k
 
 
+def _guete_mit_optik(pipe) -> dict:
+    """Anteil auf der Flaeche mit der Brennweite, die die Fototiefe verlangt.
+
+    Die Pipeline misst ``anteil_auf_flaeche`` mit der Brennweite aus dem EXIF.
+    Die ist beim M4T rund 9 % zu kurz, die Fotopunkte liegen dann ueber 4 m zu
+    hoch — und die Kandidatenwahl zieht die Hoehe auf das Kantenmass, das die
+    Kameras richtig setzt statt der Punkte. Am is7-Flug (2026-09-09) ergab das
+    fuer die richtige Lage 0,8 % „auf der Flaeche“ und einen Fehlalarm, waehrend
+    ein um 17° falscher Kandidat mit 51 % durchgekommen waere. Mit dem Faktor
+    aus der Tiefe (1,087, eingemessen spaeter 1,086) sind es 62 % gegen 51 %.
+    """
+    from core import optik as optik_mod  # noqa: PLC0415
+    try:
+        A, b = pipe.affine()
+        punkte = pipe.points
+        f = optik_mod.schaetze_rgb_faktor_tiefe(pipe, punkte, A, b)
+        if f is None:
+            return {}
+        a = optik_mod.anteil_auf_flaeche(pipe, punkte, A, b, f["faktor"])
+    except Exception:  # noqa: BLE001 — nur eine Zusatzauskunft
+        return {}
+    if a is None:
+        return {}
+    return {"faktor_tiefe": float(f["faktor"]), "anteil_auf_flaeche_optik": float(a)}
+
+
 def pruefe_ausrichtung(kennwerte: dict) -> str | None:
-    """Meldung, wenn die Ausrichtung nicht zu trauen ist; sonst None."""
-    anteil = kennwerte.get("anteil_auf_flaeche")
+    """Meldung, wenn die Ausrichtung nicht zu trauen ist; sonst None.
+
+    Massgeblich ist der Anteil mit der Brennweite aus der Fototiefe, sofern er
+    bestimmt werden konnte (s. :func:`_guete_mit_optik`).
+    """
+    anteil = kennwerte.get("anteil_auf_flaeche_optik", kennwerte.get("anteil_auf_flaeche"))
     if anteil is None or anteil >= MIN_AUF_FLAECHE:
         return None
     med = kennwerte.get("median_abweichung")

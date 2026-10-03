@@ -24,15 +24,20 @@ Super360Studio/
     georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU
     merge.py             # zwei Aufzeichnungen ausrichten (FGR+ICP) und zusammenschreiben
     meander.py           # Hülle um colorize_pipeline: DJI-Mäanderflug → Farbebene
+    splat.py             # Einfärben über ein Gaussian Splat auf den Ankern der Karte
+    fusion.py            # Onboard an Mäander angleichen und nach Flächenlage mischen
+    exploration.py       # Explorationsgrad: beobachteter Anteil des Zielgebiets
     project.py           # Session/Cache-Verwaltung pro Bag
   scripts/
     record_fastlio.py    # Standalone rclpy-Recorder (läuft in ROS-Umgebung als Subprozess)
+    splat_train.py       # Splat-Training (torch + gsplat, eigener Interpreter, Subprozess)
   ui/                    # PyQt5
     __init__.py
     main_window.py       # MainWindow: Sidebar (Pipeline+Einstellungen) + Tabs
     cloud_view.py        # CloudView(QWidget): VTK-Punktwolken-Viewer
     pano_view.py         # PanoView(QWidget): 360°-Player mit Zoom
     gps_panel.py         # GpsPanel(QWidget): Qualitätsbericht + Georeferenzierung
+    explorationsgrad.py  # Kachel oben rechts in der Menüleiste: Explorationsgrad
   calib/                 # Double-Sphere-Kalibrierungen (Kopien aus dem Stitcher-Projekt)
   config/                # playback.rviz
   assets/                # Anwendungs-Icon
@@ -73,7 +78,12 @@ Super360Studio/
   mavros_msgs .msg-Definitionen: `/opt/ros/humble/share/mavros_msgs/msg/GPSRAW.msg`
   (rosbags braucht register_types aus dieser Definition; Abhängigkeit
   `sensor_msgs/NavSatStatus` ggf. mitregistrieren).
-- Hardware: 12 Kerne, 124 GB RAM, RTX 3060 Ti, X11 DISPLAY=:0.
+- Hardware (nachgemessen 2026-09-16): **4 Kerne, 7,5 GB RAM**, RTX 3060 Ti (8 GB),
+  X11 DISPLAY=:0. Die frühere Angabe hier (12 Kerne, 124 GB) war falsch — wer danach
+  plant, baut Datenstrukturen, die der Rechner nicht trägt: eine float64-Kopie der
+  Farben aller 24 Mio. Punkte sind 576 MB, ein Onboard-Splat-Datensatz als Tensoren
+  bis 5 GB. Der NVIDIA-Treiber lädt zurzeit nicht (Secure Boot, MOK-Schlüssel nicht
+  eingeschrieben), CUDA ist also nicht verfügbar.
 
 ## Konventionen
 
@@ -100,6 +110,11 @@ cache/<bag_dir_name>/
   gps.json              # Liste der Fixe + Merge GPSRAW (s. bag_reader)
   extrinsic.json        # {"T_imu_cam0": [[4x4]]} Kamera-Extrinsik (cam0 im IMU/Body-Frame)
   settings.json         # zuletzt genutzte Einstellungen
+  exploration.json      # Explorationsgrad des Bags (s. core/exploration.py)
+  colors_*_splat/       # Farbebenen aus dem Gaussian Splat, Format wie colors/
+  colors_fusion/        # Onboard + Mäander verschmolzen (core/fusion.py), Format wie colors/
+  colors_fusion_splat/  # Onboard + Mäander aus einem gemeinsamen Splat, Farbe im Mäander
+  splat/<ebene>/        # Splat-Datensatz + Ergebnis (s. core/splat.py), abgeleitet
 ```
 
 ## core/bag_reader.py
@@ -446,6 +461,15 @@ class LivePreview:                        # Handjustage in Echtzeit
     def colorize(self, points, A, b) -> (rgb, maske)
 ```
 
+**Güte der Ausrichtung.** `align` ergänzt `anteil_auf_flaeche_optik` und
+`faktor_tiefe`: der Anteil der Fotopunkte auf der Karte mit der Brennweite, die
+die Fototiefe verlangt (`optik.schaetze_rgb_faktor_tiefe`). Die Pipeline misst
+mit der EXIF-Brennweite, und die Kandidatenwahl zieht die Höhe auf das
+Kantenmaß, das die Kameras richtig setzt statt der Punkte. Am is7-Flug gab das
+für die richtige Lage 0,8 % und einen Fehlalarm, ein um 17° falscher Kandidat
+wäre mit 51 % durchgekommen; mit dem Faktor aus der Tiefe (1,087) sind es 62 %
+gegen 51 %. `pruefe_ausrichtung` nimmt den neuen Wert, wenn es ihn gibt.
+
 **LivePreview** ist der volle Weg in klein. Der teure Teil beim Einfärben ist
 nicht die Rechnung, sondern das Laden von 255 Bildern je Durchlauf. Also einmal
 alle Bilder verkleinert in den Speicher (Faktor 1/6 ⇒ ~40 MB, 3,2 s) und statt
@@ -486,6 +510,131 @@ Fehlermeldung wo gesucht wurde. Für die Rekonstruktion wird ein Interpreter mit
 (uint8 N×3 RGB) + `valid.bin` (uint8 N) + `meta.json`, alle gegen die Punktzahl
 geprüft. Die UI hält sie in `_layers` und schiebt beim Umschalten nur die
 Referenz in die `CloudView` — kein Neuladen.
+
+## core/splat.py + scripts/splat_train.py
+
+Farben aus allen Bildern zugleich lernen, auf Gaussians, die auf der Karte
+sitzen. Kein freies Splat: die Geometrie ist die Lidar-Karte, gelernt wird die
+Farbe. Das Training braucht torch + gsplat + CUDA und läuft deshalb wie COLMAP
+in einem eigenen Interpreter als Subprozess; `core/splat.py` bleibt im
+System-Python und Qt-frei.
+
+```python
+def find_splat_python() -> (str|None, dict)   # SUPER360_SPLAT_PYTHON, ~/.venvs/splat, DRZ-venv
+def hinweis(info) -> str|None                 # warum es nicht geht (z. B. Secure Boot)
+def anker(punkte, voxel=0.05, max_anker=4e6) -> {"pos","normal","voxel","index","anzahl"}
+def ansichten_aus_colmap(cams, A, b) -> (viewmats (V,4,4), {"massstab","abweichung"})
+def entzerrung(model, params, size, bild_groesse, skala) -> (map_x, map_y, K, gueltig)
+def abdeckung(pos, voxel, viewmat, K, W, H, min_weite=0) -> bool (H,W)
+def datensatz_maeander(ordner, ak, cams, bild_ordner, A, b, temperatur=None, halte_jedes=0, …)
+def datensatz_onboard(ordner, ak, rec, teile, calib_json, T_imu_cam0, bmin, bmax, …)
+def datensatz_gemeinsam(ordner, ak, punkte, maeander={…}, onboard={…}, abbildung=None, …)
+def trainieren(python, ordner, progress, cancel, log, alle_bilder=False) -> {"bericht","pruefung"}
+def punkt_farben(ordner, ak) -> {"rgb","maske"[, "temperatur"]}
+def mit_feinstruktur(splat_w, splat_m, direkt_w, direkt_m, index, M, grenze)
+def probe(ak, zellen=60000) -> Punktindizes ganzer Zellen
+def vergleich(ordner, ak, punkte, normalen, {name: (werte, maske)}) -> {"bilder","punkte","methoden"}
+```
+
+Datensatz `splat/<ebene>/` (vom System-Python geschrieben, vom Trainer gelesen):
+
+```
+anker.npz        pos float32 (M,3), normal float32 (M,3), voxel, [farbe0 (M,C) 0..1]
+ansichten.npz    viewmat float32 (V,4,4) Welt(Karte)→Kamera, OpenCV-Achsen (x rechts, y unten, z Blick)
+                 K float32 (V,3,3) Lochkamera ohne Verzeichnung, Pixel k hat die Mitte k+0,5
+                 breite, hoehe, bild, maske (Pfade), holdout bool, quelle (Originalname)
+                 t_lo, t_hi (Temperatur: Bild = (°C − t_lo)/(t_hi − t_lo); RGB: NaN), art
+bilder/NNNN.jpg  RGB 8 Bit, oder .npy float16 (H,W) normierte Temperatur
+bilder/NNNN_m.png  Maske (255 = Pixel belehrt das Splat)
+param.json       schritte, sh_grad, posen, … (Vorgaben in splat_train.VORGABE)
+ergebnis.npz     farbe (M,C), gewicht (M,) Pixel, deckkraft, versatz_m, belichtung_*, pose_*
+bericht.json     verlauf, pruefung (je Prüfbild l1/psnr), posen (Median/Max)
+vergleich/*.jpg  Prüfbild | Render | Differenz ×3
+```
+
+Protokoll des Trainers auf stdout: `INFO`, `STEP i n verlust psnr`,
+`EVAL bild l1_roh l1_angepasst psnr n`, `DONE`. `--alle` trainiert die
+Prüfbilder mit (zweiter Lauf nach der Gegenprobe, gleicher Datensatz),
+`--selbsttest` läuft ohne CUDA auf einem dichten Renderer in reinem torch.
+
+Konventionen, die hier leicht kippen:
+
+* **Kamerakette Mäander.** `p_cam = Rcw·A⁻¹(p − b) + tcw` mit `A = s·Q` wird
+  zu `R = Rcw·Qᵀ`, `t = s·tcw − R·b` (Kamerakoordinaten mit s gestreckt ändern
+  kein Pixel). Nachgeprüft gegen `colorize_pipeline.colorize._project`
+  inklusive Entzerrung: 0,016 px.
+* **Pixelmitten.** COLMAP-Parameter und gsplat: Pixel k bei k+0,5; `cv2.remap`
+  tastet Pixel k bei k ab → `map = u·(iw/W) − 0,5`. Das Double-Sphere-Modell
+  wird wie im Colorizer direkt an `cv2.remap` gegeben.
+* **Quaternionen der Gaussians** in gsplat-Reihenfolge (w, x, y, z) — anders
+  als `poses.npy`.
+* **Gewicht** = Gradient eines Renders mit Farbe 1 nach dieser Farbe (Summe
+  der Blendgewichte). Gerechnet mit harten Flächen (Deckkraft ≥ 0,3 → 0,999,
+  Breite ×1,5), sonst sammelt verdeckter Boden Leckgewicht über der Schwelle.
+* **Onboard-Ansichten** je Linse aus ihrem eigenen Zentrum
+  (`T_world_imu · T_imu_cam0 · T_cam0_cami · R_seite`), keine Parallaxe
+  zwischen den Linsen.
+* **Speicher.** `Datenquelle` im Trainer hält die Bilder im RAM, solange sie
+  unter einem Drittel des freien Speichers bleiben (`speichergrenze`, mindestens
+  1,2 GB), sonst kommt je Schritt eines von der Platte — 3000 Würfelseiten
+  wären 5 GB auf einem Rechner mit 7,5 GB.
+  `farbe0` und `mit_feinstruktur` rechnen aus demselben Grund stückweise.
+* **Gegenprobe.** Die direkte Projektion bekommt dort `tiefe_punkte=ak["pos"]`
+  (s. `core/sichtbar.py`): gefärbt wird nur eine Probe, und aus verstreuten
+  Punkten entsteht keine Tiefenkarte — ohne das gälte jeder verdeckte Punkt als
+  sichtbar und die Gegenprobe fiele zugunsten des Splats aus.
+* **Gemeinsamer Datensatz** (`splat/fusion_splat/`, Ebene `fusion_splat`): beide
+  Teile entstehen in `maeander/` und `onboard/`, `ansichten.npz` im Hauptordner
+  verbindet sie und trägt je Ansicht `bezug`, `herkunft`, `reichweite` und
+  wahlweise `bel0_D/_e`. Die Mäanderansichten sind Bezug und werden nicht
+  belichtet. Die Onboard-Ansichten teilen sich eine Matrix (`gem_D/_e`, lernt
+  bei jedem Onboard-Schritt), je Ansicht kommt nur eine Abweichung dazu, mit
+  Halt bei `bel0` (die Abbildung aus `core/fusion.py`, wenn sie
+  `fusion.unplausibel` besteht). Eine Matrix je Ansicht allein lernt nichts:
+  2373 Onboard-Ansichten in 1500 Onboard-Schritten, am is7-Flug blieb sie bei
+  0,997. Die Farbe des Splats steht im Farbraum des Mäanders. Gezogen wird
+  abwechselnd je Herkunft, gewichtet mit `ziehen` (z. B. `{"maeander": 2}`).
+  Für Onboard-Prüfbilder meldet der Bericht zusätzlich `l1_gemeinsam`: der
+  Fehler mit der gelernten gemeinsamen Matrix statt einer nachträglichen. `reichweite` gilt je Ansicht: Onboard 60 m, Mäander
+  unbegrenzt. Der Selbsttest prüft das mit fremder Farbmatrix auf der halben
+  Szene.
+* **`abdeckung`** streicht Pixel wieder, vor denen etwas näher als `min_weite`
+  steht (Onboard-Start: der Boden direkt unter der Drohne).
+
+## core/fusion.py
+
+Onboard sieht Fassaden, der Mäander Dächer und Boden; nebeneinander passen die
+Farben nicht (anderer Sensor, Weißabgleich, Belichtung). Ohne GPU, direkt auf
+den fertigen Farbebenen:
+
+```python
+def schaetze_abbildung(quelle, ziel, gewicht=None) -> (M (3,3), t (3,))
+def gewicht_maeander(normalen) -> float32 (N,)   # Anteil des Mäanders je Punkt
+def fusioniere(onboard, maeander, normalen, …) -> {"rgb","maske","M","t","bericht"}
+```
+
+1. **Farbabbildung** Onboard → Mäander, `ziel ≈ M·quelle + t`, auf den Punkten,
+   die beide Ebenen gefärbt haben. Dasselbe Modell wie `belichtung_D/_e` im
+   Splat-Trainer, nur einmal für den ganzen Flug. Bezug ist der Mäander. Robust
+   geschätzt (Huber, IRLS), vorgewichtet mit der Flächenlage: auf waagerechten
+   Flächen ist der Mäander verlässlich. Geschätzt auf einer Hälfte der
+   Überlappung, geprüft auf der anderen (`abstand_vorher/_nachher`, Median in 0–255).
+2. **Mischung** nach `|n_z|` mit weichem Übergang zwischen 0,4 und 0,8 und
+   mindestens 10 % je Quelle, wo beide färben. Wo nur eine färbt, bleibt sie
+   (Onboard angeglichen).
+
+Die UI nimmt je Seite die Splat-Ebene, falls vorhanden, sonst die direkte
+Projektion. Welche es war, steht in `meta.json` zusammen mit `M`, `t` und dem
+Bericht. Grenze: bei stark wechselnder Belichtung an Bord reicht eine Abbildung
+für den ganzen Flug nicht. Dann gehört die Anpassung je Bild ins gemeinsame
+Splat (`datensatz_gemeinsam`), und `M`, `t` von hier dienen dort als Startwert
+der Onboard-Matrix.
+
+`unplausibel(M, t, bericht)` sagt, wann die Abbildung kein Kameraunterschied
+ist: Diagonale unter 0,4 oder Nebendiagonale über 60 % der Diagonale, oder der
+Abstand sinkt nicht unter 60 %. Das passiert, wenn beide Flüge Verschiedenes
+zeigen — am is7-Projekt Onboard vom 08.09. aus 2,5–3 m Höhe, Mäander vom 09.09.,
+dazwischen umgeparkte Autos; die Matrix bekam negative Spalten (111 → 66).
 
 ## core/bundle.py
 
@@ -552,6 +701,71 @@ def export_las(points_xyz, colors_rgb, georef: GeorefResult | None, path: str): 
 def export_ply_pcd(points_xyz, colors_rgb, path: str): ...   # open3d, Endung entscheidet
 ```
 
+## core/exploration.py
+
+Explorationsgrad: welchen Anteil des Zielgebiets der Flug beobachtet hat — dieselbe
+Rechnung wie `BA_Evaluation/auswertung_exploration.py`, damit GUI und Bachelorarbeit
+dieselben Zahlen zeigen (nachgeprüft an drei Flügen, identisch bis zur
+Nachkommastelle: 2026-09-18 98,4 % / 100,0 % und 19,5 Prozentpunkte Zuwachs,
+2026-09-08 96,8 % / 100,0 %, Flug6 69,9 % / 99,2 % und 38,7 Prozentpunkte).
+
+```python
+TOPIC_BOX = "/exploration/box"; TOPIC_SCAN = "/quad0_pcl_render_node/cloud"
+TOPIC_ODOM = "/quad_0/lidar_slam/odom"; TOPIC_STATUS = "/epic/bridge_status"
+TOPIC_MODE = "/mavros/state";  VOXEL_M = 0.5
+
+class KeineExplorationsdaten(RuntimeError): ...   # Bag ohne EPIC-Topics (kein Defekt)
+
+@dataclass
+class Explorationsgrad:
+    prozent: float | None          # im Explorationsmodus (None = keine Phase im Bag)
+    prozent_flaeche: float | None  # dasselbe für die Grundfläche (Draufsicht)
+    prozent_gesamt: float; prozent_flaeche_gesamt: float      # ganzer Flug
+    stand_beginn: float | None; stand_ende: float | None; zuwachs: float | None
+    box_min: list[float]; box_max: list[float]
+    volumen_m3: float; flaeche_m2: float; voxel_m: float
+    phasen: list[tuple[float, float]]; quelle: str            # woher die Phasen stammen
+    dauer_s: float; strecke_m: float
+    scans: int; scans_phase: int; bag_dauer_s: float; bag: str
+    verlauf_t: list[float]; verlauf_p: list[float]            # ganzer Flug über der Zeit
+    hat_phase: bool      # Property
+    wert: float          # Property: prozent, sonst prozent_gesamt
+    bezug: str           # Property: "Explorationsmodus" | "ganzer Flug"
+    def kurz(self) -> str; def text(self) -> str              # Anzeige bzw. Bericht
+    def als_dict(self) -> dict; @classmethod aus_dict(cls, d) -> "Explorationsgrad"
+
+def berechne(bag_path: str, voxel: float = VOXEL_M, progress=None, cancel=None
+             ) -> Explorationsgrad: ...
+def lies_box(reader); def lies_flugbahn(reader); def lies_phasen(reader)
+```
+
+Verfahren: Box aus `/exploration/box` (CUBE-Marker) in Zellen von `voxel` zerlegen; je
+Scan aus `/quad0_pcl_render_node/cloud` jeden Strahl Sensor→Messpunkt in Schritten von
+`voxel/2` abtasten (Sensorposition = zeitlich nächste `/quad_0/lidar_slam/odom`,
+Reichweite gekappt an der entferntesten Box-Ecke); jede getroffene Zelle gilt als
+beobachtet. **Zwei Raster in einem Durchlauf**: alle Scans (ganzer Flug) und nur die
+Scans im Explorationsmodus — der Vergleichswert kostet damit nichts extra.
+Explorationsmodus = `FEEDING` aus `/epic/bridge_status`, ersatzweise `OFFBOARD` aus
+`/mavros/state`; gibt es beides nicht, flog niemand autonom: `prozent` ist dann `None`
+und `wert` fällt auf den ganzen Flug zurück (`bezug` sagt, was gilt).
+
+Gelesen wird das Bag direkt (`rosbags`, eigener Typestore mit `mavros_msgs/State`),
+**nicht** die FAST-LIO-Aufzeichnung des Studios: Box, Scans und Bahn stammen so alle
+aus dem Weltsystem der Onboard-Kartierung. Die lotrecht gedrehte Studio-Karte
+(`gravity_level`) würde gegen die Box verkippen. Laufzeit rund 3 s für 1000 Scans; das
+Ergebnis liegt danach als `exploration.json` im Projekt.
+
+## ui/explorationsgrad.py — `class ExplorationsgradAnzeige(QFrame)`
+
+Kachel in der rechten Ecke der Menüleiste
+(`menuBar().setCornerWidget(w, Qt.TopRightCorner)`), in jedem Bereich sichtbar:
+Überschrift, Bezug (`Explorationsmodus · 83,0 s` bzw. `ganzer Flug`) und rechts groß der
+Wert; Ampel ab 85 % grün, ab 60 % gelb, darunter orange. Zustände: `leeren()`,
+`rechnet()`, `ohne_daten(grund)`, `setze(grad)`; ein Klick meldet `angeklickt` → das
+Fenster zeigt `grad.text()` im Dialog. **Die Breiten von Text und Wert sind fest**: die
+Menüleiste fragt die Größe der Ecke nur einmal ab, ein wachsender `sizeHint` würde
+abgeschnitten.
+
 ## ui/cloud_view.py — `class CloudView(QWidget)`
 
 VTK (QVTKRenderWindowInteractor). API (alles Slots-tauglich, Aufruf aus GUI-Thread):
@@ -616,7 +830,10 @@ Layout: links Sidebar (QScrollArea, feste Breite ~360 px) mit Gruppen:
 5. **Export** — "PLY/PCD speichern…", "LAS speichern…" (mit Georef falls vorhanden).
 Zentral: QTabWidget "3D-Karte" (CloudView) / "360°-Video" (PanoView) / "GPS" (GpsPanel)
 / "Protokoll" (QPlainTextEdit, alle log_cb-Zeilen).
-Statusleiste: aktueller Schritt + unbestimmte Busy-Anzeige.
+Statusleiste: aktueller Schritt + unbestimmte Busy-Anzeige. Oben rechts in der
+Menüleiste die Explorationsgrad-Kachel (s. ui/explorationsgrad.py); sie wird beim Öffnen
+eines Bags mitgerechnet (aus `exploration.json`, sonst frisch) und über *Werkzeuge →
+Explorationsgrad neu berechnen* am Cache vorbei erneuert.
 Worker: EIN generisches `class Worker(QThread)` mit fn/args, Signale
 progress(float,str)/finished(object)/failed(str); pro Schritt ein Worker; Knöpfe
 gegenseitig sperren solange busy; Abbrechen-Knopf setzt cancel-Event.
@@ -635,6 +852,9 @@ class Project:
     def has_recording(self) -> bool; ...
     def load_settings(self) -> dict; def save_settings(self, d: dict)
     def load_extrinsic(self) -> np.ndarray | None; def save_extrinsic(self, T)
+    def exploration_json(self); def has_exploration(self) -> bool
+    def load_exploration(self) -> dict | None   # None auch bei beschädigter Datei
+    def save_exploration(self, d: dict)
 ```
 
 ## Teststrategie

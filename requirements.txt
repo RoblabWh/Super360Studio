@@ -19,3 +19,8 @@ pyproj>=3.4            # 3.7.1    UTM-Projektion fuer den georeferenzierten Expo
 pyqtdarktheme>=2.1     # 2.1.0    dunkles Theme; fehlt es, startet die App im Standard-Look
 pyopencl>=2024.1       # 2026.1.4 Einfaerben auf der GPU per OpenCL (fertiges Wheel, kein
                        #          CUDA-Build); fehlt es, faerbt die CPU — gleiches Ergebnis
+
+# Gaussian Splat (optional) laeuft in einem EIGENEN Interpreter, nicht hier:
+#   python3 -m venv ~/.venvs/splat && ~/.venvs/splat/bin/pip install torch gsplat
+# Vorhanden und auf der CPU geprueft: torch 2.4.0+cu121, gsplat 1.5.3. Der
+# GPU-Weg (gsplat-Rasterisierung) ist noch nicht gelaufen (s. README, "Gaussian Splat").

@@ -14,6 +14,7 @@ Layout (s. ARCHITECTURE.md; <key> = <bag_dir_name>-<md5(abspath)[:8]>):
       gps.json            Fix-Liste inkl. GPSRAW-Merge
       extrinsic.json      {"T_imu_cam0": [[4x4]]}
       settings.json       zuletzt genutzte Einstellungen
+      exploration.json    Explorationsgrad des Bags (exploration.Explorationsgrad)
 """
 
 from __future__ import annotations
@@ -137,10 +138,18 @@ class Project:
 
     #: Farbebenen: Schluessel -> Unterordner. "onboard" ist die Einfaerbung
     #: aus der 360-Kamera und heisst aus Kompatibilitaet weiter "colors".
+    #: Die "_splat"-Ebenen kommen aus einem Gaussian Splat auf der Karte
+    #: (core/splat.py) und liegen neben der direkten Projektion derselben
+    #: Bilder, damit beide sich vergleichen lassen.
     LAYERS = {
         "onboard": "colors",
+        "onboard_splat": "colors_onboard_splat",
         "meander_rgb": "colors_meander_rgb",
+        "meander_splat": "colors_meander_splat",
         "meander_thermal": "colors_meander_thermal",
+        "meander_thermal_splat": "colors_meander_thermal_splat",
+        "fusion": "colors_fusion",
+        "fusion_splat": "colors_fusion_splat",
     }
 
     def colors_dir(self) -> str:
@@ -181,6 +190,9 @@ class Project:
     def settings_json(self) -> str:
         return os.path.join(self.dir, "settings.json")
 
+    def exploration_json(self) -> str:
+        return os.path.join(self.dir, "exploration.json")
+
     # ------------------------------------------------------------ existence
 
     def has_recording(self) -> bool:
@@ -200,6 +212,9 @@ class Project:
     def has_extrinsic(self) -> bool:
         return os.path.isfile(self.extrinsic_json())
 
+    def has_exploration(self) -> bool:
+        return os.path.isfile(self.exploration_json())
+
     # -------------------------------------------------------------- settings
 
     def load_settings(self) -> dict:
@@ -217,6 +232,28 @@ class Project:
 
     def save_settings(self, d: dict) -> None:
         _write_json_atomic(self.settings_json(), dict(d))
+
+    # ----------------------------------------------------------- Explorationsgrad
+
+    def load_exploration(self) -> dict | None:
+        """Gespeicherter Explorationsgrad, oder None.
+
+        Anders als bei den Einstellungen wirft eine beschaedigte Datei hier
+        nicht: der Wert ist abgeleitet und in Sekunden neu gerechnet — ein
+        kaputter Zwischenstand darf das Oeffnen des Bags nicht aufhalten.
+        """
+        path = self.exploration_json()
+        if not os.path.isfile(path):
+            return None
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def save_exploration(self, d: dict) -> None:
+        _write_json_atomic(self.exploration_json(), dict(d))
 
     # ------------------------------------------------------------- extrinsic
 
@@ -303,6 +340,17 @@ if __name__ == "__main__":
     err = np.abs(T2 - T).max()
     assert T2 is not None and T2.shape == (4, 4) and err < 1e-12
     print(f"extrinsic roundtrip OK: max|err|={err:.2e}")
+
+    # Explorationsgrad-Rundlauf; beschaedigte Datei ergibt None statt Fehler
+    assert not prj.has_exploration() and prj.load_exploration() is None
+    grad = {"prozent": 59.7, "phasen": [[18.7, 101.7]], "voxel_m": 0.5}
+    prj.save_exploration(grad)
+    assert prj.has_exploration() and prj.load_exploration() == grad
+    with open(prj.exploration_json(), "w", encoding="utf-8") as fh:
+        fh.write("{kaputt")
+    assert prj.load_exploration() is None, "beschaedigte Datei muss None ergeben"
+    os.remove(prj.exploration_json())
+    print("exploration roundtrip OK (inkl. beschaedigter Datei)")
 
     # Trailing-Slash-Pfad ergibt gleichen Namen UND gleiches Cache-Verzeichnis
     prj_slash = Project(BAG + "/", cache_root=root)
