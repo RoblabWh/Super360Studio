@@ -17,6 +17,14 @@ aufsteigend bleibt — darauf verlaesst sich ``Recording.interpolate_pose`` per
 ``searchsorted``. Ueberlappen sich die Zeitraeume beider Bags, wird abgelehnt
 statt still etwas Falsches zu schreiben.
 
+Lotrecht: :func:`register` sucht nur um die Hochachse breit, Kippen verfeinert
+ICP bloss. Beide Wolken muessen also gleich lotrecht stehen. Startet ein Flug
+schon in der Luft, findet ``Recording.load`` kein Ruhefenster und laesst ihn
+gekippt (bei schraeg montiertem Livox um 35-45 Grad); dann landet jede Suche
+in einer falschen Lage. :func:`lotrechte_aus_flug` misst die Lotrechte deshalb
+ueber den ganzen Flug, :func:`kippausgleich` dreht B so, dass seine Lotrechte
+auf der von A steht.
+
 Qt-frei. open3d wird erst in :func:`register` importiert, damit der Rest der
 Anwendung ohne die Bibliothek startet.
 """
@@ -33,8 +41,11 @@ from scipy.spatial.transform import Rotation
 
 _REG_TARGET_PTS = 400_000   # so viele Punkte gehen hoechstens in die Ausrichtung
 _WRITE_CHUNK = 2_000_000    # Punkte je Schreibblock (~24 MB)
-_YAW_CANDIDATES = (45, 90, 135, 180, 225, 270, 315)
+_YAW_CANDIDATES = tuple(range(30, 360, 30))
 _FGR_TRIALS = 10
+_FEIN_ZIEL = 0.10           # m, feinstes Voxel im Feinschliff
+_LOT_MIN_S = 10.0           # s Flug, darunter ist das Mittel keine Lotrechte
+_LOT_MAX_STREUUNG = 2.0     # Grad zwischen den Flughaelften, darueber unbrauchbar
 
 
 def _check_cancel(cancel) -> None:
@@ -70,6 +81,82 @@ def cloud_for_registration(rec, max_points: int = _REG_TARGET_PTS) -> np.ndarray
     return np.vstack(out).astype(np.float64)
 
 
+def lotrechte_aus_flug(rec, teile) -> np.ndarray | None:
+    """Lotrechte (Einheitsvektor nach oben) im aktuellen Weltsystem von ``rec``.
+
+    Mittel der IMU-Beschleunigung ueber den ganzen Flug, je Sample mit der
+    interpolierten Pose ins Weltsystem gedreht. Die Bewegungsbeschleunigung
+    mittelt sich heraus (sie ist die Geschwindigkeitsaenderung durch die
+    Flugdauer, also fast null), uebrig bleibt die Gegenkraft zur Schwerkraft.
+    Anders als das Ruhefenster in ``Recording.load`` klappt das auch, wenn die
+    Aufnahme erst in der Luft gestartet wurde.
+
+    ``teile``: Liste ``(bag_pfad, scan_von, scan_bis)``, bei einer
+    zusammengefuehrten Aufzeichnung je Quelle ein Eintrag. None, wenn es keine
+    IMU gibt, der Flug kuerzer als _LOT_MIN_S ist oder die beiden Flughaelften
+    mehr als _LOT_MAX_STREUUNG auseinanderliegen.
+    """
+    from scipy.spatial.transform import Slerp
+
+    from core.bag_reader import BagReader
+
+    stuecke: list[tuple[np.ndarray, np.ndarray]] = []
+    for bag, s0, s1 in teile:
+        s0, s1 = int(s0), min(int(s1), int(rec.n_scans))
+        if s1 - s0 < 2:
+            continue
+        stamps = np.asarray(rec.stamps[s0:s1], dtype=np.float64)
+        # Slerp braucht streng steigende Stempel; doppelte kommen vor
+        steigt = np.concatenate([[True], np.diff(stamps) > 0])
+        if np.count_nonzero(steigt) < 2:
+            continue
+        try:
+            with BagReader(str(bag)) as reader:
+                t, acc = reader.read_imu_accel(float(stamps[0]), float(stamps[-1]))
+        except Exception:  # noqa: BLE001 — ohne IMU keine Messung, kein Fehler
+            continue
+        if len(t) < 2:
+            continue
+        drehung = Slerp(stamps[steigt],
+                        Rotation.from_quat(rec.poses[s0:s1, 3:7][steigt]))(t)
+        stuecke.append((t, drehung.apply(acc)))
+    if not stuecke:
+        return None
+    t = np.concatenate([x[0] for x in stuecke])
+    welt = np.concatenate([x[1] for x in stuecke])
+    if float(t.max() - t.min()) < _LOT_MIN_S:
+        return None
+    oben = welt.mean(axis=0)
+    if float(np.linalg.norm(oben)) < 1e-9:
+        return None
+    oben /= np.linalg.norm(oben)
+    haelfte = len(welt) // 2
+    for teil in (welt[:haelfte], welt[haelfte:]):
+        v = teil.mean(axis=0)
+        v /= max(float(np.linalg.norm(v)), 1e-12)
+        if np.degrees(np.arccos(np.clip(v @ oben, -1.0, 1.0))) > _LOT_MAX_STREUUNG:
+            return None
+    return oben
+
+
+def kippausgleich(oben_a: np.ndarray, oben_b: np.ndarray) -> tuple[np.ndarray, float]:
+    """Kuerzeste Drehung (4x4, um den Ursprung), die ``oben_b`` auf ``oben_a`` legt.
+
+    Die kuerzeste, damit die Gier unangetastet bleibt; die sucht
+    :func:`register`. Rueckgabe ``(T, winkel_grad)``.
+    """
+    a = np.asarray(oben_a, dtype=np.float64) / np.linalg.norm(oben_a)
+    b = np.asarray(oben_b, dtype=np.float64) / np.linalg.norm(oben_b)
+    achse = np.cross(b, a)
+    winkel = float(np.arctan2(np.linalg.norm(achse), float(a @ b)))
+    T = np.eye(4)
+    if np.linalg.norm(achse) > 1e-12:
+        T[:3, :3] = Rotation.from_rotvec(achse / np.linalg.norm(achse) * winkel).as_matrix()
+    elif a @ b < 0:  # genau auf dem Kopf: um eine beliebige waagrechte Achse
+        T[:3, :3] = Rotation.from_rotvec([np.pi, 0.0, 0.0]).as_matrix()
+    return T, float(np.degrees(winkel))
+
+
 def _o3d_cloud(points: np.ndarray, voxel: float, normals: bool = True):
     import open3d as o3d
     pc = o3d.geometry.PointCloud()
@@ -86,17 +173,28 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
              progress_cb=None, cancel=None) -> dict:
     """Starre Transformation, die ``points_b`` auf ``points_a`` legt.
 
-    ``mode="auto"``  probiert Identitaet, Schwerpunktversatz, acht Drehungen um
-    die Hochachse und mehrere Laeufe Fast Global Registration ueber
-    FPFH-Merkmale durch und verfeinert jede Startlage mit ICP von grob nach
-    fein (Punkt zu Ebene). Bewertet wird Trefferquote minus Restfehler.
+    ``mode="auto"``  probiert Identitaet, Schwerpunktversatz, Drehungen um die
+    Hochachse in 30-Grad-Schritten und mehrere Laeufe Fast Global Registration
+    ueber FPFH-Merkmale durch und verfeinert jede Startlage mit ICP (Punkt zu
+    Ebene) im groben und mittleren Raster. Bewertet wird dort, Trefferquote
+    minus Restfehler: das grobe Raster sieht die Gesamtform (Halle samt Hof)
+    statt sich wiederholender Einzelheiten wie Dachbinder, und sein weiter
+    Fangradius zieht auch Startlagen mit einigen Metern Versatz noch heran.
+    Die Drehungen setzen gleich lotrechte Wolken voraus, s. Modulkopf.
+
+    Danach verfeinert ein Feinschliff die beste Lage in mehreren Stufen bis
+    _FEIN_ZIEL. Erst der bringt die Genauigkeit; das mittlere Raster ist bei
+    grossen Szenen ueber einen Meter grob.
 
     ``mode="icp"`` laesst die Suche weg und verfeinert nur ``T_init``. Das
     reicht nach einer Handjustage und dauert Sekunden statt Minuten.
 
-    Rueckgabe ``{"T", "fitness", "rmse", "kandidat", "voxel"}``. ``fitness`` ist
-    der Anteil der Punkte aus B, die in A einen Partner finden — unter etwa 0,3
-    ist die Ausrichtung nicht zu trauen.
+    Rueckgabe ``{"T", "fitness", "rmse", "kandidat", "rangliste", "voxel"}``.
+    ``fitness`` ist der Anteil der Punkte aus B, die im mittleren Raster in A
+    einen Partner finden — unter etwa 0,3 ist die Ausrichtung nicht zu trauen.
+    ``rmse`` ist der Restfehler nach dem Feinschliff. ``rangliste`` fuehrt
+    ``(bewertung, name, fitness, rmse)`` aller Kandidaten, beste zuerst; liegt
+    der zweite knapp hinter dem ersten, war die Wahl nicht eindeutig.
     """
     try:
         import open3d as o3d
@@ -117,9 +215,8 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
         raise RuntimeError("Punktwolken haben keine brauchbare Ausdehnung.")
     v_grob = max(0.05, diag / 80.0)
     v_mittel = max(0.02, diag / 200.0)
-    v_fein = max(0.008, diag / 600.0)
 
-    prog(0.05, f"Dünne aus ({v_grob:.2f}/{v_mittel:.2f}/{v_fein:.2f} m) …")
+    prog(0.05, f"Dünne aus ({v_grob:.2f}/{v_mittel:.2f} m) …")
     _check_cancel(cancel)
     a_grob, b_grob = _o3d_cloud(points_a, v_grob), _o3d_cloud(points_b, v_grob)
     a_mit, b_mit = _o3d_cloud(points_a, v_mittel), _o3d_cloud(points_b, v_mittel)
@@ -179,6 +276,7 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
         return res.fitness - res.inlier_rmse / max(v_mittel, 1e-6)
 
     bestes: tuple[float, str, np.ndarray, float, float] | None = None
+    rangliste: list[tuple[float, str, float, float]] = []
     for i, (name, T0) in enumerate(kandidaten):
         _check_cancel(cancel)
         prog(0.3 + 0.5 * i / max(len(kandidaten), 1),
@@ -197,6 +295,7 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
         if res is None:
             continue
         s = bewerten(res)
+        rangliste.append((float(s), name, float(res.fitness), float(res.inlier_rmse)))
         if bestes is None or s > bestes[0]:
             bestes = (s, name, np.asarray(T, dtype=np.float64),
                       float(res.fitness), float(res.inlier_rmse))
@@ -207,21 +306,40 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
             "Erst von Hand grob zusammenschieben, dann 'Nur ICP'.")
 
     _, name, T, fit, rmse = bestes
-    prog(0.85, "Feinschliff auf der dichten Wolke …")
-    _check_cancel(cancel)
-    a_fein, b_fein = _o3d_cloud(points_a, v_fein), _o3d_cloud(points_b, v_fein)
+    # Feinschliff in Stufen: jede teilt das Voxel durch 2,5, bis _FEIN_ZIEL
+    # erreicht ist (bei kleinen Szenen mindestens eine Stufe unter v_mittel).
+    ziel = min(_FEIN_ZIEL, v_mittel / 2.0)
+    stufen: list[float] = []
+    v = v_mittel
+    while v > ziel * 1.01:
+        v = max(v / 2.5, ziel)
+        stufen.append(v)
+    a_f = b_f = None
+    T_fein = np.asarray(T, dtype=np.float64)
     try:
-        for faktor in (4.0, 2.0, 1.0):
-            res = icp(b_fein, a_fein, T, v_fein * faktor, 120)
-            if res.fitness >= fit * 0.8:      # nicht schlechter werden lassen
-                T, fit, rmse = (np.asarray(res.transformation, dtype=np.float64),
-                                float(res.fitness), float(res.inlier_rmse))
-    except Exception:  # noqa: BLE001 — der grobe Wert steht schon
-        pass
+        for k, v in enumerate(stufen):
+            _check_cancel(cancel)
+            prog(0.85 + 0.13 * k / len(stufen), f"Feinschliff {v:.2f} m …")
+            a_f, b_f = _o3d_cloud(points_a, v), _o3d_cloud(points_b, v)
+            for faktor in (2.0, 1.0):
+                T_fein = np.asarray(icp(b_f, a_f, T_fein, v * faktor, 60).transformation)
+        # Vorher und nachher bei DERSELBEN Schwelle messen: bei kleinerer Schwelle
+        # faellt die Trefferquote von selbst, das sagt nichts ueber die Lage.
+        schwelle = 2.0 * stufen[-1]
+        reg = o3d.pipelines.registration
+        vorher = reg.evaluate_registration(b_f, a_f, schwelle, T)
+        nachher = reg.evaluate_registration(b_f, a_f, schwelle, T_fein)
+        if nachher.fitness >= vorher.fitness:
+            T, rmse = T_fein, float(nachher.inlier_rmse)
+        else:
+            rmse = float(vorher.inlier_rmse)
+    except Exception:  # noqa: BLE001 — der Wert aus dem mittleren Raster steht schon
+        _check_cancel(cancel)   # ein Abbruch soll nicht als Fehlschlag durchgehen
     prog(1.0, f"Ausgerichtet: Trefferquote {fit:.2f}, Restfehler {rmse:.3f} m")
     # beschreibbare Kopie: open3d-Transformationen sind read-only
     return {"T": np.array(T, dtype=np.float64), "fitness": fit, "rmse": rmse,
-            "kandidat": name, "voxel": (v_grob, v_mittel, v_fein)}
+            "kandidat": name, "rangliste": sorted(rangliste, reverse=True),
+            "voxel": (v_grob, v_mittel, stufen[-1] if stufen else v_mittel)}
 
 
 def transform_poses(poses: np.ndarray, T: np.ndarray) -> np.ndarray:

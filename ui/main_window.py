@@ -394,7 +394,12 @@ class MainWindow(QMainWindow):
         self._merge_rec = None
         self._merge_cloud: Optional[np.ndarray] = None
         self._merge_T = np.eye(4)
+        # Lage nach der letzten Ausrichtung; die Handregler wirken obendrauf
+        self._merge_T_basis = np.eye(4)
         self._merge_center = np.zeros(3)
+        # Kippausgleich des zweiten Flugs (4x4) und sein Winkel, s. core.merge
+        self._merge_T_kipp = np.eye(4)
+        self._merge_kipp_grad: Optional[float] = None
         self._parts: Optional[list] = None
         # Farbebenen: Schluessel -> (rgb, maske). 'onboard' kommt aus der
         # 360-Kamera, die beiden anderen aus dem Maeanderflug.
@@ -4137,7 +4142,10 @@ class MainWindow(QMainWindow):
         self._merge_rec = None
         self._merge_cloud = None
         self._merge_T = np.eye(4)
+        self._merge_T_basis = np.eye(4)
         self._merge_center = np.zeros(3)
+        self._merge_T_kipp = np.eye(4)
+        self._merge_kipp_grad = None
         self._cloud_view.set_preview_cloud(None)
         if hasattr(self, "_lbl_merge"):
             self._lbl_merge.setText("Kein zweiter Flug geladen.")
@@ -4147,17 +4155,25 @@ class MainWindow(QMainWindow):
                 sp.blockSignals(False)
 
     def _merge_T_from_spins(self) -> np.ndarray:
-        """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben."""
+        """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben.
+
+        Die Regler sind ein Versatz zur Lage der letzten Ausrichtung
+        (``_merge_T_basis``), nicht zum Ladeort. Nach 'Nur ICP' stehen sie auf
+        null; galten sie ab Ursprung, fiel die Wolke beim ersten Reglerschritt
+        auf ihren Ladeort zurück.
+        """
+        basis = self._merge_T_basis
+        mitte = basis[:3, :3] @ self._merge_center + basis[:3, 3]
         yaw = np.radians(float(self._spin_merge["yaw"].value()))
         R = np.eye(4)
         R[:3, :3] = Rotation.from_euler("z", yaw).as_matrix()
         hin = np.eye(4)
-        hin[:3, 3] = self._merge_center
+        hin[:3, 3] = mitte
         weg = np.eye(4)
-        weg[:3, 3] = -self._merge_center
-        T = hin @ R @ weg
-        T[:3, 3] += [float(self._spin_merge[k].value()) for k in ("x", "y", "z")]
-        return T
+        weg[:3, 3] = -mitte
+        D = hin @ R @ weg
+        D[:3, 3] += [float(self._spin_merge[k].value()) for k in ("x", "y", "z")]
+        return D @ basis
 
     def _merge_refresh_preview(self) -> None:
         if self._merge_cloud is None:
@@ -4237,6 +4253,9 @@ class MainWindow(QMainWindow):
 
     def _merge_load_second(self, path: str, project_b) -> None:
         rec_dir = project_b.recording_dir()
+        rec_a = self._rec
+        teile_a = ([(p[0].bag_path, p[1], p[2]) for p in self._parts] if self._parts
+                   else [(self._bag.bag_path, 0, int(rec_a.n_scans))])
 
         def job(progress_cb, cancel, log_cb):
             from core import merge as merge_mod
@@ -4245,10 +4264,31 @@ class MainWindow(QMainWindow):
             note = rec_b.level_note()
             if note:
                 log_cb(f"Zweiter Flug — {note}")
+            # Gleich lotrecht stellen wie den offenen Flug. Recording.load
+            # schafft das nur mit Ruhefenster am Bag-Anfang; startete die
+            # Aufnahme in der Luft, bliebe B um die Einbaulage gekippt und keine
+            # Suche um die Hochachse faende die richtige Lage.
+            progress_cb(0.3, "Lotrechte beider Flüge aus der IMU …")
+            oben_b = merge_mod.lotrechte_aus_flug(rec_b, [(path, 0, rec_b.n_scans)])
+            oben_a = merge_mod.lotrechte_aus_flug(rec_a, teile_a)
+            if oben_a is None and rec_a.gravity_level is not None:
+                oben_a = np.array([0.0, 0.0, 1.0])   # beim Laden lotrecht gestellt
+            T_kipp, kipp = np.eye(4), None
+            if oben_a is not None and oben_b is not None:
+                T_kipp, kipp = merge_mod.kippausgleich(oben_a, oben_b)
+                rec_b.poses = merge_mod.transform_poses(rec_b.poses, T_kipp)
+                if kipp >= 1.0:
+                    log_cb(f"Zweiter Flug um {kipp:.1f}° gekippt gegenüber dem "
+                           f"offenen (Lotrechte aus der IMU über den ganzen Flug) "
+                           f"— ausgeglichen.")
+            else:
+                log_cb("Zweiter Flug: Lotrechte nicht messbar — er bleibt, wie "
+                       "FAST-LIO ihn liefert. Steht er schief, findet "
+                       "Auto-Ausrichten ihn womöglich nicht.")
             progress_cb(0.6, "Dünne für die Vorschau aus …")
             wolke = merge_mod.cloud_for_registration(rec_b)
             return {"rec": rec_b, "cloud": wolke, "path": path,
-                    "proxy": ThreadLocalBag(path)}
+                    "proxy": ThreadLocalBag(path), "T_kipp": T_kipp, "kipp": kipp}
 
         self._start_worker("Lade zweiten Flug …", job, self._on_merge_loaded)
 
@@ -4259,6 +4299,9 @@ class MainWindow(QMainWindow):
         self._merge_center = (self._merge_cloud.mean(axis=0)
                               if len(self._merge_cloud) else np.zeros(3))
         self._merge_T = np.eye(4)
+        self._merge_T_basis = np.eye(4)
+        self._merge_T_kipp = np.asarray(res["T_kipp"], dtype=np.float64)
+        self._merge_kipp_grad = res["kipp"]
         for sp in self._spin_merge.values():
             sp.blockSignals(True)
             sp.setValue(0.0)
@@ -4299,17 +4342,26 @@ class MainWindow(QMainWindow):
 
     def _on_merge_aligned(self, res: dict) -> None:
         self._merge_T = np.asarray(res["T"], dtype=np.float64)
+        # Neue Basis: die Regler gehen auf null und verschieben ab jetzt
+        # relativ zu dieser Lage (s. _merge_T_from_spins).
+        self._merge_T_basis = self._merge_T.copy()
         self._merge_refresh_preview()
-        for sp in self._spin_merge.values():   # Handfelder gelten jetzt nicht mehr
+        for sp in self._spin_merge.values():
             sp.blockSignals(True)
             sp.setValue(0.0)
             sp.blockSignals(False)
         fit, rmse = res["fitness"], res["rmse"]
         self._lbl_merge.setText(
             f"Ausgerichtet über '{res['kandidat']}': Trefferquote {fit:.2f}, "
-            f"Restfehler {rmse:.3f} m.")
+            f"Restfehler {rmse:.3f} m. Die Regler verschieben ab hier "
+            f"relativ zu dieser Lage.")
         self._log(f"Ausrichtung: Kandidat '{res['kandidat']}', Trefferquote "
                   f"{fit:.2f}, Restfehler {rmse:.3f} m.")
+        rang = res.get("rangliste") or []
+        if len(rang) > 1:
+            self._log("Bewertung der besten Startlagen (gleiche Zahl = gleiche "
+                      "Lage gefunden): " + ", ".join(
+                          f"{name} {wert:+.3f}" for wert, name, *_ in rang[:5]))
         if fit < 0.3:
             self._log("WARNUNG: Trefferquote unter 0,3 — die Wolken überlappen "
                       "vermutlich zu wenig. Von Hand grob zusammenschieben und "
@@ -4339,12 +4391,17 @@ class MainWindow(QMainWindow):
         rec_a, rec_b = self._rec, self._merge_rec
         T = self._merge_T.copy()
         out_dir = project_m.recording_dir()
+        # T_ab gilt fuer B nach dem Kippausgleich; von B wie geladen nach A
+        # fuehrt T_ab @ T_kipp_b.
+        info = {"fitness": None,
+                "T_kipp_b": self._merge_T_kipp.tolist(),
+                "kipp_b_grad": self._merge_kipp_grad}
 
         def job(progress_cb, cancel, log_cb):
             from core import merge as merge_mod
             meta = merge_mod.merge_recordings(
                 rec_a, rec_b, T, out_dir, bag_a, bag_b,
-                info={"fitness": None}, progress_cb=progress_cb, cancel=cancel)
+                info=info, progress_cb=progress_cb, cancel=cancel)
             progress_cb(0.99, "Lade zusammengeführte Aufzeichnung …")
             return {"project": project_m, "meta": meta}
 

@@ -289,6 +289,35 @@ class BagReader:
 
     # ------------------------------------------------------------------- imu
 
+    def read_imu_accel(self, t_from: float | None = None,
+                       t_to: float | None = None) -> tuple[np.ndarray, np.ndarray]:
+        """Header-Stempel (N,) und Beschleunigung (N,3) des IMU-Topics.
+
+        Optional auf [t_from, t_to] begrenzt (Header-Zeit, dieselbe Uhr wie die
+        Scan-Stempel der Aufzeichnung). Ohne IMU-Topic zwei leere Arrays.
+        """
+        info = self.info()
+        leer = (np.empty(0, dtype=np.float64), np.empty((0, 3), dtype=np.float64))
+        if info.imu_topic is None:
+            return leer
+        conns = [c for c in self._reader.connections if c.topic == info.imu_topic]
+        if not conns:
+            return leer
+        stamps: list[float] = []
+        accel: list[tuple[float, float, float]] = []
+        for conn, timestamp, rawdata in self._reader.messages(connections=conns):
+            msg = self._reader.deserialize(rawdata, conn.msgtype)
+            hdr = getattr(msg, "header", None)
+            t = (hdr.stamp.sec + hdr.stamp.nanosec * 1e-9) if hdr is not None else timestamp * 1e-9
+            if (t_from is not None and t < t_from) or (t_to is not None and t > t_to):
+                continue
+            a = msg.linear_acceleration
+            stamps.append(t)
+            accel.append((a.x, a.y, a.z))
+        if not stamps:
+            return leer
+        return np.asarray(stamps, dtype=np.float64), np.asarray(accel, dtype=np.float64)
+
     def read_imu_up(self, max_window_s: float = _UP_MAX_S) -> "ImuUp | None":
         """Lotrechte im Sensorsystem aus dem Anfang des Bags.
 
