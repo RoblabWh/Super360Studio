@@ -1,0 +1,2557 @@
+{
+ "familie": "splat",
+ "grenze_bytes": 2097152,
+ "proben": {
+  "fusion.fusioniere": {
+   "teile": {
+    "M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ba3ca4ae8e11a16161f89cce6edc5150bd277c00ebf80b97484a40afc21952f0",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "bericht_abstand_nachher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "733a357ab42b5a5d6cc76baac06153732517363e538538efe3cefd3b43f1fdfa",
+     "shape": []
+    },
+    "bericht_abstand_vorher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "45c27940fbd005d0ea204e4c847f31ae90a4e55f8467e7c02c0fe1b43dbd4a47",
+     "shape": []
+    },
+    "bericht_anteil": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5cd9b85e13cc36b4c112c3bf4b34419137ea59e98712ab79733d54d3c473a369",
+     "shape": []
+    },
+    "bericht_nur_maeander": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "fcd3c7b8ba01d09d5be382c50eb8fa8e6a4434bc4db513a66446c99f3b98a60e",
+     "shape": []
+    },
+    "bericht_nur_onboard": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "d40e44478d5fef7e969ee7bc6601a0834ad27ca074766ae66be1af6d66312ac1",
+     "shape": []
+    },
+    "bericht_ueberlappung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "74960f0ae2e363cd62d52c899703da1d71f0d7a949d26b073b12e2ac15747932",
+     "shape": []
+    },
+    "bericht_unplausibel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "45cc55561bd31f73f1fbc09ece4724dac6f1c06f43d5afe1912cdc0dec43432c",
+     "shape": [
+      3
+     ]
+    },
+    "maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "e9c2820ae4ea6ccff207020763e083ccc55c86e2232ff061d8858c694c5e19c7",
+     "shape": [
+      90000
+     ]
+    },
+    "meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "eb50bb034fc2bdf2811f5dd4361d91c56bb6b6047855e4323737fce99dc9fc77",
+     "shape": [
+      108
+     ]
+    },
+    "rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0ca6858eacd693743cef2ff5437a0f38e016f1244c641f0d52768c16b06f8426",
+     "shape": [
+      90000,
+      3
+     ]
+    },
+    "schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "da7c9dcbfb6a8bc96f4de82e85f413cc2651b1cd11e6d85324b91d47cba9e462",
+     "shape": [
+      109
+     ]
+    },
+    "seed5_M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6526c6155a63e5be2ab7e2beb6456cb006b93ec789ee1951424afcb45f8531e2",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "seed5_bericht_abstand_nachher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "af1e7a0ab74a928c8772165c1e07fc8297af7b7e5717e264c0b02e945dd33c6b",
+     "shape": []
+    },
+    "seed5_bericht_abstand_vorher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "45c27940fbd005d0ea204e4c847f31ae90a4e55f8467e7c02c0fe1b43dbd4a47",
+     "shape": []
+    },
+    "seed5_bericht_anteil": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5cd9b85e13cc36b4c112c3bf4b34419137ea59e98712ab79733d54d3c473a369",
+     "shape": []
+    },
+    "seed5_bericht_nur_maeander": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "fcd3c7b8ba01d09d5be382c50eb8fa8e6a4434bc4db513a66446c99f3b98a60e",
+     "shape": []
+    },
+    "seed5_bericht_nur_onboard": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "d40e44478d5fef7e969ee7bc6601a0834ad27ca074766ae66be1af6d66312ac1",
+     "shape": []
+    },
+    "seed5_bericht_ueberlappung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "74960f0ae2e363cd62d52c899703da1d71f0d7a949d26b073b12e2ac15747932",
+     "shape": []
+    },
+    "seed5_bericht_unplausibel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "seed5_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "e9c2820ae4ea6ccff207020763e083ccc55c86e2232ff061d8858c694c5e19c7",
+     "shape": [
+      90000
+     ]
+    },
+    "seed5_rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "093f7729714345b3c0e963225a57bd9173525754b58288d5575a68c2102ff90c",
+     "shape": [
+      90000,
+      3
+     ]
+    },
+    "seed5_schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "da7c9dcbfb6a8bc96f4de82e85f413cc2651b1cd11e6d85324b91d47cba9e462",
+     "shape": [
+      109
+     ]
+    },
+    "seed5_t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6749ad714bd57a3439e7f00f6dc930c90cb05d0c3c31a8bce45950cc9fea5e8f",
+     "shape": [
+      3
+     ]
+    },
+    "t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b95cbdc639a352edf3873584b3ff679056b5120fac966a1782ca8e7fe8952d8d",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "fusion.fusioniere_grenzen": {
+   "teile": {
+    "abbruch": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "2a22e263613d5413a5e5b69b5e56697d6a57bfefac66b5b8762125f5af163e01",
+     "shape": [
+      25
+     ]
+    },
+    "falsche_laenge": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e95de6ac04186bb7246f7919e6701c3a1b395d81b1ef97f6f59a3e720259eabf",
+     "shape": [
+      61
+     ]
+    },
+    "fremd_M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ee76a69a3b297ffdf6795b8f7bd7e9b6c503ec61e00c0877af6bf8c4e4b67ae5",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "fremd_bericht_abstand_nachher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cf3afa8e2c192ac79d9f25faea235c03017f618b06589f993733bb584cc8a02a",
+     "shape": []
+    },
+    "fremd_bericht_abstand_vorher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ef508ee502c6e8061f29255d150c562369712a22505d45709d89cb3214b5e0d2",
+     "shape": []
+    },
+    "fremd_bericht_anteil": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "fremd_bericht_nur_maeander": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "fremd_bericht_nur_onboard": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "fremd_bericht_ueberlappung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "98e92077451074b52e61d76808521d3d69ca771f056b3d4d1dba6f2e55485eed",
+     "shape": []
+    },
+    "fremd_bericht_unplausibel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "255607b76519e52e2cefda946c4c868ecd48a7f74c9330580a4fa66889ddfb53",
+     "shape": [
+      70
+     ]
+    },
+    "fremd_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "4f5829850e6d14961258e966d47df362adc896b4564ca670984239ece629b73a",
+     "shape": [
+      20000
+     ]
+    },
+    "fremd_rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "2223f4e1500418fc8a5b15e57fafa63ae3d3e3ee76764b009e588a9529deb291",
+     "shape": [
+      20000,
+      3
+     ]
+    },
+    "fremd_schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "da7c9dcbfb6a8bc96f4de82e85f413cc2651b1cd11e6d85324b91d47cba9e462",
+     "shape": [
+      109
+     ]
+    },
+    "fremd_t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "87c82d4647c826ccd977be5c30ebed03de347e19926681a6f1fa74fcd5abd2e4",
+     "shape": [
+      3
+     ]
+    },
+    "klein_M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "f88a129a97a8de0e173bc48a149e3ebcf8c97fa9b9ef3aacfef2a92f76f1b9f7",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "klein_bericht_abstand_nachher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "7372e5786b01b22a31af9b0d92d3155b4d3331aee1ec3e72fbda2b2690a62037",
+     "shape": []
+    },
+    "klein_bericht_abstand_vorher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "acfd041d2e5d2ac7de68d194cc5a829c6ca0ac330b5508e16fcf109437dbc8e9",
+     "shape": []
+    },
+    "klein_bericht_anteil": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "739340fbb932a1f3296d92773fc63dd991a501eab4a0c06a265b84aea240850d",
+     "shape": []
+    },
+    "klein_bericht_nur_maeander": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "95528368d586e8471063c68eb3293c2968a3fa10fce4c2201206dff9c555857d",
+     "shape": []
+    },
+    "klein_bericht_nur_onboard": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "d8b11019637fb0ceecd4ccf2c994d09d5b26725e64e7141335eaaf5c97001776",
+     "shape": []
+    },
+    "klein_bericht_ueberlappung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "d07eaa61a577ec8c873352fa7fa2eb3515d2967d531df36d16142bdb4427c3c5",
+     "shape": []
+    },
+    "klein_bericht_unplausibel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "klein_fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "94033497f59a83c800a23c492262e31c8b52105784d5e192ef1366b6567cd4a2",
+     "shape": [
+      5
+     ]
+    },
+    "klein_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "3211fdb4323686b7ea790b5c7367a84d5418ee84cdcef7e8812658fb0ae0fe43",
+     "shape": [
+      60000
+     ]
+    },
+    "klein_rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "4b26cff16e55b8d4b20b1ffe404d034cbc80cfb4ae244c652254a75f5a00b3f8",
+     "shape": [
+      60000,
+      3
+     ]
+    },
+    "klein_schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "da7c9dcbfb6a8bc96f4de82e85f413cc2651b1cd11e6d85324b91d47cba9e462",
+     "shape": [
+      109
+     ]
+    },
+    "klein_t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7ae33098bc51f751cf2032e44344f6dce075e1dc7e6f8d663e8146eaf27739e8",
+     "shape": [
+      3
+     ]
+    },
+    "zu_wenig": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "29d81f72e1779084ede250b2d3ed24763cb31a5bc6d03b15d087c7576dacb2d3",
+     "shape": [
+      172
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "fusion.hilfen": {
+   "teile": {
+    "abstand": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "f96862bb2fdfb6819f224e9d30c6162248e417c2aa0d0c7563341d8d3cb3d686",
+     "shape": []
+    },
+    "anwenden": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "94bb2a37617b6b8a3167d5727a9a8ebf78aea025b77cc708e2c67c91f46f6701",
+     "shape": [
+      20000,
+      3
+     ]
+    },
+    "anwenden_float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "94bb2a37617b6b8a3167d5727a9a8ebf78aea025b77cc708e2c67c91f46f6701",
+     "shape": [
+      20000,
+      3
+     ]
+    },
+    "gewicht_maeander": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "b08907487606c032191f46c0526df42a229d02649687e75ce2cf4d0cf5d96ccc",
+     "shape": [
+      20000
+     ]
+    },
+    "gewicht_maeander_float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "b08907487606c032191f46c0526df42a229d02649687e75ce2cf4d0cf5d96ccc",
+     "shape": [
+      20000
+     ]
+    },
+    "gewicht_stufen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "9151d959ead93d18dbdf4a34593a79b3b6a41266a71834754c240d908ec8da49",
+     "shape": [
+      11
+     ]
+    },
+    "konstanten": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d3a62d7e36cb9b186d9a34efecd5cacef0bcf0816a110c362abb7419094b83e0",
+     "shape": [
+      8
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "fusion.schaetze_abbildung": {
+   "teile": {
+    "M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "9450ebad272bcee9dcf94d81f30bc86c048dfead87dfd09daa15d678f82758af",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "M_float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7b0916b5a81e2674ceea5de4dedaa22f96f829e72f818c356a86d3aa1fbd80e5",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "M_gewicht": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "56d06c36bc2836eb5d8c9fab45a026f1544f0fc2e6283a3d77d2ba8a92557d44",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "M_identisch": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e99944d3bcb3c0b64692d4ef1c2914af72e712267aee672ba35c9d16a8cd3fc2",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0d86786f3110b86363ed0a9d7c4a87997f6818e8228de47b2102b237dee1a3da",
+     "shape": [
+      3
+     ]
+    },
+    "t_float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "48f00d3635b68296be4b877aee226a54e1885b21c7cc19736f77c3532aa902a9",
+     "shape": [
+      3
+     ]
+    },
+    "t_gewicht": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "681c015632a47a9908c2501504a7a9ba9981862731b15c8a69925e491bab61d9",
+     "shape": [
+      3
+     ]
+    },
+    "t_identisch": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "3d431857c213a8e7a487033f5d2e35e12a56a31e2cdbfdb538762547e9132d31",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "fusion.unplausibel": {
+   "teile": {
+    "diagonale_klein": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b3ff84e0ed23827ff96d073a43b93a795466e2118bd4ba90cbe680b696ee7254",
+     "shape": [
+      68
+     ]
+    },
+    "grenze_nebenwerte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "gut": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "is7": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "999d41855b73d83c9e0fce5bc41d7520e327cfdc4fb1f0f5ff2cba72a4895038",
+     "shape": [
+      69
+     ]
+    },
+    "nebenwerte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b0c9583bda69f45a86b2ab7971589491efb89230dadd4deab1cc56fa2a015cf4",
+     "shape": [
+      68
+     ]
+    },
+    "ohne_bericht": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "senkt_kaum": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "1d4c463fe673aa4ddeea874a64320328d57a79c4d8fb35bfba2526dc0dd5accf",
+     "shape": [
+      54
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.abdeckung": {
+   "teile": {
+    "kamera0": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "58a62e7a3e852c77e1464a6ad1743de960457046c829e0d4935ddcf9950825a2",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "kamera4": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "0cdd3ed1cc639905ad95a31dc6093664b6a9db0528d90adff0c4a4e98a28c02e",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "kamera6": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "3cd21c09229d4ccd09a98e65f72921317c541750fcf2a99dcb82a209e2ba2da4",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "nah": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "275bdec35bed415400982480f601bda87ceebdd10a98fc06d4a72e63f66f9cf3",
+     "shape": [
+      239,
+      322
+     ]
+    },
+    "nah_min_weite": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "39464e7299f0247c649a8467651a7025490fc8989ac6f48ebbc947d7910fb91f",
+     "shape": [
+      239,
+      322
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.anker": {
+   "teile": {
+    "anzahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "a1935db9cf53b0a3745fb9e270c48f80d69e425263ff0c4b4e795e137d5f2012",
+     "shape": [
+      33889
+     ]
+    },
+    "eng_anzahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "09e211884e219e1748986932865efec1eaee63799309f500554c091985611abe",
+     "shape": [
+      3384
+     ]
+    },
+    "eng_index": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "410a3a702731a5c1b3c5e210713866717666d8b349a049c568dd4b1227f67636",
+     "shape": [
+      60000
+     ]
+    },
+    "eng_pos": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "6735369621157ca026242aa0eb4c5a81861e4496f166914f853acd2781a26c71",
+     "shape": [
+      3384,
+      3
+     ]
+    },
+    "eng_voxel": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "947aa71e673ae81346f89d3da9e11d42aa3315e46fa207d6fb76ccf10db86683",
+     "shape": []
+    },
+    "fein_anzahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "b87a76cf26802e8391562ddff7b4e52e5f2c81bc0a3fa0ed2c367e36372e889e",
+     "shape": [
+      5000
+     ]
+    },
+    "fein_index": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "13a528c5f5fd0c297524f5a99596adfd00175fc59e4821c3d1f3eeb4463a09e4",
+     "shape": [
+      5000
+     ]
+    },
+    "fein_normal": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "945de427e22720289d5dea74ae4cb1b85599f2d3b03bfd3d447afab57407884c",
+     "shape": [
+      5000,
+      3
+     ]
+    },
+    "fein_pos": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "fcbb0ce04c24e44cb8a9097073a0583a6a61b8c43ffdb5a3d5e927b6efc566ba",
+     "shape": [
+      5000,
+      3
+     ]
+    },
+    "fein_voxel": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "4674dac70b712d380310ff0128dd91b2c80767a5d38b087f5957134ea30d2e1b",
+     "shape": []
+    },
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "850e79725ffce0c869e6bbc83d4f8c393fd7d8b6a9d49a0de4292feb3f344d27",
+     "shape": [
+      12
+     ]
+    },
+    "index": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "6647045d7ae8fc6d39ee301db9fd9e14f33e251b1fdc63b6ed57c8c9659ef3b4",
+     "shape": [
+      60000
+     ]
+    },
+    "keine_zellgroesse": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e3f4358a6ca8fa3f26e611262051d382c2de825b836ffcacc34ec6254884ccb8",
+     "shape": [
+      60
+     ]
+    },
+    "leer": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b711436a1a0598077433b7d2a033ef4ae79121f6158bdd0dda1b1d6d704a038b",
+     "shape": [
+      50
+     ]
+    },
+    "log": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "8b18bcaad9fab9502afdccaf349efa80e374511c0c0442251ca2419742e7db17",
+     "shape": [
+      307
+     ]
+    },
+    "meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "0f109f696acb9158e5e407663cc9376d1b27a8741a63322ce38695c910f73828",
+     "shape": [
+      315
+     ]
+    },
+    "pos": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "243607958e81b1879d90b84e7e86c07cd45505ff01ee078ced45a29f03d9c2cc",
+     "shape": [
+      33889,
+      3
+     ]
+    },
+    "voxel": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "67db964b0d50d725afc7e83fec4b62f998f0a3ef0fe82532905957f6f34b34f1",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "splat.anker_normalen": {
+   "teile": {
+    "eng_normal": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "bc4a429c3aeb8f851add11df0ee25bc1f6dc484a51736a9d8bb81c66c2097075",
+     "shape": [
+      3384,
+      3
+     ]
+    },
+    "normal": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d7b0685cac7ea3ae451878fefe2d33c4739010fde494c99a8d113a095fa93340",
+     "shape": [
+      33889,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.ansichten_aus_colmap": {
+   "teile": {
+    "aehnlich_abweichung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cfe2c39ea8690d8bd2dc4138b4d0fd97cdd9dd0bef8e85e786ccbf21a82cc6ed",
+     "shape": []
+    },
+    "aehnlich_massstab": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c971ceffcd012b7742934c158f817552ef90030a5d042731ceafa5b47b2ee967",
+     "shape": []
+    },
+    "aehnlich_viewmat": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "14a1e76dbcd7fa65f3899b016f2a6cef3583295d7f860490bc8267fe0d858f49",
+     "shape": [
+      7,
+      4,
+      4
+     ]
+    },
+    "gespiegelt": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "957aa33b39b4505e2765142a5084afa9c543e6faa6e749ee6e91e2f19223e64d",
+     "shape": [
+      82
+     ]
+    },
+    "verzogen_abweichung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cf34d170f805b1c2975d3614676cadf3199ffe3909ae3fa8d2277c2aca2c4740",
+     "shape": []
+    },
+    "verzogen_massstab": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "a3e9d8583f6ebc1c2840f1ff984e8ce1d05cc5624faef1e7ae3af436e0c75dc6",
+     "shape": []
+    },
+    "verzogen_viewmat": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "96bec7f1e808ec9b184f66173e22b9099d04a99b7ad43bd859b7d9b5ba15abc5",
+     "shape": [
+      7,
+      4,
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.cams_ohne": {
+   "teile": {
+    "Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "f64718ce82e72ee65c2510dcb95523ada3cf0d531dc6b3792c4d010f5f24b52f",
+     "shape": [
+      5,
+      3,
+      3
+     ]
+    },
+    "model": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U13",
+     "hash": "0c8d4f62e8c5b9ba557c53dc85017735ba7c5e0e5cae5a5a7dc5af385db1f5cc",
+     "shape": []
+    },
+    "names": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U7",
+     "hash": "e617d726eaa481fa19338fdc66f4f7d9bd6686b08af2f80248d357cac2ec0134",
+     "shape": [
+      5
+     ]
+    },
+    "params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ae1ea6bb3d3a393365cb6e1e1b46898748c5e84d0400d0b5559fc1ee30a427c6",
+     "shape": [
+      5,
+      4
+     ]
+    },
+    "schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "12c0494969fab0cf35246c308c64233b668dcc6f90e8f749d40e18de4ad7d276",
+     "shape": [
+      31
+     ]
+    },
+    "size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "1028e474919c188a1506976c2911cecb0df13ba4a05b8fec55df6a52e2764877",
+     "shape": [
+      5,
+      2
+     ]
+    },
+    "tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a2166ff2d382739819e3f64c5f969ad32760fde62a6c53fb007042d7f118a2c5",
+     "shape": [
+      5,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.datensatz_maeander": {
+   "teile": {
+    "anker_index": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "6647045d7ae8fc6d39ee301db9fd9e14f33e251b1fdc63b6ed57c8c9659ef3b4",
+     "shape": [
+      60000
+     ]
+    },
+    "anker_normal": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d7b0685cac7ea3ae451878fefe2d33c4739010fde494c99a8d113a095fa93340",
+     "shape": [
+      33889,
+      3
+     ]
+    },
+    "anker_pos": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "243607958e81b1879d90b84e7e86c07cd45505ff01ee078ced45a29f03d9c2cc",
+     "shape": [
+      33889,
+      3
+     ]
+    },
+    "anker_voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "6e40149bca60eb617d2ad1d779db2b33b3b1e78a674891a412b24f3ffa6fdea2",
+     "shape": []
+    },
+    "ansichten_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "032d354ccb714e9b88be0db6b234e50c11659371b29c4b7ca4619c08fec8a923",
+     "shape": [
+      6,
+      3,
+      3
+     ]
+    },
+    "ansichten_art": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U8",
+     "hash": "820a33b41913c94297fdf707a397b82fbf9cff014d65e25c393637a49f9c4ba9",
+     "shape": []
+    },
+    "ansichten_bild": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U15",
+     "hash": "659cb2a770a8e4073d2e54afd8238059140fbb969cc83b2037d8bcdd4ff29419",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_breite": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "c7aba4a83c87283f4f1d5458eb39d4e4eda8de008541e4c4f070bcfb394bb7e2",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_hoehe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "6abf1f9acfeeb67900293dce1ba3d20205108801593a8f1d36f55fe7e156e3ee",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_holdout": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "7a9fbfd2d7a098b01c6dbc7eb417f3a82856e44b890ffeb13f13cabacfc242fb",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U17",
+     "hash": "7f2e440795740eff18fdd23b67c17b33b90928104a859b0728771776bee8f048",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_quelle": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U7",
+     "hash": "9a71b2c522b92087bb85e2d5337b266503a3241118bc84ebaae3604b98062e80",
+     "shape": [
+      6
+     ]
+    },
+    "ansichten_t_hi": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "8a516a17ef434b4a5215ce08fb2ca4b75e0c34e70b1d457fb07f571878e8111b",
+     "shape": []
+    },
+    "ansichten_t_lo": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "8a516a17ef434b4a5215ce08fb2ca4b75e0c34e70b1d457fb07f571878e8111b",
+     "shape": []
+    },
+    "ansichten_viewmat": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "44ba95cf4dec1b6a221293088440ec4dcf63ed1f2ba3913be2a073db4848d876",
+     "shape": [
+      6,
+      4,
+      4
+     ]
+    },
+    "bild_0000.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9345fb51ead4a18a32ff0400a4a1e10081b6aabc6e27bcf523a907e162d89a41",
+     "shape": [
+      44483
+     ]
+    },
+    "bild_0000_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a57e088c33c870b49c546b3fb3702e7f3279551084ad98dc2ad8dddbd47df587",
+     "shape": [
+      936
+     ]
+    },
+    "bild_0001.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "f53453eaf877c9d665f8930fe0b0a79f040cc08c845f0c8815ac5942ad2e7170",
+     "shape": [
+      44524
+     ]
+    },
+    "bild_0001_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "0c3ae3e1bacc616e1ea0c821e9362fcff7804a9ab72378b3d66bad52d1d403c4",
+     "shape": [
+      1522
+     ]
+    },
+    "bild_0002.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "fe7608e764e26ccee790314367b4e3919a085e5d173c851b07c836ad446bb09f",
+     "shape": [
+      44183
+     ]
+    },
+    "bild_0002_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "6cc7863656dd107a49d1129f91e48078684fa996e4edc0dfd2a7ecc83a51b87b",
+     "shape": [
+      1715
+     ]
+    },
+    "bild_0003.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "5aee0d918cfa5633df08c04320439799c27f99ae5f616406face07c9f6a90a9d",
+     "shape": [
+      44770
+     ]
+    },
+    "bild_0003_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "58f406469aea5dc21b9c30af831c667ea67ba4e707326b9657dba4816762d578",
+     "shape": [
+      2082
+     ]
+    },
+    "bild_0004.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "0cd74d9e92706f738b658411f943ecd1498cfdc65225aeee9d5ef608a5f4ba0b",
+     "shape": [
+      44164
+     ]
+    },
+    "bild_0004_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "447190b3243e1898a2240efc3176410732d6a047fd53a285f5fffdbdeff6fd32",
+     "shape": [
+      2112
+     ]
+    },
+    "bild_0005.jpg": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "33ee05f80d8ad3fc967c8e3896393f297f784706c8df3a648e696313a1ea843f",
+     "shape": [
+      44587
+     ]
+    },
+    "bild_0005_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "30351b771b3fdfa427d4f2504078fb2e2eca33f3332a3bd33a2bb59e41e5bd2f",
+     "shape": [
+      1795
+     ]
+    },
+    "bilder_namen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "3ca544834850f9bfa4dc06fe496d49c7d84db09656d51f1f5f6c616bebe57748",
+     "shape": [
+      119
+     ]
+    },
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "28f03e9af9b388d1dbc4eafbe72cf6e54f21ec8155d48412a023ff417e7d742c",
+     "shape": [
+      8
+     ]
+    },
+    "info_abdeckung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "096572946c80fe505481cdc7eb041325df032a882ef56a932c5fe744657ee5b9",
+     "shape": []
+    },
+    "info_abweichung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cf34d170f805b1c2975d3614676cadf3199ffe3909ae3fa8d2277c2aca2c4740",
+     "shape": []
+    },
+    "info_ansichten": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "e1ac3ed083f9b1886f261e1c0b6a8a1521caafb4d02f237f8af338c7b8d7d8f7",
+     "shape": []
+    },
+    "info_massstab": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "a3e9d8583f6ebc1c2840f1ff984e8ce1d05cc5624faef1e7ae3af436e0c75dc6",
+     "shape": []
+    },
+    "info_pruef": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "927c598af2c08ae1a5ef347ea2853045ccf3055481003a8db09ffc91d2c5bdb8",
+     "shape": []
+    },
+    "info_t_hi": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "35c15fda5a67a5cef42e02a9e0eecb6c20012942a90dccc9ce804cb6cbe9fd59",
+     "shape": []
+    },
+    "info_t_lo": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "35c15fda5a67a5cef42e02a9e0eecb6c20012942a90dccc9ce804cb6cbe9fd59",
+     "shape": []
+    },
+    "log": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "018ef701d2efe6a23cc4badb021d10082f784d59e75e98415f294caf532416d9",
+     "shape": [
+      163
+     ]
+    },
+    "meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "63aeb6a08823d82418f90557982b828573d9a2025b466b6263f05ab30201fff9",
+     "shape": [
+      204
+     ]
+    },
+    "param.json": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "458e59bf851b118401896db02e871c5bc5e26fe1bac129b954c2f16aabce03bb",
+     "shape": [
+      105
+     ]
+    },
+    "punkte.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "55dfd9a37f4b606f8aa9f1923f5356f7fbea94fd349b4296f989e954ebbb7e09",
+     "shape": [
+      720128
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.datensatz_maeander_temperatur": {
+   "teile": {
+    "anker_index": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "6647045d7ae8fc6d39ee301db9fd9e14f33e251b1fdc63b6ed57c8c9659ef3b4",
+     "shape": [
+      60000
+     ]
+    },
+    "anker_normal": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d7b0685cac7ea3ae451878fefe2d33c4739010fde494c99a8d113a095fa93340",
+     "shape": [
+      33889,
+      3
+     ]
+    },
+    "anker_pos": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "243607958e81b1879d90b84e7e86c07cd45505ff01ee078ced45a29f03d9c2cc",
+     "shape": [
+      33889,
+      3
+     ]
+    },
+    "anker_voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "6e40149bca60eb617d2ad1d779db2b33b3b1e78a674891a412b24f3ffa6fdea2",
+     "shape": []
+    },
+    "ansichten_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d7dc15567753e43f68e35f8a81fe1a587508b0c33cbe9b11c871b894d2299056",
+     "shape": [
+      5,
+      3,
+      3
+     ]
+    },
+    "ansichten_art": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U8",
+     "hash": "820a33b41913c94297fdf707a397b82fbf9cff014d65e25c393637a49f9c4ba9",
+     "shape": []
+    },
+    "ansichten_bild": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U15",
+     "hash": "38a7569080e6f3f18187cda0c55d77d0649beaf56868eba6d4c43adb28669904",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_breite": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "287e969144b6e42c69616f151e6b960e809537e6bdeaf86cb05756361723071c",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_hoehe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "79611babca5cd3c784add9b0c7da158f9257d64ef2c38dceb98492459148dd1c",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_holdout": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "85a84554a60671aca8e1e63fa8e6d436249ac4db56308cc3935b9158c74c1677",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U17",
+     "hash": "7e435868e57a1990ef47d73652b5da7b93fd70ff923b1991fe1839b650ee1ac8",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_quelle": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<U7",
+     "hash": "61285e098dcab7ed9a2c525ddb936c46a0932d11cd0eebfc8f76d420adf0dde5",
+     "shape": [
+      5
+     ]
+    },
+    "ansichten_t_hi": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d49f0fff4c2188e2f93932baa593ea75b41718af5f0fe0f381daac0301cf5d41",
+     "shape": []
+    },
+    "ansichten_t_lo": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "ecdde0953cd4bc93c51c3e15efaffac14fc427c1cd7b0894590b3fa2ddc803d2",
+     "shape": []
+    },
+    "ansichten_viewmat": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "854e0a4a812d4d7250e55ebf2818d55d8ff4c64ae353406e206cf6837054b7b2",
+     "shape": [
+      5,
+      4,
+      4
+     ]
+    },
+    "bild_0000.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "1be865b4f96480a14058acb15f83e1eadfa8afd090921606a4101741bbf44347",
+     "shape": [
+      60128
+     ]
+    },
+    "bild_0000_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "f98a65db0f395142d8c828f628c1b6db213bbd2b28d63c7e4536f51ca1734e4e",
+     "shape": [
+      361
+     ]
+    },
+    "bild_0001.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "acef07f80275b0eebea730a4d8ada444b7c9f34c15f777303181df4d0cb8340c",
+     "shape": [
+      60128
+     ]
+    },
+    "bild_0001_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "0dcb4aa0f01725384bf323700c0c71521cd92e004d42abadef2059334d42d462",
+     "shape": [
+      692
+     ]
+    },
+    "bild_0002.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "306a8603f942c2c885a25667b49d0c1e12adbd7d2a16f44eaed327ec32392989",
+     "shape": [
+      60128
+     ]
+    },
+    "bild_0002_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "60e0c6b6cbe42f60f931b67afb8d9bdec2bab3ee1222ede5b59c8f9f2299ece7",
+     "shape": [
+      900
+     ]
+    },
+    "bild_0003.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "d5de593f6fb524a8c3d3f1d5293b0a760afd87898c6a5bbb4463cf7e87509fca",
+     "shape": [
+      60128
+     ]
+    },
+    "bild_0003_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "6ee8c422b468cb88bd70ea3064103cb73c2b8fc43b27e34a5f99f457bd9b932a",
+     "shape": [
+      867
+     ]
+    },
+    "bild_0004.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "157c35a9b5e043c8e6a4677d0f50e310adcbb5f49e97fcbbd8803667be171abe",
+     "shape": [
+      60128
+     ]
+    },
+    "bild_0004_m.png": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "3aacf4b4971680ee9ac56b58b20df76be6224b605a2244322b9b3a7eeedda68a",
+     "shape": [
+      690
+     ]
+    },
+    "bilder_namen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "08ec8b71db6c03a85eec196cab9646b28c039e34f98e95a2790a0e3b33c5dcfb",
+     "shape": [
+      99
+     ]
+    },
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "28f03e9af9b388d1dbc4eafbe72cf6e54f21ec8155d48412a023ff417e7d742c",
+     "shape": [
+      8
+     ]
+    },
+    "info_abdeckung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "9e5e0cce37092be0f98582dae1d4e9029d8f8a950aef56293da3eb025d1a6450",
+     "shape": []
+    },
+    "info_abweichung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cfe2c39ea8690d8bd2dc4138b4d0fd97cdd9dd0bef8e85e786ccbf21a82cc6ed",
+     "shape": []
+    },
+    "info_ansichten": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "53eeee9262c5dac3d7c6d5bc73d6005887a581211ab4110b7b7cb23dab09d95b",
+     "shape": []
+    },
+    "info_massstab": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c971ceffcd012b7742934c158f817552ef90030a5d042731ceafa5b47b2ee967",
+     "shape": []
+    },
+    "info_pruef": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "11dfffb8deb998a23a61ef083b82a8ced56531222205c2e15e85bcf95d9a1958",
+     "shape": []
+    },
+    "info_t_hi": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ebaf8924518fc175ebcfa0a39d3f5cca89111e94539a6a520b39be57d64782f1",
+     "shape": []
+    },
+    "info_t_lo": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cf612d276ad315c3972c27443b4da60998ea8c9783956d6e2b1301c4b0caa586",
+     "shape": []
+    },
+    "log": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e35179a8f4e7116272e565e0a0cca3e04c7cb6f864c9d4ac659455d05e089860",
+     "shape": [
+      64
+     ]
+    },
+    "meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "63aeb6a08823d82418f90557982b828573d9a2025b466b6263f05ab30201fff9",
+     "shape": [
+      204
+     ]
+    },
+    "param.json": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "2aa56cd2bcab70c20c2a0ed284c473e2d902254bbb2196a35f4bd1658644a99c",
+     "shape": [
+      88
+     ]
+    },
+    "punkte.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "55dfd9a37f4b606f8aa9f1923f5356f7fbea94fd349b4296f989e954ebbb7e09",
+     "shape": [
+      720128
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.entzerrung": {
+   "teile": {
+    "fremdes_modell": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b3369bcc5d4b6c6586b21ddc89afd3b6c20efa9f594d6403de8120fce0728097",
+     "shape": [
+      56
+     ]
+    },
+    "lochkamera": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4245a0b67933444df6ea19765cf27a1a9255751d31877d91cbc5b3e9edf72d64",
+     "shape": [
+      5,
+      4
+     ]
+    },
+    "modell": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b6b92786e13c8d4d6547cdcfc415e75b5d06b30be3ff5fa1331299a960834ae7",
+     "shape": [
+      14
+     ]
+    },
+    "opencv_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "728d1c265ec5a6ff7f263d287031277d77ced185ffa40b216badc23c081ea2c0",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "opencv_gueltig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "c1daeeaff9e81b80a0a4bda40571962ab0d599336b9477149e012b0611a0e963",
+     "shape": [
+      222,
+      296
+     ]
+    },
+    "opencv_mx": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "2e168462be4f13d67fee5a2e71d57e9d779340d00cb95545e5e021da2b3e584b",
+     "shape": [
+      222,
+      296
+     ]
+    },
+    "opencv_my": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "5cc920ec0ea65c0158e5131894e1dd99d1bf37a4def447ca7bda2b2d44973e02",
+     "shape": [
+      222,
+      296
+     ]
+    },
+    "pinhole_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "37bd573433033db141a167b242cf26694e4c7505ffdc877249f1e052910cd0e1",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "pinhole_gueltig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "416b37ed165dbb37d2ddbbb7dd985acad9c448f55441e6725aaed5ccd737f914",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "pinhole_mx": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "0e90ac92e9e774b8aa423607bb93023b49317af9bebb7b6ff80b655b8ea04cb0",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "pinhole_my": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "b6dffd0bfbbc0f5e0bdc4529ca290b9fc678a3d344243b60b478a0b22fc3d878",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "simple_radial_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8934d08218bdd84bb87a73944379bcf13f6b92319849833f3b86cad870d06837",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "simple_radial_gueltig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "416b37ed165dbb37d2ddbbb7dd985acad9c448f55441e6725aaed5ccd737f914",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "simple_radial_mx": {
+     "abgelegt": false,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "581dd0ed75dd1ee06988566ab8acfb3e5d7eaf5494b61f635f59b421a02e28f5",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "simple_radial_my": {
+     "abgelegt": false,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "5cbac4bab3b56d9da0cce89919b18295adaab88fde81a85cf6d5bb9ff75ffe44",
+     "shape": [
+      300,
+      400
+     ]
+    },
+    "tonne_K": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6e4259b86b4f63b3e9b80bbcb4535752624579dbd50051a96d5f7a3ec65d484d",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "tonne_gueltig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "0f7def77aa18822fad8a4f9fca89febaed1123a715e04c11c5e23884942fba5c",
+     "shape": [
+      150,
+      200
+     ]
+    },
+    "tonne_mx": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "f822440006ae85dca3884ef20034fd811a4f2465c66ecdfdc9678bc4e52108ae",
+     "shape": [
+      150,
+      200
+     ]
+    },
+    "tonne_my": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "625312af79a75a5c2d52da42d66c2a3f047e2bf39ba4f58b451b73d717972459",
+     "shape": [
+      150,
+      200
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.hinweis": {
+   "teile": {
+    "bereit": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "gsplat_falsch_gebaut": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "0755c85ea81144501af96fe6bbbb9f9454db0e4609f828eb6e8905f534485ec5",
+     "shape": [
+      307
+     ]
+    },
+    "ohne_gsplat": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "75249b92933b90f2f7965508e1acc9602515248061445ae81affaeafddc45d59",
+     "shape": [
+      200
+     ]
+    },
+    "ohne_torch": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "617c9b8022b42a80b4ea7e529dd00c15108e20309bf0530d4df6171d94b4618e",
+     "shape": [
+      216
+     ]
+    },
+    "rechnet_nicht": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "199366a5040a7855078533db28790146f345cac3518bc265b2d3ec0ed105d71f",
+     "shape": [
+      241
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.probe": {
+   "teile": {
+    "pruefbild": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "4d5223bc5c9e4a690dd63959e7e1ded26cad06bd1755fd59b08da178b47745c9",
+     "shape": [
+      6,
+      24
+     ]
+    },
+    "seed3": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "7b31e3b800fa220be59f81ebc3394e1f958ea9c438a5704fc1d9289f2c843f94",
+     "shape": [
+      14252
+     ]
+    },
+    "seed4": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "b88b890834cdf67a35f2e908dc8b747a958d5363ef61c38e2a84b19cd669f383",
+     "shape": [
+      929
+     ]
+    },
+    "vorgabe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "08b75c0e18223b3510f520cd6a6849986049af7b470e241da48cbed9e16e2e8c",
+     "shape": [
+      60000
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.punkt_farben": {
+   "teile": {
+    "alte_version": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "7fb3f2ced888ccf93354d0215cceb56c89cacd824633d4e2bfa3ccc362c326c6",
+     "shape": [
+      75
+     ]
+    },
+    "falsche_karte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "8585882bb7d900c16386cb5d3fcfe528c1705f901c2356b7b7c16c048bf3d9b8",
+     "shape": [
+      70
+     ]
+    },
+    "maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "7c3812afa8791c7196861d07281899c804c39c8bd6143d7ad7fe993357903fe4",
+     "shape": [
+      60000
+     ]
+    },
+    "rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c71f9cd123a55be87c0079b54a3f1b8fb0df3bf2a2e149ae9dcae6b0b2a72e39",
+     "shape": [
+      60000,
+      3
+     ]
+    },
+    "schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "115021c8748f5f3d037effdf416462256bd9ce3054a8f20ca4bf5997dfcd6c1a",
+     "shape": [
+      9
+     ]
+    },
+    "t_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "b007bc037a06f68a044eef8d3fb164e7308298310c1cbb6b7af4f42462206978",
+     "shape": [
+      60000
+     ]
+    },
+    "t_rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0158a8b08df03ba6e3545a4bdbcfb8173d4a391036d27d58b8130065439d650e",
+     "shape": [
+      60000,
+      3
+     ]
+    },
+    "t_schluessel": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "2a3dc8c4d3e21ae178749551871ba195e385419d828d51bad114c91e313ad0fb",
+     "shape": [
+      20
+     ]
+    },
+    "t_temperatur": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d70e16cfd6bd8cece45a18d9c88726470eaee86113705dd67d04847fd1ce1afd",
+     "shape": [
+      60000
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.starre_pixel": {
+   "teile": {
+    "starr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "27972b19394f43241428908f615118bd3696fa4c624be434e160713049790d49",
+     "shape": [
+      60,
+      80
+     ]
+    },
+    "stehend": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    },
+    "zu_wenige": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ff1dcd0b4398c022c62fe195efb2cb132284b393b784148a66f519f34a007f40",
+     "shape": [
+      6
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.temperatur_farben": {
+   "teile": {
+    "flach": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "33961a7420ce9a7fd1f084a1105e90637ef191bc5c8b0be106d3de20d3158d68",
+     "shape": [
+      100,
+      3
+     ]
+    },
+    "ohne_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "ee72ac5f9c020c562bc73dd5d8fc30d06ac115828c7c9425d1acc6352a3ec626",
+     "shape": [
+      50,
+      3
+     ]
+    },
+    "rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "ecc60b9ff24faf9af915f4261c868e76c6b69b5ce1013469b602c449917a064b",
+     "shape": [
+      40000,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.urteil": {
+   "teile": {
+    "direkt_besser": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "5e6e385b6d19d7c46f49d8168477623ce61b3d9d70e96768fe6139d9a2a64508",
+     "shape": [
+      175
+     ]
+    },
+    "gleich": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "2115d2a708c896e1b0b1c45fb832408154e464ac430ba5db7b0555338f906d15",
+     "shape": [
+      174
+     ]
+    },
+    "null": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "fe185e14c57fba5f661cd8fb188a0064578db243968e616cc7b98c2fb0ae40c3",
+     "shape": [
+      178
+     ]
+    },
+    "ohne_punkte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "fc69c82a50122893731d5bd43a377c08324de0b20a16b309d4d01ce08d9640c9",
+     "shape": [
+      114
+     ]
+    },
+    "splat_besser": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ad9ee665d419ee709b16bf3e0b623f55dffce63940aede975823504f42ee4ffe",
+     "shape": [
+      180
+     ]
+    },
+    "zu_wenig": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "fc69c82a50122893731d5bd43a377c08324de0b20a16b309d4d01ce08d9640c9",
+     "shape": [
+      114
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.vergleich": {
+   "teile": {
+    "bilder": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "927c598af2c08ae1a5ef347ea2853045ccf3055481003a8db09ffc91d2c5bdb8",
+     "shape": []
+    },
+    "direkt_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1a5cb33c2d831edd1ac4d6af40450fa9c4dd8f7e71eb1a8a311249012363aa1a",
+     "shape": []
+    },
+    "direkt_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "138fe3904e7f8cf0fe7e176c55e37c1d92416d00c06de01e6e72b313026d01a9",
+     "shape": []
+    },
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "5fb5ef162fe093a224919ed7a2b000ecffaa9ebea025be15208bc67a6877fea8",
+     "shape": [
+      3
+     ]
+    },
+    "meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "24b54e3f7967c9e27c1259fde9394f5fd8f2ebe364c2dc2f363c7d7e8bf5ab33",
+     "shape": [
+      59
+     ]
+    },
+    "methoden": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "362dd6e47aa0f1588e67e80871a7b759d987a86dfeafeb4639d1a308f507140f",
+     "shape": [
+      12
+     ]
+    },
+    "pruef_namen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "aa48ee22a2091b26a4a30d1a6279fcea12be5158fc2c128228c1f310d3e2ba94",
+     "shape": [
+      15
+     ]
+    },
+    "punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "5b05f68b2e837dea7ed9b91151b58f63943c6f10676ffe7e7b0b6ca69ebe3df3",
+     "shape": []
+    },
+    "splat_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "71a6cb1863cc18a437969d4bd6a4f692719b234e1cdaf2df9dfef3333edce3fb",
+     "shape": []
+    },
+    "splat_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "4557e701f475e17384c50dd71ef3e574328fb40330c3d6442472dd2305b80c60",
+     "shape": []
+    },
+    "steil_bilder": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "927c598af2c08ae1a5ef347ea2853045ccf3055481003a8db09ffc91d2c5bdb8",
+     "shape": []
+    },
+    "steil_direkt_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "02fbd21b904a44bb7f3b8e73d4d47c2eb716d7e3aaf741ced31593201623b1d8",
+     "shape": []
+    },
+    "steil_direkt_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "535d50f11856225b01cf02044d579837e9bf9baac25bd26910f0f9894e6c42a4",
+     "shape": []
+    },
+    "steil_methoden": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "362dd6e47aa0f1588e67e80871a7b759d987a86dfeafeb4639d1a308f507140f",
+     "shape": [
+      12
+     ]
+    },
+    "steil_punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "0c2a0f66400f922c8d9191f6fa16ef07d167df979f256d09a4352d8e10222d4a",
+     "shape": []
+    },
+    "steil_splat_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5a52390ccc62e765bb80848a14c99ec51278f526b222fee709cf41299941ee83",
+     "shape": []
+    },
+    "steil_splat_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5905c96bc1a2221267055ca54b3b803ec3569d0eae471549cec7c510bdf5081e",
+     "shape": []
+    },
+    "t_bilder": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "11dfffb8deb998a23a61ef083b82a8ced56531222205c2e15e85bcf95d9a1958",
+     "shape": []
+    },
+    "t_direkt_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "cc501f8b59a26397c3ed8e40d1866c9d0263e7789a206a200a4dd6c1717ec7a0",
+     "shape": []
+    },
+    "t_direkt_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "97a6db6430c0e1726b751710d7d78abccd792b19e58f1039713962ad885f3944",
+     "shape": []
+    },
+    "t_methoden": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "362dd6e47aa0f1588e67e80871a7b759d987a86dfeafeb4639d1a308f507140f",
+     "shape": [
+      12
+     ]
+    },
+    "t_pruef_namen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b88d0b6895a2ec1c8b436382bedd6cb8264a09a2e64dd77b1d34dc0a7c0263f3",
+     "shape": [
+      23
+     ]
+    },
+    "t_punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "214da5bd86378454d0be3deee09d83842fbe7303a8cb80830354b69241e815ad",
+     "shape": []
+    },
+    "t_splat_angepasst": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "7c43bfedcede65409b4c3826914efc1519b8d5df684fab2820dad627a19d9bcf",
+     "shape": []
+    },
+    "t_splat_roh": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "2270e7b279433bbe51f2d35a7bd5107665e2387042aa2c4b89be3bb5b73b7fe6",
+     "shape": []
+    },
+    "t_urteil": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a37204be1198ca8d1a05552a05daa91b431a2d002480b5e91ebfaee836f9e638",
+     "shape": [
+      179
+     ]
+    },
+    "urteil": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "3c3be2124c9b2f481408089d78eeff745bac9ea1372ee9b9ad6abb884f137a20",
+     "shape": [
+      191
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "splat.zpuffer": {
+   "teile": {
+    "halb_h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "6239a7b981e997974ba56ab0660fbc0d95797992f7ea0d970faf8c43a9940dfe",
+     "shape": []
+    },
+    "halb_puffer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "9859fe9c5db51eee5f44ec8645f2f25024af39f9c42cfd25f47ac85560f45820",
+     "shape": [
+      30000
+     ]
+    },
+    "halb_w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "eb83e86463e6950187ddb5130187eee58c8a6408ea8dbdb1c1fb9497fabce4d3",
+     "shape": []
+    },
+    "kamera1_h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "ccf8971e6443a341242dcab27a2f32f8e0119cdc9d3a82a533c6e55eb8158c8b",
+     "shape": []
+    },
+    "kamera1_puffer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "a7f43109b56416bce289c7bb077e411d89571bbdccd5124c220a9f5bbb651b3f",
+     "shape": [
+      7500
+     ]
+    },
+    "kamera1_w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "447d85fdd4480be36855a7017d517b63ea34c37c46dcd43f50076dded5bec786",
+     "shape": []
+    },
+    "kamera6_h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "ccf8971e6443a341242dcab27a2f32f8e0119cdc9d3a82a533c6e55eb8158c8b",
+     "shape": []
+    },
+    "kamera6_puffer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "5f0db9506ba2ff9db8e14d085eba7bbdaad218f89ea25e4f6dcc3c18b9d54ae6",
+     "shape": [
+      7500
+     ]
+    },
+    "kamera6_w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "447d85fdd4480be36855a7017d517b63ea34c37c46dcd43f50076dded5bec786",
+     "shape": []
+    }
+   },
+   "unstet": null
+  }
+ },
+ "umgebung": {
+  "Pillow": "12.1.1",
+  "PyQt5": "5.15.6",
+  "Qt": "5.15.3",
+  "VTK": "9.1.0",
+  "cv2": "4.12.0.88",
+  "laspy": "2.7.0",
+  "numpy": "2.2.6",
+  "open3d": "0.19.0",
+  "pointcloudmerger": {
+   "dateien": {
+    "README.md": "0e4dca3664fe7db15686a9fb14554941a041df3afcfae9fd281a1e4028b78adc",
+    "__init__.py": "e6170b63839cedd986e2cc457a63a4a9186de58aa56bb8611f10d1ce1772e403",
+    "_colmap_worker.py": "66feb7fad383eb500efc2ed0cd6bbecfb7d5e06eee548c32cf77b32b79e215c2",
+    "cli.py": "75247ca0ee9f0cbe177edd247075ca0f87b6c0f44ff04197bec9df0e72bb6f4c",
+    "cloudio.py": "70f54988a2c46ac6171332cddf9e85543b45b4c40d93136695ecf2e5e6c4fcfe",
+    "colorize.py": "437d8d7bb1532a0eed97dd0d3487e9aae809e447581c571108615bc8448d3f9a",
+    "georef.py": "ec5a32dd300dd215895ad9749b5c8245cb97f817032b47183e3a976e7196e3de",
+    "gui.py": "ce8af828a984d19e18531735fead69e2d04b043fff42806312e798afd2ca36c0",
+    "photos.py": "19fc53de5543bfeaf14a488c6c6b8f5fde772a14cd6c5ff272674803454b4f2a",
+    "pipeline.py": "1c54ead6b1781623b2c40d4ecbf0af6d448e34f53dcb03e783c9eddb084a5f27",
+    "preview.py": "b7eb32f7269d6fb2c6d8d6af169871dece0216d95b3aa1cc31fd93ed4789b19f",
+    "register.py": "c7d9daaba7ebe48418c18726dc98b6acaeef6a64a6b137b6cceca419c05eb730",
+    "run.sh": "72a083b4cce0dc12937d3f35aac0ab0dea4ffbd5e13c0603b9cb0ea41cb6291a",
+    "sfm.py": "cfbc1e6cfbbb329f670e616809ae653f9c718119affe046737b1437d42e0073a"
+   },
+   "git": "a09018d429ef2424d5769ceec18fbafecb714b99"
+  },
+  "pyproj": "3.7.1",
+  "python": "3.10.12",
+  "scipy": "1.14.1"
+ }
+}

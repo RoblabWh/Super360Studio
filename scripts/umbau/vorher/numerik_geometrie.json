@@ -1,0 +1,1116 @@
+{
+ "familie": "geometrie",
+ "grenze_bytes": 2097152,
+ "proben": {
+  "georef.assess": {
+   "teile": {
+    "gemischt_fix_typen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "feb762723428b8d5652115945b324796cdab1efaf1d7650997993054e0a3c387",
+     "shape": [
+      2,
+      2
+     ]
+    },
+    "gemischt_gruende": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "620c751e9b2d3d992abb6608aa57de33adf4f6ffc2f2aa0504d614b9cac5c418",
+     "shape": [
+      304
+     ]
+    },
+    "gemischt_gut": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "cc436635f0f56fb2de01e1398de699ccb7e45c05846ee77542c70247598f3efd",
+     "shape": [
+      80
+     ]
+    },
+    "gemischt_werte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "33079fe58dfd64ff217f54b8bd08d4a767aa94c4adbea8181c7cb1a16388ee4a",
+     "shape": [
+      3
+     ]
+    },
+    "gemischt_zahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "a496f5f867ef5a14d35809fead7560eedb6e9197d2645a9869c1bf44e03ccd62",
+     "shape": [
+      3
+     ]
+    },
+    "kurz_fix_typen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "568b4a73785818bf7c0aae0e5fb8e09f27a8974a6e59b8ff887f2f2991ea65f4",
+     "shape": [
+      1,
+      2
+     ]
+    },
+    "kurz_gruende": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a466026ef69925ec01999468ba6933f3f9bcc8bcd82dc58077676f5ec3f3b0d1",
+     "shape": [
+      96
+     ]
+    },
+    "kurz_gut": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d722cf731ac9d40557e7c387abea599fd3e981fcf843823756d1a76323d9d93c",
+     "shape": [
+      30
+     ]
+    },
+    "kurz_werte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "04ce59ea705589e870d77ef53c9ffe0fecc5cfdcb124edb929b707dd16daba17",
+     "shape": [
+      3
+     ]
+    },
+    "kurz_zahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "de05abf10d0d3174b176e58df008bbe448597758a4b4fafb92dabf69045ea0ee",
+     "shape": [
+      3
+     ]
+    },
+    "leer_fix_typen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "d4e0adf7c7d8ca7986c20626ea5669eaba5e4673f313c224d68d9641853c4d4d",
+     "shape": [
+      0,
+      2
+     ]
+    },
+    "leer_gruende": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "62a222d5807d597b2409d1439305b45910472a6e484acedcba1801a11fb85aef",
+     "shape": [
+      70
+     ]
+    },
+    "leer_gut": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "93e07878d67eeef0b95909708cc8d59eac2eaa94e4b33499c055402f30e7bb53",
+     "shape": [
+      0
+     ]
+    },
+    "leer_werte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "35f7801dc62be289ad09009c7aa68b961133ba9732b094f0d09829e12b620201",
+     "shape": [
+      3
+     ]
+    },
+    "leer_zahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "95e417185bffa2a2770261c0de73a549c8f44007eb4a3a5ca3faabe6202b5b79",
+     "shape": [
+      3
+     ]
+    },
+    "tot_fix_typen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "4a11df451ec5ef192121b3b24c2f5118e44c68ae2b49bb7d66b2c1bb881d91ed",
+     "shape": [
+      1,
+      2
+     ]
+    },
+    "tot_gruende": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ef830e24b83456ec497b14f41a26298bfd8da949b071d8e1de1c0e70c699ba57",
+     "shape": [
+      362
+     ]
+    },
+    "tot_gut": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "b83a3ab03b8f35604905e96346c708a5e0e98d6928d1718a092f7b1079a0d4fa",
+     "shape": [
+      25
+     ]
+    },
+    "tot_werte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7a819ff0d8c29d4620dad58d4a4d011e75de6753fa4fc4b450bda0878bd1ab62",
+     "shape": [
+      3
+     ]
+    },
+    "tot_zahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "638b90594907f75c60ed047ea6abe400db07803dbb0a231c9817bcc6f9b33227",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "georef.export_las": {
+   "teile": {
+    "lokal.las": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4c3936071944813f24a0daf13e9c28ba1fc209f7f1d31af6fba710fd0f087e94",
+     "shape": [
+      26227
+     ]
+    },
+    "lokal_farbe_01.las": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "6fc247ec7eebdb77dc659235aaeb0e2ac723547b4af12f06399fd247ad3c2be5",
+     "shape": [
+      26227
+     ]
+    },
+    "utm.las": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a6a5e129c2fa29e6fad2edff0bf3a0c5430199b6571c72c10fb05cf92d4134a5",
+     "shape": [
+      26388
+     ]
+    },
+    "utm_ohne_farbe.las": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "3f9f4ae75094fff5f07b7aabbbf06ff6cc0f1e0e90911ec5445381a7ee5afdb3",
+     "shape": [
+      26388
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "georef.export_ply_pcd": {
+   "teile": {
+    "farbe.pcd": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "f6504629bf872ed5f53a6626c80116c0d8f3992807ba39c8a85b087ca22b07b6",
+     "shape": [
+      16180
+     ]
+    },
+    "farbe.ply": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a69ba1aeebe0b82a49345fa3e2ecea721e9e8b6eba8793e8c2214a1e16b1ad80",
+     "shape": [
+      27207
+     ]
+    },
+    "farbe_01.ply": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "c19c0d750dcc7c379c823e4231256d7c6eb8dd9c1e7675aa09a3f0ca822d7fdb",
+     "shape": [
+      27207
+     ]
+    },
+    "ohne_farbe.pcd": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "56e218655b86932a0b53f5077703968563d877d937e077c6d8e287bffdc17104",
+     "shape": [
+      12170
+     ]
+    },
+    "ohne_farbe.ply": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e6b27a4b132f515748c1f077fe5e9ec0a57a68a98d7336ac9a721870be97fb09",
+     "shape": [
+      24147
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "merge.cloud_for_registration": {
+   "teile": {
+    "alle": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e9d82e8b34baede95a5b555057ea3d2e0cc2815ee42057fb3e3248e1372ded19",
+     "shape": [
+      6526,
+      3
+     ]
+    },
+    "ein_punkt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0df98660077e3c8e7c741b5c461ec2835599c75ea45c1902ec5032046fd00cb4",
+     "shape": [
+      1,
+      3
+     ]
+    },
+    "schritt_8": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "768a2eb7305bdd93fe6f703e921f88633da9771edf30678da725775f6c241b20",
+     "shape": [
+      816,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "merge.merge_recordings": {
+   "teile": {
+    "hin/intensity.bin": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "866449f189b21e3ea9fcb657111eb3f278b0aedc07c5ae1db153d9a73fbd89c4",
+     "shape": [
+      14656
+     ]
+    },
+    "hin/meta.json": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e6953d5596bec2d8cf6294aca733bfc67d76e7bf3846e4224943da7f53081d5f",
+     "shape": [
+      1888
+     ]
+    },
+    "hin/offsets.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "d3c032e56cbbacc507501a3d8cba66636b368a3547f4afd50faf782923bbcd98",
+     "shape": [
+      696
+     ]
+    },
+    "hin/points.bin": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "7a76f338de7b79a457b9cc1ef63c4d2dd0005d91223fa3e524d2c0ff1c17f564",
+     "shape": [
+      43968
+     ]
+    },
+    "hin/poses.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "35be6feebff16742d01d9b0f0e17eab8f1d590590716f4ee0e726326cd5e73bb",
+     "shape": [
+      4048
+     ]
+    },
+    "hin/stamps.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "8568c1a36d08832e3ea1ff407ad30077bf926d96fd7d2f0db925a24f06df2d19",
+     "shape": [
+      688
+     ]
+    },
+    "zurueck/intensity.bin": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "866449f189b21e3ea9fcb657111eb3f278b0aedc07c5ae1db153d9a73fbd89c4",
+     "shape": [
+      14656
+     ]
+    },
+    "zurueck/meta.json": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "19bea9eefd794df167c91924dfd0d156ddf17327d83000827547661b664e3bbf",
+     "shape": [
+      1959
+     ]
+    },
+    "zurueck/offsets.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "d3c032e56cbbacc507501a3d8cba66636b368a3547f4afd50faf782923bbcd98",
+     "shape": [
+      696
+     ]
+    },
+    "zurueck/points.bin": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "7a76f338de7b79a457b9cc1ef63c4d2dd0005d91223fa3e524d2c0ff1c17f564",
+     "shape": [
+      43968
+     ]
+    },
+    "zurueck/poses.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "815247689c06a305f2ca1e3aeec9b5962122980f1b961370c8048800e474c571",
+     "shape": [
+      4048
+     ]
+    },
+    "zurueck/stamps.npy": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "8568c1a36d08832e3ea1ff407ad30077bf926d96fd7d2f0db925a24f06df2d19",
+     "shape": [
+      688
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "merge.register_auto": {
+   "teile": {
+    "T": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c031c6885031998349b43e66095475a4ec39701555d51b8290fada7226d84465",
+     "shape": [
+      4,
+      4
+     ]
+    },
+    "fitness": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "rmse": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "49a29df3aa857c7f7cacad84bbb536653f2e8a71138deb6590fbc8f4f72f323e",
+     "shape": []
+    },
+    "voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "64fb5a5a9fbbb5e9e2c02358fc68d000bea8bea1d14d855c9201364e4cc5ba35",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": 1e-06
+  },
+  "merge.register_icp": {
+   "teile": {
+    "T": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ee84b1064c40aaf44bb23ec85c995c3149094544a45089ff791dea366ff57dd3",
+     "shape": [
+      4,
+      4
+     ]
+    },
+    "fitness": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "rmse": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e57fee076313a6f1fdd8a86acbf2f1ee9f4b6be088c481f903c61df89213982a",
+     "shape": []
+    },
+    "voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "64fb5a5a9fbbb5e9e2c02358fc68d000bea8bea1d14d855c9201364e4cc5ba35",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": 1e-06
+  },
+  "merge.transform_poses": {
+   "teile": {
+    "identitaet": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a700a7f91d6e011a4b805b251ddf6dc083a7fd8c544e6e67ebe2835e07464248",
+     "shape": [
+      60,
+      7
+     ]
+    },
+    "posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "967cd6640e03ef65d723bd56dce03bad005233168e1650198c1dccad674f3941",
+     "shape": [
+      60,
+      7
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "mesh._normals_cpu": {
+   "teile": {
+    "eigenwerte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "52a43373521d0f18f9c0f417eb9dbe5a283919cd27fc0a8812506d9aaa8b8f44",
+     "shape": [
+      13473,
+      3
+     ]
+    },
+    "nachbarn": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "33165b17b2f9d533bfde9e5844581cbf54fc9e5734e9eca9897b133c52b811a5",
+     "shape": [
+      13473
+     ]
+    },
+    "normalen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "cb89216bf6e830144a48dce4e567e7e9954213cf5cb1fb572095ba5e7ea924a8",
+     "shape": [
+      13473,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "mesh._voxelize": {
+   "teile": {
+    "fein_anzahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8397c0e07682021927b7a732e09b463b5c48af0c42ec28f8387181e50ea7bdff",
+     "shape": [
+      5982
+     ]
+    },
+    "fein_dims": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "169e5d22da6897f13b36b919581748e7d369d5c46c39b472ab64b18eb7f1a529",
+     "shape": [
+      3
+     ]
+    },
+    "fein_mitten": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "783a3b2502aaae42315ae040a6e0b65fd4b615bc2e163ce7d11aabaae4f87ea8",
+     "shape": [
+      5982,
+      3
+     ]
+    },
+    "fein_point_voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "b23aa45b672a74533d356e676490f3f993302af597af4c3e4ed4b3a5a17946c8",
+     "shape": [
+      6000
+     ]
+    },
+    "fein_schluessel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "2e2ad3f604a9c141c2ba8fa53b17b922f00158f99beac0628a3a90557999b3e2",
+     "shape": [
+      5982
+     ]
+    },
+    "fein_zellen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "b482ed87229ea1571ca8d1ddf9b2b23155b76098bb7bc86cc18747b40a187f2d",
+     "shape": [
+      5982,
+      3
+     ]
+    },
+    "grob_anzahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4100b7b20a6cf86c17210cf07bb0f660f30daaf16ff2e8da21722d4b2f381a1e",
+     "shape": [
+      3034
+     ]
+    },
+    "grob_dims": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "84d431d0100cbb74c3a3bd9871b2299f0373e0030a3be6dcc95ee3327c30a870",
+     "shape": [
+      3
+     ]
+    },
+    "grob_mitten": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "431c899c82b7610ccfc29d72c955ef2bc5566a6c36baad564ffff7658caa3b34",
+     "shape": [
+      3034,
+      3
+     ]
+    },
+    "grob_point_voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "69e1e7086b397d13deb84c167ed04a3a1f079016f1dd1ccb1ea6aba802825260",
+     "shape": [
+      6000
+     ]
+    },
+    "grob_schluessel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "76d3bcd96e67d6ec3001c58812dbba69fbe8032cf289e287ad90543caec09949",
+     "shape": [
+      3034
+     ]
+    },
+    "grob_zellen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "9daad5f0f17de81198227e40d2b26a49f230154b6c534b50c8b7220a44cf91b7",
+     "shape": [
+      3034,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "mesh.build_geometry": {
+   "teile": {
+    "point_voxel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i4",
+     "hash": "e7347565e5d8b2c0ca16e63ce1523f15cc6f22ede1ad67ce44b5054b17c79659",
+     "shape": [
+      36102
+     ]
+    },
+    "rest_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "fcc30a3f27256bc273889d7fc58a7b4a78c6a13db2e034b1968ce62766febf4c",
+     "shape": [
+      36102
+     ]
+    },
+    "zelle_rest": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "7ef45fdb9cc150857c7d576d67132ff99b43fd30c7cc7cba71d43bf8834504f3",
+     "shape": [
+      13473
+     ]
+    },
+    "zellen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "928ffd022c1a06c22d48ccd7a9f342baa42d6a7bdc5b923d52808859586fa303",
+     "shape": [
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "mesh.build_geometry_form": {
+   "teile": {
+    "achsen_quantile": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "784e6fdf4b7381096b484cf27d0f81e6511dcbf2f98e63b914e7a04c871c01bd",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "normalen_innen": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "9e99bbe0bbb43759fb5b0495862e18502eb4a45886c5663f822f162e2a41a249",
+     "shape": []
+    },
+    "radius_mittel": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e131cae10209db6426b5fd55668b823a207b5dca74850b191069ddc456fd912a",
+     "shape": []
+    },
+    "radius_quantile": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "16c210cd0e782bae22cb6c00741f590becbfdbdbe87fcb6048f22b9882aaa7b1",
+     "shape": [
+      5
+     ]
+    }
+   },
+   "unstet": 0.005
+  },
+  "mesh.build_geometry_netz": {
+   "teile": {
+    "groesse": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "fee3c68ab7f0c8fe48fefc7246531c0347f43d83603509b57c840a9fa95427f8",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": 150.0
+  },
+  "mesh.rest_maske": {
+   "teile": {
+    "maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "0148cd51ab33b37268e56e07241a71da8dc1dbbf589760fe1a5a243b4a4d4347",
+     "shape": [
+      8000
+     ]
+    },
+    "ohne_hybrid_none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "mesh.vertex_colors": {
+   "teile": {
+    "gueltig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "3de8589e04c03f85c75596fc8abfa15ca855970bf4364848d227b9d02f6867a0",
+     "shape": [
+      1500
+     ]
+    },
+    "gueltig_ohne_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "4a8f68a1854e98c81464f233b9d0409bab07573ec45357a5f67bfb165c3526f7",
+     "shape": [
+      1500
+     ]
+    },
+    "rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "f3d8ed07be0108eeaf86572fc800f39a599368321b2bc72c9c1970a7605cf740",
+     "shape": [
+      1500,
+      3
+     ]
+    },
+    "rgb_ohne_maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "7b2ee5b1fdfb0b80135a7b3032e42e74274ac68ef7468db91241f892d8800f92",
+     "shape": [
+      1500,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "mesh.vertex_scalar": {
+   "teile": {
+    "hoehe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "3ce81ee206ebf394c8267948825d5d51c24eab4e12819861772d9cd277de2fb1",
+     "shape": [
+      1500
+     ]
+    },
+    "intensitaet": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "1543b16220aaf94ce3ac79e8e958885339f6c7dd26d7f3f46b8a5be3be42b1eb",
+     "shape": [
+      1500
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "recording.Recording.load": {
+   "teile": {
+    "gekippt_posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "208b1e1256dddf7c2c2f3cd1535327212a79c2755c4245f57d6e7c6f8e6ff006",
+     "shape": [
+      50,
+      7
+     ]
+    },
+    "gekippt_stufe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "0fee6c0ff2a1b8b11680404fc1af8c65d75db67679e7ac0414757e5f0ebd3cee",
+     "shape": [
+      1
+     ]
+    },
+    "intensitaet": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "c3cdaefb3f9481cfcc243b11853b86b52a342062a6c7b0403b50cef749415103",
+     "shape": [
+      2354
+     ]
+    },
+    "level_aus_posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2a559369e1389e727341f78fd518289525252e4b5294eb7d7503a4d564c1ccaf",
+     "shape": [
+      50,
+      7
+     ]
+    },
+    "level_aus_stufe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "5609ff6b333e67566808806239d4415815bde9160f0907088b6b7f3e45c21dec",
+     "shape": [
+      1
+     ]
+    },
+    "offsets": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "15238f39ace32cb4c62b58cdb8119df331264af441475462054f34f4fda58f71",
+     "shape": [
+      51
+     ]
+    },
+    "ohne_messung_posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2a559369e1389e727341f78fd518289525252e4b5294eb7d7503a4d564c1ccaf",
+     "shape": [
+      50,
+      7
+     ]
+    },
+    "ohne_messung_stufe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "5609ff6b333e67566808806239d4415815bde9160f0907088b6b7f3e45c21dec",
+     "shape": [
+      1
+     ]
+    },
+    "punkte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "3348aa34ea8e33a65ab59d8487747ba2fcf70078a2770685dd9d7c94605f1be1",
+     "shape": [
+      2354,
+      3
+     ]
+    },
+    "stempel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d1bb02993f7684381428dae8673a354825fbf6d461676986b0570ab586d5b6ed",
+     "shape": [
+      50
+     ]
+    },
+    "unter_schwelle_posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2a559369e1389e727341f78fd518289525252e4b5294eb7d7503a4d564c1ccaf",
+     "shape": [
+      50,
+      7
+     ]
+    },
+    "unter_schwelle_stufe": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "16a0d6e09e3da90bdedf6e1d1fa17b33c9a1aed8f69fd3bc63fbe669bb3c970d",
+     "shape": [
+      1
+     ]
+    },
+    "welt_gekippt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "65b3e5eda0f57bdedba6d29d82acaa888a6f3c88e66bd116739961d7fedc0565",
+     "shape": [
+      2354,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "recording._rotate_world": {
+   "teile": {
+    "identitaet": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "5c6da299c1f2ada6425479bae5ede5d914641553e80deb76d350414511449c46",
+     "shape": [
+      60,
+      7
+     ]
+    },
+    "posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b545c35123e1d18781550630e585918b04f4d07c5a07897d5c7569174643f325",
+     "shape": [
+      60,
+      7
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "recording.interpolate_pose": {
+   "teile": {
+    "bahn": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2719423df8ca6b52b896686699edce12c953993c594065baa20c19e3c3093ec9",
+     "shape": [
+      40,
+      3
+     ]
+    },
+    "posen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "32cccc4d62e1307bfa7c5008db222bb95a60b39a4f27a1e0247c5067c8ddd2c7",
+     "shape": [
+      14,
+      4,
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "recording.level_rotation": {
+   "teile": {
+    "quat": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4fd41d0e4e1357e1de7ebbe6e54e0907b1ed67c9f25401b5e68b3494e00d5879",
+     "shape": [
+      17,
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "recording.world_points": {
+   "teile": {
+    "fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ff2f6639caf4c0f94fc0d4c64ca165c35cc7a9f3e99dae8fc37400417d8c528d",
+     "shape": [
+      4
+     ]
+    },
+    "welt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d1f4abd65a61175d3b2ea5fafbe7cc3290797ffc1a0a7f4ba224ef8a4f251f06",
+     "shape": [
+      6690,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  }
+ },
+ "umgebung": {
+  "Pillow": "12.1.1",
+  "PyQt5": "5.15.6",
+  "Qt": "5.15.3",
+  "VTK": "9.1.0",
+  "cv2": "4.12.0.88",
+  "laspy": "2.7.0",
+  "numpy": "2.2.6",
+  "open3d": "0.19.0",
+  "pointcloudmerger": {
+   "dateien": {
+    "README.md": "0e4dca3664fe7db15686a9fb14554941a041df3afcfae9fd281a1e4028b78adc",
+    "__init__.py": "e6170b63839cedd986e2cc457a63a4a9186de58aa56bb8611f10d1ce1772e403",
+    "_colmap_worker.py": "66feb7fad383eb500efc2ed0cd6bbecfb7d5e06eee548c32cf77b32b79e215c2",
+    "cli.py": "75247ca0ee9f0cbe177edd247075ca0f87b6c0f44ff04197bec9df0e72bb6f4c",
+    "cloudio.py": "70f54988a2c46ac6171332cddf9e85543b45b4c40d93136695ecf2e5e6c4fcfe",
+    "colorize.py": "437d8d7bb1532a0eed97dd0d3487e9aae809e447581c571108615bc8448d3f9a",
+    "georef.py": "ec5a32dd300dd215895ad9749b5c8245cb97f817032b47183e3a976e7196e3de",
+    "gui.py": "ce8af828a984d19e18531735fead69e2d04b043fff42806312e798afd2ca36c0",
+    "photos.py": "19fc53de5543bfeaf14a488c6c6b8f5fde772a14cd6c5ff272674803454b4f2a",
+    "pipeline.py": "1c54ead6b1781623b2c40d4ecbf0af6d448e34f53dcb03e783c9eddb084a5f27",
+    "preview.py": "b7eb32f7269d6fb2c6d8d6af169871dece0216d95b3aa1cc31fd93ed4789b19f",
+    "register.py": "c7d9daaba7ebe48418c18726dc98b6acaeef6a64a6b137b6cceca419c05eb730",
+    "run.sh": "72a083b4cce0dc12937d3f35aac0ab0dea4ffbd5e13c0603b9cb0ea41cb6291a",
+    "sfm.py": "cfbc1e6cfbbb329f670e616809ae653f9c718119affe046737b1437d42e0073a"
+   },
+   "git": "a09018d429ef2424d5769ceec18fbafecb714b99"
+  },
+  "pyproj": "3.7.1",
+  "python": "3.10.12",
+  "scipy": "1.14.1"
+ }
+}

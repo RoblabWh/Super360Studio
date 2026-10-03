@@ -1,0 +1,599 @@
+{
+ "ecke": "ExplorationsgradAnzeige",
+ "menues": [
+  {
+   "frei": true,
+   "kontext": "WindowShortcut",
+   "kuerzel": "",
+   "schaltbar": false,
+   "schluessel": null,
+   "statustip": "",
+   "text": "&Datei",
+   "tooltip": "Datei",
+   "tooltips_sichtbar": false,
+   "untermenue": [
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+O",
+     "schaltbar": false,
+     "schluessel": "open",
+     "statustip": "Einen Flug öffnen; er wird zur Arbeitswolke.",
+     "text": "Rosbag öffnen …",
+     "tooltip": "Einen Flug öffnen; er wird zur Arbeitswolke."
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+Shift+P",
+     "schaltbar": false,
+     "schluessel": "open_project",
+     "statustip": "Ein Projekt aus dem Cache — der einzige Weg zu zusammengeführten Karten.",
+     "text": "Berechnetes Projekt öffnen …",
+     "tooltip": "Ein Projekt aus dem Cache — der einzige Weg zu zusammengeführten Karten."
+    },
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+Shift+O",
+     "schaltbar": false,
+     "schluessel": "merge",
+     "statustip": "Zweites Rosbag laden und mit dem offenen zusammenführen.",
+     "text": "Zweiten Flug dazuladen …",
+     "tooltip": "Zweites Rosbag laden und mit dem offenen zusammenführen."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "meander",
+     "statustip": "Bilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
+     "text": "Mäanderflug laden …",
+     "tooltip": "Bilder eines DJI-Kartierungsfluges für die Einfärbung laden."
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+Shift+E",
+     "schaltbar": false,
+     "schluessel": "project_export",
+     "statustip": "Alle berechneten Daten in einen Ordner kopieren, den man weiterreichen kann.",
+     "text": "Projekt exportieren …",
+     "tooltip": "Alle berechneten Daten in einen Ordner kopieren, den man weiterreichen kann."
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+I",
+     "schaltbar": false,
+     "schluessel": "project_import",
+     "statustip": "Ein exportiertes Projekt direkt in seinem Ordner öffnen — ohne Kopie,\nohne Rückfrage. Änderungen werden sofort dort gespeichert.",
+     "text": "Projektordner öffnen …",
+     "tooltip": "Ein exportiertes Projekt direkt in seinem Ordner öffnen — ohne Kopie,\nohne Rückfrage. Änderungen werden sofort dort gespeichert."
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+E",
+     "schaltbar": false,
+     "schluessel": "export_ply",
+     "statustip": "Die angezeigte Farbebene mitschreiben.",
+     "text": "Exportieren als PLY/PCD …",
+     "tooltip": "Die angezeigte Farbebene mitschreiben."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "export_las",
+     "statustip": "Georeferenziert, sofern das GPS brauchbar war.",
+     "text": "Exportieren als LAS …",
+     "tooltip": "Georeferenziert, sofern das GPS brauchbar war."
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "mesh_cc",
+     "statustip": "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Export)\nund in CloudCompare öffnen.",
+     "text": "Mesh in CloudCompare zeigen",
+     "tooltip": "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Export)\nund in CloudCompare öffnen."
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "cloud_cc",
+     "statustip": "",
+     "text": "Punktwolke in CloudCompare öffnen",
+     "tooltip": "Punktwolke in CloudCompare öffnen"
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+P",
+     "schaltbar": false,
+     "schluessel": "screenshot",
+     "statustip": "",
+     "text": "Ansicht als Bild speichern …",
+     "tooltip": "Ansicht als Bild speichern …"
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+Q",
+     "schaltbar": false,
+     "schluessel": "quit",
+     "statustip": "",
+     "text": "Beenden",
+     "tooltip": "Beenden"
+    }
+   ]
+  },
+  {
+   "frei": true,
+   "kontext": "WindowShortcut",
+   "kuerzel": "",
+   "schaltbar": false,
+   "schluessel": null,
+   "statustip": "",
+   "text": "&Ändern",
+   "tooltip": "Ändern",
+   "tooltips_sichtbar": false,
+   "untermenue": [
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "autocal",
+     "statustip": "Sucht die Kamera-Extrinsik über die Foto-Konsistenz.",
+     "text": "Auto-Kalibrierung (grob)",
+     "tooltip": "Sucht die Kamera-Extrinsik über die Foto-Konsistenz."
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "overlay",
+     "statustip": "Pano mit projizierten Lidar-Punkten zur Sichtprüfung.",
+     "text": "Überlagerung prüfen",
+     "tooltip": "Pano mit projizierten Lidar-Punkten zur Sichtprüfung."
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "extrinsic_reset",
+     "statustip": "",
+     "text": "Extrinsik zurücksetzen",
+     "tooltip": "Extrinsik zurücksetzen"
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "merge_reset",
+     "statustip": "Den dazugeladenen zweiten Flug wieder entfernen.",
+     "text": "Ausrichtung verwerfen",
+     "tooltip": "Den dazugeladenen zweiten Flug wieder entfernen."
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "settings_reset",
+     "statustip": "",
+     "text": "Einstellungen auf Vorgabe",
+     "tooltip": "Einstellungen auf Vorgabe"
+    }
+   ]
+  },
+  {
+   "frei": true,
+   "kontext": "WindowShortcut",
+   "kuerzel": "",
+   "schaltbar": false,
+   "schluessel": null,
+   "statustip": "",
+   "text": "&Ansicht",
+   "tooltip": "Ansicht",
+   "tooltips_sichtbar": false,
+   "untermenue": [
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "menu_farbquelle",
+     "statustip": "",
+     "text": "Farbquelle",
+     "tooltip": "Farbquelle",
+     "tooltips_sichtbar": false,
+     "untermenue": [
+      {
+       "daten": "onboard",
+       "frei": true,
+       "haken": true,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "keine Einfärbung",
+       "tooltip": "keine Einfärbung"
+      }
+     ]
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "menu_hintergrund",
+     "statustip": "",
+     "text": "Hintergrund",
+     "tooltip": "Hintergrund",
+     "tooltips_sichtbar": false,
+     "untermenue": [
+      {
+       "daten": "dunkel",
+       "frei": true,
+       "haken": true,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "Dunkel",
+       "tooltip": "Dunkel"
+      },
+      {
+       "daten": "hell",
+       "frei": true,
+       "haken": false,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "Hell",
+       "tooltip": "Hell"
+      }
+     ]
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "menu_tab",
+     "statustip": "",
+     "text": "Bereich",
+     "tooltip": "Bereich",
+     "tooltips_sichtbar": false,
+     "untermenue": [
+      {
+       "daten": 0,
+       "frei": true,
+       "haken": true,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "3D-Karte",
+       "tooltip": "3D-Karte"
+      },
+      {
+       "daten": 1,
+       "frei": true,
+       "haken": false,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "360°-Video",
+       "tooltip": "360°-Video"
+      },
+      {
+       "daten": 2,
+       "frei": true,
+       "haken": false,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "GPS",
+       "tooltip": "GPS"
+      },
+      {
+       "daten": 3,
+       "frei": true,
+       "haken": false,
+       "kontext": "WindowShortcut",
+       "kuerzel": "",
+       "schaltbar": true,
+       "schluessel": null,
+       "statustip": "",
+       "text": "Protokoll",
+       "tooltip": "Protokoll"
+      }
+     ]
+    },
+    {
+     "frei": true,
+     "haken": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": true,
+     "schluessel": "edl",
+     "statustip": "",
+     "text": "Eye-Dome-Beleuchtung",
+     "tooltip": "Eye-Dome-Beleuchtung"
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "R",
+     "schaltbar": false,
+     "schluessel": "reset_cam",
+     "statustip": "",
+     "text": "Kamera zurücksetzen",
+     "tooltip": "Kamera zurücksetzen"
+    },
+    {
+     "frei": true,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+H",
+     "schaltbar": false,
+     "schluessel": "cut_reset",
+     "statustip": "Die volle Höhe wieder zeigen.",
+     "text": "Höhenschnitt aufheben",
+     "tooltip": "Die volle Höhe wieder zeigen."
+    },
+    {
+     "frei": false,
+     "haken": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": true,
+     "schluessel": "preview",
+     "statustip": "Die Vorschau des dazugeladenen Fluges. Orange heißt: noch nicht\nübernommen — sie gehört noch nicht zur Karte.",
+     "text": "Zweiten Flug (orange) anzeigen",
+     "tooltip": "Die Vorschau des dazugeladenen Fluges. Orange heißt: noch nicht\nübernommen — sie gehört noch nicht zur Karte."
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "haken": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "Ctrl+B",
+     "schaltbar": true,
+     "schluessel": "sidebar",
+     "statustip": "",
+     "text": "Seitenleiste",
+     "tooltip": "Seitenleiste"
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "expand_all",
+     "statustip": "",
+     "text": "Alle Abschnitte aufklappen",
+     "tooltip": "Alle Abschnitte aufklappen"
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "collapse_all",
+     "statustip": "",
+     "text": "Alle Abschnitte zuklappen",
+     "tooltip": "Alle Abschnitte zuklappen"
+    }
+   ]
+  },
+  {
+   "frei": true,
+   "kontext": "WindowShortcut",
+   "kuerzel": "",
+   "schaltbar": false,
+   "schluessel": null,
+   "statustip": "",
+   "text": "&Werkzeuge",
+   "tooltip": "Werkzeuge",
+   "tooltips_sichtbar": false,
+   "untermenue": [
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "F5",
+     "schaltbar": false,
+     "schluessel": "fastlio",
+     "statustip": "",
+     "text": "Karte berechnen (FAST-LIO2)",
+     "tooltip": "Karte berechnen (FAST-LIO2)"
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "exploration",
+     "statustip": "Den Wert oben rechts noch einmal aus dem Bag rechnen, am Cache vorbei.",
+     "text": "Explorationsgrad neu berechnen",
+     "tooltip": "Den Wert oben rechts noch einmal aus dem Bag rechnen, am Cache vorbei."
+    },
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "F6",
+     "schaltbar": false,
+     "schluessel": "colorize",
+     "statustip": "",
+     "text": "Einfärben (360°-Kamera)",
+     "tooltip": "Einfärben (360°-Kamera)"
+    },
+    {
+     "frei": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "F7",
+     "schaltbar": false,
+     "schluessel": "meander_run",
+     "statustip": "Punktwolke aus den Bildern eines Kartierungsfluges einfärben.",
+     "text": "Mäander-Einfärbung …",
+     "tooltip": "Punktwolke aus den Bildern eines Kartierungsfluges einfärben."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "splat_meander",
+     "statustip": "Farben aus allen Bildern des Mäanderfluges zugleich lernen (GPU).",
+     "text": "Mäander per Gaussian Splat",
+     "tooltip": "Farben aus allen Bildern des Mäanderfluges zugleich lernen (GPU)."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "splat_onboard",
+     "statustip": "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
+     "text": "Onboard per Gaussian Splat",
+     "tooltip": "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU)."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "splat_gemeinsam",
+     "statustip": "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
+     "text": "Onboard + Mäander per Gaussian Splat",
+     "tooltip": "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU)."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "fusion",
+     "statustip": "Onboard-Farben an den Mäander angleichen und nach Flächenlage mischen:\nDächer und Boden aus dem Mäander, Fassaden aus der 360°-Kamera.",
+     "text": "Onboard + Mäander fusionieren",
+     "tooltip": "Onboard-Farben an den Mäander angleichen und nach Flächenlage mischen:\nDächer und Boden aus dem Mäander, Fassaden aus der 360°-Kamera."
+    },
+    {
+     "frei": false,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "merge_apply",
+     "statustip": "",
+     "text": "Flüge zusammenführen",
+     "tooltip": "Flüge zusammenführen"
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": false,
+     "haken": false,
+     "kontext": "ApplicationShortcut",
+     "kuerzel": "M",
+     "schaltbar": true,
+     "schluessel": "measure",
+     "statustip": "Zwei Klicks in die Wolke: Abstand in Metern.",
+     "text": "Messen",
+     "tooltip": "Zwei Klicks in die Wolke: Abstand in Metern."
+    },
+    {
+     "trenner": true
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "rviz_start",
+     "statustip": "",
+     "text": "RViz-Wiedergabe starten",
+     "tooltip": "RViz-Wiedergabe starten"
+    },
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "rviz_stop",
+     "statustip": "",
+     "text": "RViz-Wiedergabe beenden",
+     "tooltip": "RViz-Wiedergabe beenden"
+    }
+   ]
+  },
+  {
+   "frei": true,
+   "kontext": "WindowShortcut",
+   "kuerzel": "",
+   "schaltbar": false,
+   "schluessel": null,
+   "statustip": "",
+   "text": "&Hilfe",
+   "tooltip": "Hilfe",
+   "tooltips_sichtbar": false,
+   "untermenue": [
+    {
+     "frei": true,
+     "kontext": "WindowShortcut",
+     "kuerzel": "",
+     "schaltbar": false,
+     "schluessel": "about",
+     "statustip": "",
+     "text": "Über Super360 Studio",
+     "tooltip": "Über Super360 Studio"
+    }
+   ]
+  }
+ ],
+ "native_menueleiste": false,
+ "zahl": {
+  "aktionen": 37,
+  "untermenues": 3
+ }
+}

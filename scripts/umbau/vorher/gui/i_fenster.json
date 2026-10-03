@@ -1,0 +1,910 @@
+{
+ "attribute": {
+  "_actions": "dict",
+  "_auto_kette": "bool",
+  "_autotest_deadline": "float",
+  "_autotest_failed": "bool",
+  "_autotest_out": "str",
+  "_autotest_path": "NoneType",
+  "_autotest_timer": "NoneType",
+  "_bag": "NoneType",
+  "_bag_info": "NoneType",
+  "_blue_widgets": "tuple",
+  "_btn_autocal": "QPushButton",
+  "_btn_blue_defaults": "QPushButton",
+  "_btn_blue_preview": "QPushButton",
+  "_btn_cancel": "QPushButton",
+  "_btn_cloud_cc": "QPushButton",
+  "_btn_colorize": "QPushButton",
+  "_btn_export_las": "QPushButton",
+  "_btn_export_plypcd": "QPushButton",
+  "_btn_fastlio": "QPushButton",
+  "_btn_meander_align": "QPushButton",
+  "_btn_meander_auto": "QPushButton",
+  "_btn_meander_fein": "QPushButton",
+  "_btn_meander_fenster": "QPushButton",
+  "_btn_meander_optik": "QPushButton",
+  "_btn_meander_pick": "QPushButton",
+  "_btn_meander_run": "QPushButton",
+  "_btn_merge_apply": "QPushButton",
+  "_btn_merge_auto": "QPushButton",
+  "_btn_merge_drop": "QPushButton",
+  "_btn_merge_icp": "QPushButton",
+  "_btn_merge_pick": "QPushButton",
+  "_btn_mesh_cc": "QPushButton",
+  "_btn_open": "QPushButton",
+  "_btn_overlay": "QPushButton",
+  "_btn_rviz_replay": "QPushButton",
+  "_btn_rviz_start": "QPushButton",
+  "_btn_rviz_stop": "QPushButton",
+  "_btn_splat_gemeinsam": "QPushButton",
+  "_btn_splat_maeander": "QPushButton",
+  "_btn_splat_onboard": "QPushButton",
+  "_btn_splat_pruefen": "QPushButton",
+  "_busy": "bool",
+  "_calib": "str",
+  "_chk_blue": "QCheckBox",
+  "_chk_edl": "QCheckBox",
+  "_chk_lens": "QCheckBox",
+  "_chk_mesh_hybrid": "QCheckBox",
+  "_chk_only_colored": "QCheckBox",
+  "_chk_path": "QCheckBox",
+  "_chk_sichtbar": "QCheckBox",
+  "_chk_solo": "QCheckBox",
+  "_chk_splat_posen": "QCheckBox",
+  "_chk_splat_pruefen": "QCheckBox",
+  "_chk_splat_thermal": "QCheckBox",
+  "_chk_thermal": "QCheckBox",
+  "_closing": "bool",
+  "_cloud_view": "CloudView",
+  "_colors": "NoneType",
+  "_combo_bg": "QComboBox",
+  "_combo_colormode": "QComboBox",
+  "_combo_config": "QComboBox",
+  "_combo_layer": "QComboBox",
+  "_combo_splat_raster": "QComboBox",
+  "_combo_splat_sh": "QComboBox",
+  "_combo_voxel": "QComboBox",
+  "_exploration": "NoneType",
+  "_ext_spins": "dict",
+  "_fixes": "NoneType",
+  "_frame_lbl": "QLabel",
+  "_georef": "NoneType",
+  "_gps_panel": "GpsPanel",
+  "_grad_anzeige": "ExplorationsgradAnzeige",
+  "_info_table": "QTableWidget",
+  "_layer_key": "str",
+  "_layers": "dict",
+  "_lbl_blue_band": "QLabel",
+  "_lbl_fastlio": "QLabel",
+  "_lbl_meander": "QLabel",
+  "_lbl_meander_lage": "QLabel",
+  "_lbl_merge": "QLabel",
+  "_lbl_rviz": "QLabel",
+  "_lbl_splat": "QLabel",
+  "_live": "NoneType",
+  "_live_gemeckert": "bool",
+  "_live_optik": "str",
+  "_live_pts": "NoneType",
+  "_live_th": "NoneType",
+  "_live_timer": "QTimer",
+  "_loading_ui": "bool",
+  "_log_edit": "QPlainTextEdit",
+  "_massstab": "dict",
+  "_meander_dir": "NoneType",
+  "_meander_pipe": "NoneType",
+  "_merge_T": "ndarray",
+  "_merge_bag": "NoneType",
+  "_merge_center": "ndarray",
+  "_merge_cloud": "NoneType",
+  "_merge_rec": "NoneType",
+  "_merge_timer": "QTimer",
+  "_mesh_farbcache": "dict",
+  "_mesh_geom": "NoneType",
+  "_mesh_geom_dir": "NoneType",
+  "_mesh_laeuft": "bool",
+  "_mesh_timer": "QTimer",
+  "_mesh_wartet": "bool",
+  "_mess_lbl": "QLabel",
+  "_n_frames": "int",
+  "_optik": "dict",
+  "_optik_neu_messen": "bool",
+  "_overlay_dialogs": "list",
+  "_pano_failed": "bool",
+  "_pano_src": "NoneType",
+  "_pano_view": "PanoView",
+  "_parts": "NoneType",
+  "_pbar_fastlio": "QProgressBar",
+  "_project": "NoneType",
+  "_quality": "NoneType",
+  "_rec": "NoneType",
+  "_retired": "list",
+  "_rviz_player": "RvizPlayer",
+  "_rviz_timer": "QTimer",
+  "_sections": "SectionStack",
+  "_settings": "dict",
+  "_sidebar_breite": "int",
+  "_sidebar_scroll": "QScrollArea",
+  "_sld_blue_hi": "QSlider",
+  "_sld_blue_lo": "QSlider",
+  "_sld_blue_neutral": "QSlider",
+  "_sld_blue_sat": "QSlider",
+  "_sld_blue_val": "QSlider",
+  "_sld_bmax": "QSlider",
+  "_sld_bmin": "QSlider",
+  "_spin_edge": "QSpinBox",
+  "_spin_kframes": "QSpinBox",
+  "_spin_meander": "dict",
+  "_spin_meander_th": "dict",
+  "_spin_merge": "dict",
+  "_spin_mesh_depth": "QSpinBox",
+  "_spin_mesh_trim": "QSpinBox",
+  "_spin_mesh_voxel": "QSpinBox",
+  "_spin_optik": "dict",
+  "_spin_pointsize": "QDoubleSpinBox",
+  "_spin_rate": "QDoubleSpinBox",
+  "_spin_sky": "QSpinBox",
+  "_spin_splat_anker": "QDoubleSpinBox",
+  "_spin_splat_frames": "QSpinBox",
+  "_spin_splat_schritte": "QSpinBox",
+  "_spin_splat_schritte_onboard": "QSpinBox",
+  "_splitter": "QSplitter",
+  "_status_lbl": "QLabel",
+  "_status_pbar": "QProgressBar",
+  "_tabs": "QTabWidget",
+  "_temperatur": "NoneType",
+  "_temperatur_anzeigen": "bool",
+  "_temperaturen": "dict",
+  "_valid": "NoneType",
+  "_worker": "NoneType",
+  "_world": "NoneType",
+  "_zuschlag_timer": "QTimer"
+ },
+ "klasse": {
+  "_SECTIONS": {
+   "art": "klassenattribut:tuple"
+  },
+  "_ZUSCHLAG": {
+   "art": "klassenattribut:str"
+  },
+  "__init__": {
+   "art": "methode",
+   "signatur": "(self, parent=None)"
+  },
+  "_apply_layer": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_apply_settings_to_widgets": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_auto_weiter": {
+   "art": "methode",
+   "signatur": "(self, schritt: 'str') -> 'None'"
+  },
+  "_autotest_active": {
+   "art": "methode",
+   "signatur": "(self) -> 'bool'"
+  },
+  "_autotest_begin": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_autotest_finish": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_autotest_poll": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_autotest_shots": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_autotest_snap": {
+   "art": "methode",
+   "signatur": "(self, tab_idx: 'int', name: 'str') -> 'None'"
+  },
+  "_bag_paths": {
+   "art": "methode",
+   "signatur": "(self) -> 'list'"
+  },
+  "_blue_args": {
+   "art": "methode",
+   "signatur": "(self) -> 'dict'"
+  },
+  "_build_sidebar": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_build_ui": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_cc_arrays": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple[np.ndarray, np.ndarray | None]'"
+  },
+  "_cc_open": {
+   "art": "methode",
+   "signatur": "(self, paths: 'list[str]') -> 'None'"
+  },
+  "_clear_bag_state": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_collect_settings": {
+   "art": "methode",
+   "signatur": "(self) -> 'dict'"
+  },
+  "_ebene_passt": {
+   "art": "staticmethod",
+   "signatur": "(ordner: 'str', **soll) -> 'bool'"
+  },
+  "_export_arrays": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple[np.ndarray, np.ndarray | None]'"
+  },
+  "_extrinsic_from_spins": {
+   "art": "methode",
+   "signatur": "(self) -> 'np.ndarray'"
+  },
+  "_faktor": {
+   "art": "methode",
+   "signatur": "(self, optik: 'str') -> 'float'"
+  },
+  "_farbleiste_key": {
+   "art": "methode",
+   "signatur": "(self) -> 'str'"
+  },
+  "_fill_layer_menu": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_fill_view_menus": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_fusion_quellen": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple | None'"
+  },
+  "_group_colorize": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_display": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_export": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_fastlio": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_meander": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_merge": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_rosbag": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_rviz": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_group_splat": {
+   "art": "methode",
+   "signatur": "(self) -> 'QWidget'"
+  },
+  "_hat_thermal": {
+   "art": "methode",
+   "signatur": "(self) -> 'bool'"
+  },
+  "_import_colorizer": {
+   "art": "staticmethod",
+   "signatur": "()"
+  },
+  "_live_clear": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_live_hide": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_live_update": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_log": {
+   "art": "methode",
+   "signatur": "(self, line: 'str') -> 'None'"
+  },
+  "_meander_apply_manual": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_args": {
+   "art": "methode",
+   "signatur": "(self) -> 'dict'"
+  },
+  "_meander_ask_colmap": {
+   "art": "methode",
+   "signatur": "(self) -> 'bool'"
+  },
+  "_meander_bereit": {
+   "art": "staticmethod",
+   "signatur": "(pipe, args: 'dict', bauen, th_zuschlag, optik_jetzt, progress_cb, cancel, log_cb, von: 'float', bis: 'float') -> 'tuple'"
+  },
+  "_meander_build": {
+   "art": "staticmethod",
+   "signatur": "(args: 'dict', log_cb)"
+  },
+  "_meander_cams": {
+   "art": "methode",
+   "signatur": "(self, thermal: 'bool') -> 'Optional[dict]'"
+  },
+  "_meander_lade_optik": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_lade_thermal": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_lade_zuschlag": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_lage": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple'"
+  },
+  "_meander_lage_thermal": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple'"
+  },
+  "_meander_setze_optik": {
+   "art": "methode",
+   "signatur": "(self, d: 'dict') -> 'None'"
+  },
+  "_meander_setze_thermal": {
+   "art": "methode",
+   "signatur": "(self, zuschlag) -> 'None'"
+  },
+  "_meander_speichere_optik": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_speichere_thermal": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_speichere_zuschlag": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_meander_versatz": {
+   "art": "methode",
+   "signatur": "(self, optik: 'str') -> 'list'"
+  },
+  "_meander_zustand_text": {
+   "art": "methode",
+   "signatur": "(self) -> 'str'"
+  },
+  "_merge_T_from_spins": {
+   "art": "methode",
+   "signatur": "(self) -> 'np.ndarray'"
+  },
+  "_merge_load_second": {
+   "art": "methode",
+   "signatur": "(self, path: 'str', project_b) -> 'None'"
+  },
+  "_merge_refresh_preview": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_merge_reset_state": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_merge_run_fastlio": {
+   "art": "methode",
+   "signatur": "(self, path: 'str', project_b) -> 'None'"
+  },
+  "_mesh_farben_zeigen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_mesh_nachholen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_mesh_param": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple[float, int, float, bool]'"
+  },
+  "_mesh_sicherstellen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_mesh_vergessen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_mesh_ziel": {
+   "art": "methode",
+   "signatur": "(self) -> 'Optional[str]'"
+  },
+  "_on_about": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_autocal_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_bag_opened": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_blue_defaults": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_blue_preview_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_cancel": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_cloud_cloudcompare": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_collapse_all": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_colorize_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_colorize_done": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_cut_reset": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_display_changed": {
+   "art": "methode",
+   "signatur": "(self, *_a) -> 'None'"
+  },
+  "_on_expand_all": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_exploration_neu": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_exploration_zeigen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_export_las": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_export_plypcd": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_export_project": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_extrinsic_changed": {
+   "art": "methode",
+   "signatur": "(self, *_a) -> 'None'"
+  },
+  "_on_extrinsic_reset": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_farbleiste": {
+   "art": "methode",
+   "signatur": "(self, key: 'str') -> 'None'"
+  },
+  "_on_fastlio_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_fastlio_done": {
+   "art": "methode",
+   "signatur": "(self, result) -> 'None'"
+  },
+  "_on_fusion": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_georef_ready": {
+   "art": "methode",
+   "signatur": "(self, result) -> 'None'"
+  },
+  "_on_import_project": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_layer_changed": {
+   "art": "methode",
+   "signatur": "(self, *_a) -> 'None'"
+  },
+  "_on_leiste_mesh": {
+   "art": "methode",
+   "signatur": "(self, an: 'bool') -> 'None'"
+  },
+  "_on_leiste_punktgroesse": {
+   "art": "methode",
+   "signatur": "(self, wert: 'float') -> 'None'"
+  },
+  "_on_leiste_temperatur": {
+   "art": "methode",
+   "signatur": "(self, an: 'bool') -> 'None'"
+  },
+  "_on_meander_align": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_aligned": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_meander_auto": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_done": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_meander_einmessen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_fein": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_fenster": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_fenster_lage": {
+   "art": "methode",
+   "signatur": "(self, e: 'dict') -> 'None'"
+  },
+  "_on_meander_manual": {
+   "art": "methode",
+   "signatur": "(self, optik: 'str' = 'rgb') -> 'None'"
+  },
+  "_on_meander_massstab": {
+   "art": "methode",
+   "signatur": "(self, optik: 'str') -> 'None'"
+  },
+  "_on_meander_pick": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_meander_run": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_measured": {
+   "art": "methode",
+   "signatur": "(self, a, b) -> 'None'"
+  },
+  "_on_menu_background": {
+   "art": "methode",
+   "signatur": "(self, data) -> 'None'"
+  },
+  "_on_menu_colormode": {
+   "art": "methode",
+   "signatur": "(self, data) -> 'None'"
+  },
+  "_on_menu_edl": {
+   "art": "methode",
+   "signatur": "(self, on: 'bool') -> 'None'"
+  },
+  "_on_menu_layer": {
+   "art": "methode",
+   "signatur": "(self, data) -> 'None'"
+  },
+  "_on_merge_align": {
+   "art": "methode",
+   "signatur": "(self, mode: 'str') -> 'None'"
+  },
+  "_on_merge_aligned": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_merge_applied": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_merge_apply": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_merge_discard": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_merge_loaded": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_merge_manual": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_merge_pick": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_mesh_cloudcompare": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_mesh_param_changed": {
+   "art": "methode",
+   "signatur": "(self, *_a) -> 'None'"
+  },
+  "_on_open_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_open_project": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_overlay_clicked": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_pano_frame": {
+   "art": "methode",
+   "signatur": "(self, idx: 'int', stamp: 'float') -> 'None'"
+  },
+  "_on_pano_ready": {
+   "art": "methode",
+   "signatur": "(self, src: 'StitchingPanoSource') -> 'None'"
+  },
+  "_on_progress": {
+   "art": "methode",
+   "signatur": "(self, frac: 'float', msg: 'str') -> 'None'"
+  },
+  "_on_recording_loaded": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_reset_camera": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_rviz_replay": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_rviz_start": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_rviz_stop": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_screenshot": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_setting_changed": {
+   "art": "methode",
+   "signatur": "(self, *_a) -> 'None'"
+  },
+  "_on_settings_reset": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_solo_changed": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_splat_done": {
+   "art": "methode",
+   "signatur": "(self, res: 'dict') -> 'None'"
+  },
+  "_on_splat_gemeinsam": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_splat_maeander": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_splat_onboard": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_splat_pruefen": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_toggle_measure": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_toggle_preview": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_on_toggle_sidebar": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_open_bag": {
+   "art": "methode",
+   "signatur": "(self, path: 'str', projekt=None) -> 'None'"
+  },
+  "_open_project_only": {
+   "art": "methode",
+   "signatur": "(self, project) -> 'None'"
+  },
+  "_parts_from_meta": {
+   "art": "methode",
+   "signatur": "(self, meta: 'dict') -> 'Optional[list]'"
+  },
+  "_populate_info_table": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_push_display_settings": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_refresh_layer_combo": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_refresh_rviz_state": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_reload_layers": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_retire": {
+   "art": "methode",
+   "signatur": "(self, worker: 'Worker') -> 'None'"
+  },
+  "_rviz_job": {
+   "art": "methode",
+   "signatur": "(self, text: 'str', fn) -> 'None'"
+  },
+  "_save_settings": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_set_busy": {
+   "art": "methode",
+   "signatur": "(self, busy: 'bool', text: 'str | None' = None) -> 'None'"
+  },
+  "_set_sidebar_visible": {
+   "art": "methode",
+   "signatur": "(self, on: 'bool') -> 'None'"
+  },
+  "_show_error": {
+   "art": "methode",
+   "signatur": "(self, title: 'str', msg: 'str') -> 'None'"
+  },
+  "_slider_row": {
+   "art": "methode",
+   "signatur": "(self, minimum: 'int', maximum: 'int', value: 'int') -> 'tuple[QSlider, QLabel, QWidget]'"
+  },
+  "_spins_from_extrinsic": {
+   "art": "methode",
+   "signatur": "(self, T: 'np.ndarray') -> 'None'"
+  },
+  "_splat_cfg": {
+   "art": "methode",
+   "signatur": "(self, schritte: 'int') -> 'dict'"
+  },
+  "_splat_gegenprobe": {
+   "art": "staticmethod",
+   "signatur": "(ordner, ak, welt, pf, direkt_w, temp, cancel, log_cb) -> 'dict'"
+  },
+  "_splat_lauf": {
+   "art": "staticmethod",
+   "signatur": "(py, ordner, cfg, progress_cb, cancel, log_cb, von, bis, alle) -> 'dict'"
+  },
+  "_start_live_preview": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_start_pano_job": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_start_recording_load": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_start_worker": {
+   "art": "methode",
+   "signatur": "(self, text: 'str', job: 'Callable', on_done: 'Callable[[object], None]', extra_progress: 'Callable[[float, str], None] | None' = None, on_failed: 'Callable[[str], None] | None' = None, cancellable: 'bool' = True) -> 'None'"
+  },
+  "_sync_after_display": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_sync_farbleiste": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_sync_menu_state": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_sync_preview_action": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_thermal_zuschlag": {
+   "art": "methode",
+   "signatur": "(self) -> 'tuple'"
+  },
+  "_update_blue_widgets": {
+   "art": "methode",
+   "signatur": "(self, *_args) -> 'None'"
+  },
+  "_update_enabled": {
+   "art": "methode",
+   "signatur": "(self) -> 'None'"
+  },
+  "_worker_done": {
+   "art": "methode",
+   "signatur": "(self, worker: 'Worker', on_done: 'Callable', result: 'object') -> 'None'"
+  },
+  "_worker_failed": {
+   "art": "methode",
+   "signatur": "(self, worker: 'Worker', title: 'str', msg: 'str', on_failed: 'Callable[[str], None] | None' = None) -> 'None'"
+  },
+  "_zeige_exploration": {
+   "art": "methode",
+   "signatur": "(self, hinweis: 'str' = '') -> 'None'"
+  },
+  "closeEvent": {
+   "art": "methode",
+   "signatur": "(self, event) -> 'None'"
+  },
+  "rvizLog": {
+   "art": "klassenattribut:pyqtSignal"
+  }
+ }
+}

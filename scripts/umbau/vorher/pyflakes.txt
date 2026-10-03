@@ -1,0 +1,7 @@
+# python3 -m pyflakes über app.py, core, ui, scripts (ohne scripts/umbau), Stand vor dem Umbau
+core/bag_reader.py:11:1 'dataclasses.field' imported but unused
+core/splat.py:1102:5 redefinition of unused 'probe' from line 876
+scripts/pruefe_installation.py:63:5 'rosbags.typesys.Stores' imported but unused
+scripts/pruefe_installation.py:63:5 'rosbags.typesys.get_typestore' imported but unused
+ui/main_window.py:31:1 'PyQt5.QtWidgets.QGroupBox' imported but unused
+ui/main_window.py:51:5 'core.rviz_player.RvizPlayerError' imported but unused

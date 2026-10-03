@@ -1,0 +1,189 @@
+{
+ "handler": {
+  "_on_about": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_autocal_clicked": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_cloud_cloudcompare": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_collapse_all": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_colorize_clicked": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_cut_reset": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_expand_all": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_exploration_neu": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_export_las": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_export_plypcd": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_export_project": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_extrinsic_reset": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_fastlio_clicked": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_fusion": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_import_project": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_meander_pick": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_meander_run": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_menu_edl": {
+   "nennungen": 1,
+   "signatur": "(on: 'bool') -> 'None'",
+   "vorhanden": true
+  },
+  "_on_merge_apply": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_merge_discard": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_merge_pick": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_mesh_cloudcompare": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_open_clicked": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_open_project": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_overlay_clicked": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_reset_camera": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_rviz_start": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_rviz_stop": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_screenshot": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_settings_reset": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_splat_gemeinsam": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_splat_maeander": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_splat_onboard": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_toggle_measure": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_toggle_preview": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "_on_toggle_sidebar": {
+   "nennungen": 1,
+   "signatur": "() -> 'None'",
+   "vorhanden": true
+  },
+  "close": {
+   "nennungen": 1,
+   "signatur": "<Qt>",
+   "vorhanden": true
+  }
+ }
+}

@@ -1,0 +1,4228 @@
+{
+ "ausrichtfenster": {
+  "mit_thermal": {
+   "titel": "Mäanderflug ausrichten",
+   "widgets": [
+    {
+     "attribut": "ansicht",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "Ansicht"
+    },
+    {
+     "attribut": "_lbl",
+     "text": "",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QScrollArea"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QWidget"
+    },
+    {
+     "attribut": null,
+     "text": "Ansicht:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_modus",
+     "beschriftung": "Ansicht:",
+     "eintraege": [
+      {
+       "daten": "ueber",
+       "text": "Überlagerung (Karte grau, Flug magenta)"
+      },
+      {
+       "daten": "farbe_rgb",
+       "text": "Farbvorschau RGB"
+      },
+      {
+       "daten": "farbe_th",
+       "text": "Farbvorschau Thermal"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "text": "Blick:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_richtung",
+     "beschriftung": "Blick:",
+     "eintraege": [
+      {
+       "daten": [
+        0.0,
+        90.0
+       ],
+       "text": "von oben"
+      },
+      {
+       "daten": [
+        0.0,
+        0.0
+       ],
+       "text": "von vorn"
+      },
+      {
+       "daten": [
+        90.0,
+        0.0
+       ],
+       "text": "von der Seite"
+      },
+      {
+       "daten": [
+        -30.0,
+        35.0
+       ],
+       "text": "schräg"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "beschriftung": "Blick:",
+     "text": "einpassen",
+     "tiefe": 2,
+     "tooltip": "Ansicht so zoomen, dass Karte und Flug zu sehen sind (auch: Doppelklick ins Bild).",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": "Punktgröße:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_punkt",
+     "bereich": [
+      1,
+      5
+     ],
+     "beschriftung": "Punktgröße:",
+     "schritt": 1,
+     "suffix": "",
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QSpinBox",
+     "wert": 2
+    },
+    {
+     "attribut": null,
+     "text": "RGB — Zuschlag auf die gefundene Lage",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Z (Höhe)",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[z]",
+     "beschriftung": "Z (Höhe)",
+     "maximum": 51.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -500,
+      500
+     ],
+     "schritt": 1,
+     "seitenschritt": 25,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±50 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -51.0,
+      51.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_rgb",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_rgb._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Thermal — Zuschlag auf die RGB-Lage",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_th",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der Thermalkamera gegenüber ihrer Einmessung, in Prozent.",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_th._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": "_lbl_kal",
+     "stil": "color: #9aa0aa;",
+     "text": "Thermaloptik nicht eingemessen — im Hauptfenster „Optik einmessen“.",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": "zurücksetzen",
+     "tiefe": 2,
+     "tooltip": "Alle Regler auf den Stand beim Öffnen des Fensters.",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "Schließen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": "_btn_ok",
+     "rolle": 0,
+     "text": "Lage übernehmen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  },
+  "mit_thermal_eingemessen": {
+   "titel": "Mäanderflug ausrichten",
+   "widgets": [
+    {
+     "attribut": "ansicht",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "Ansicht"
+    },
+    {
+     "attribut": "_lbl",
+     "text": "",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QScrollArea"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QWidget"
+    },
+    {
+     "attribut": null,
+     "text": "Ansicht:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_modus",
+     "beschriftung": "Ansicht:",
+     "eintraege": [
+      {
+       "daten": "ueber",
+       "text": "Überlagerung (Karte grau, Flug magenta)"
+      },
+      {
+       "daten": "farbe_rgb",
+       "text": "Farbvorschau RGB"
+      },
+      {
+       "daten": "farbe_th",
+       "text": "Farbvorschau Thermal"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "text": "Blick:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_richtung",
+     "beschriftung": "Blick:",
+     "eintraege": [
+      {
+       "daten": [
+        0.0,
+        90.0
+       ],
+       "text": "von oben"
+      },
+      {
+       "daten": [
+        0.0,
+        0.0
+       ],
+       "text": "von vorn"
+      },
+      {
+       "daten": [
+        90.0,
+        0.0
+       ],
+       "text": "von der Seite"
+      },
+      {
+       "daten": [
+        -30.0,
+        35.0
+       ],
+       "text": "schräg"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "beschriftung": "Blick:",
+     "text": "einpassen",
+     "tiefe": 2,
+     "tooltip": "Ansicht so zoomen, dass Karte und Flug zu sehen sind (auch: Doppelklick ins Bild).",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": "Punktgröße:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_punkt",
+     "bereich": [
+      1,
+      5
+     ],
+     "beschriftung": "Punktgröße:",
+     "schritt": 1,
+     "suffix": "",
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QSpinBox",
+     "wert": 2
+    },
+    {
+     "attribut": null,
+     "text": "RGB — Zuschlag auf die gefundene Lage",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Z (Höhe)",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[z]",
+     "beschriftung": "Z (Höhe)",
+     "maximum": 51.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -500,
+      500
+     ],
+     "schritt": 1,
+     "seitenschritt": 25,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±50 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -51.0,
+      51.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_rgb",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.",
+     "typ": "FeinRegler",
+     "wert": 10.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": 100
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_rgb._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 10.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Thermal — Zuschlag auf die RGB-Lage",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 2.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 20
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 2.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 1.5
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 15
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 1.5
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 1.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 10
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 1.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_th",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der Thermalkamera gegenüber ihrer Einmessung, in Prozent.",
+     "typ": "FeinRegler",
+     "wert": -2.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": -20
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_th._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": -2.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": "_lbl_kal",
+     "stil": "color: #9aa0aa;",
+     "text": "Thermaloptik eingemessen.",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": "zurücksetzen",
+     "tiefe": 2,
+     "tooltip": "Alle Regler auf den Stand beim Öffnen des Fensters.",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "Schließen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": "_btn_ok",
+     "rolle": 0,
+     "text": "Lage übernehmen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  },
+  "ohne_thermal": {
+   "titel": "Mäanderflug ausrichten",
+   "widgets": [
+    {
+     "attribut": "ansicht",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "Ansicht"
+    },
+    {
+     "attribut": "_lbl",
+     "text": "",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QScrollArea"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QWidget"
+    },
+    {
+     "attribut": null,
+     "text": "Ansicht:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_modus",
+     "beschriftung": "Ansicht:",
+     "eintraege": [
+      {
+       "daten": "ueber",
+       "text": "Überlagerung (Karte grau, Flug magenta)"
+      },
+      {
+       "daten": "farbe_rgb",
+       "text": "Farbvorschau RGB"
+      },
+      {
+       "daten": "farbe_th",
+       "gesperrt": true,
+       "text": "Farbvorschau Thermal"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "text": "Blick:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_richtung",
+     "beschriftung": "Blick:",
+     "eintraege": [
+      {
+       "daten": [
+        0.0,
+        90.0
+       ],
+       "text": "von oben"
+      },
+      {
+       "daten": [
+        0.0,
+        0.0
+       ],
+       "text": "von vorn"
+      },
+      {
+       "daten": [
+        90.0,
+        0.0
+       ],
+       "text": "von der Seite"
+      },
+      {
+       "daten": [
+        -30.0,
+        35.0
+       ],
+       "text": "schräg"
+      }
+     ],
+     "index": 0,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QComboBox"
+    },
+    {
+     "attribut": null,
+     "beschriftung": "Blick:",
+     "text": "einpassen",
+     "tiefe": 2,
+     "tooltip": "Ansicht so zoomen, dass Karte und Flug zu sehen sind (auch: Doppelklick ins Bild).",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": "Punktgröße:",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_punkt",
+     "bereich": [
+      1,
+      5
+     ],
+     "beschriftung": "Punktgröße:",
+     "schritt": 1,
+     "suffix": "",
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QSpinBox",
+     "wert": 2
+    },
+    {
+     "attribut": null,
+     "text": "RGB — Zuschlag auf die gefundene Lage",
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Z (Höhe)",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins[z]",
+     "beschriftung": "Z (Höhe)",
+     "maximum": 51.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -500,
+      500
+     ],
+     "schritt": 1,
+     "seitenschritt": 25,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±50 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -51.0,
+      51.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_rgb",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_rgb._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_rgb._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "text": "Thermal — Zuschlag auf die RGB-Lage",
+     "tiefe": 2,
+     "tooltip": "Keine Thermalbilder in diesem Lauf — im Hauptfenster „Thermalbilder mitrechnen“ anhaken und neu ausrichten.",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "text": "Gier",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[yaw]",
+     "beschriftung": "Gier",
+     "maximum": 181.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -1800,
+      1800
+     ],
+     "schritt": 1,
+     "seitenschritt": 90,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±180°, Schritt 0.1°",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 20,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1°, Schritt 0.005° — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -181.0,
+      181.0
+     ],
+     "dezimalen": 3,
+     "schritt": 0.005,
+     "suffix": "°",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "X",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[x]",
+     "beschriftung": "X",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Y",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_spins_th[y]",
+     "beschriftung": "Y",
+     "maximum": 251.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -2500,
+      2500
+     ],
+     "schritt": 1,
+     "seitenschritt": 125,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±250 m, Schritt 0.1 m",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein cm",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 m, Schritt 0.01 m — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "bereich": [
+      -251.0,
+      251.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " m",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": null,
+     "text": "Maßstab",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "zeilenkopf": true
+    },
+    {
+     "attribut": "_massstab_th",
+     "beschriftung": "Maßstab",
+     "maximum": 21.0,
+     "text": null,
+     "tiefe": 3,
+     "tooltip": "Brennweite der Thermalkamera gegenüber ihrer Einmessung, in Prozent.",
+     "typ": "FeinRegler",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "grob",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._grob",
+     "bereich": [
+      -200,
+      200
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "grob: ±20 %, Schritt 0.1 %",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": null,
+     "stil": "color: #9aa0aa;",
+     "teil_eines_reglers": true,
+     "text": "fein",
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_massstab_th._fein",
+     "bereich": [
+      -100,
+      100
+     ],
+     "schritt": 1,
+     "seitenschritt": 10,
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "fein: ±1 %, Schritt 0.01 % — für das letzte Stück",
+     "typ": "QSlider",
+     "wert": 0
+    },
+    {
+     "attribut": "_massstab_th._zahl",
+     "bereich": [
+      -21.0,
+      21.0
+     ],
+     "dezimalen": 2,
+     "schritt": 0.01,
+     "suffix": " %",
+     "teil_eines_reglers": true,
+     "text": null,
+     "tiefe": 4,
+     "tooltip": "",
+     "typ": "QDoubleSpinBox",
+     "wert": 0.0
+    },
+    {
+     "attribut": null,
+     "teil_eines_reglers": true,
+     "text": "↺",
+     "tiefe": 4,
+     "tooltip": "auf null zurück",
+     "typ": "QToolButton"
+    },
+    {
+     "attribut": "_lbl_kal",
+     "stil": "color: #9aa0aa;",
+     "text": "Thermaloptik nicht eingemessen — im Hauptfenster „Optik einmessen“.",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": "zurücksetzen",
+     "tiefe": 2,
+     "tooltip": "Alle Regler auf den Stand beim Öffnen des Fensters.",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 2,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "Schließen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": "_btn_ok",
+     "rolle": 0,
+     "text": "Lage übernehmen",
+     "tiefe": 3,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  }
+ },
+ "dialoge": {
+  "export": {
+   "titel": "Projekt exportieren",
+   "widgets": [
+    {
+     "attribut": null,
+     "text": "<b>flug_a</b><br>Alles Angehakte wird in den Zielordner kopiert. Die Punktwolke ist immer dabei, ohne sie gibt es kein Projekt.",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": "Inhalt",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "haken": true,
+     "schaltbar": true,
+     "text": "Punktwolke (FAST-LIO-Aufzeichnung) — 384,0 MB",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": true,
+     "schaltbar": true,
+     "text": "Farbebenen — 276,0 MB",
+     "tiefe": 1,
+     "tooltip": "Ebenen: onboard, meander_rgb",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": true,
+     "schaltbar": true,
+     "text": "gestitchte Panoramen — 1,5 GB",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "haken": false,
+     "schaltbar": true,
+     "text": "Mäander-Arbeitsordner (COLMAP, Bilder, Lage) — nicht vorhanden",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": false,
+     "schaltbar": true,
+     "text": "Rosbags (Rohdaten) — 24,0 GB",
+     "tiefe": 1,
+     "tooltip": "Die Rohdaten. Ohne sie bleiben Karte, Farben, Messen und\nExport erhalten; das 360°-Video und ein erneutes Einfärben\nbrauchen das Bag.",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": "_lbl_summe",
+     "text": "Zusammen etwa <b>2,1 GB</b>",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "text": "Ziel:",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_pfad",
+     "platzhalter": "Zielordner — leer oder neu",
+     "text": "<arbeit>/export",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLineEdit"
+    },
+    {
+     "attribut": null,
+     "text": "Durchsuchen …",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": "_hinweis",
+     "text": "Wird angelegt.",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": "_buttons",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "&Cancel",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "rolle": 0,
+     "text": "Exportieren",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  },
+  "export_ohne_ziel": {
+   "titel": "Projekt exportieren",
+   "widgets": [
+    {
+     "attribut": null,
+     "text": "<b>flug_a</b><br>Alles Angehakte wird in den Zielordner kopiert. Die Punktwolke ist immer dabei, ohne sie gibt es kein Projekt.",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": null,
+     "text": "Inhalt",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QGroupBox"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "haken": true,
+     "schaltbar": true,
+     "text": "Punktwolke (FAST-LIO-Aufzeichnung) — 384,0 MB",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": true,
+     "schaltbar": true,
+     "text": "Farbebenen — 276,0 MB",
+     "tiefe": 1,
+     "tooltip": "Ebenen: onboard, meander_rgb",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": true,
+     "schaltbar": true,
+     "text": "gestitchte Panoramen — 1,5 GB",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "haken": false,
+     "schaltbar": true,
+     "text": "Mäander-Arbeitsordner (COLMAP, Bilder, Lage) — nicht vorhanden",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": null,
+     "haken": false,
+     "schaltbar": true,
+     "text": "Rosbags (Rohdaten) — 24,0 GB",
+     "tiefe": 1,
+     "tooltip": "Die Rohdaten. Ohne sie bleiben Karte, Farben, Messen und\nExport erhalten; das 360°-Video und ein erneutes Einfärben\nbrauchen das Bag.",
+     "typ": "QCheckBox"
+    },
+    {
+     "attribut": "_lbl_summe",
+     "text": "Zusammen etwa <b>2,1 GB</b>",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": null,
+     "text": "Ziel:",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_pfad",
+     "platzhalter": "Zielordner — leer oder neu",
+     "text": "",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLineEdit"
+    },
+    {
+     "attribut": null,
+     "text": "Durchsuchen …",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": "_hinweis",
+     "text": "",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel",
+     "umbruch": true
+    },
+    {
+     "attribut": "_buttons",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "&Cancel",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "rolle": 0,
+     "text": "Exportieren",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  },
+  "projekt_oeffnen": {
+   "titel": "Projekt öffnen",
+   "widgets": [
+    {
+     "attribut": null,
+     "text": "Berechnete Projekte im Cache. Zusammengeführte sind markiert — sie lassen sich nur hier öffnen.",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_tab",
+     "spalten": [
+      "Projekt",
+      "Scans",
+      "Punkte",
+      "Art",
+      "berechnet"
+     ],
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QTableWidget",
+     "zeilen": 2,
+     "zellen": [
+      [
+       {
+        "text": "flug_a",
+        "tooltip": "bags/a"
+       },
+       {
+        "text": "100",
+        "tooltip": ""
+       },
+       {
+        "text": "1.0 Mio.",
+        "tooltip": ""
+       },
+       {
+        "text": "einzeln",
+        "tooltip": ""
+       },
+       {
+        "text": "2026-09-10 17:40",
+        "tooltip": ""
+       }
+      ],
+      [
+       {
+        "text": "flug_a+flug_b",
+        "tooltip": "bags/a\nbags/b"
+       },
+       {
+        "text": "300",
+        "tooltip": ""
+       },
+       {
+        "text": "24.3 Mio.",
+        "tooltip": ""
+       },
+       {
+        "text": "zusammengeführt",
+        "tooltip": ""
+       },
+       {
+        "text": "2026-09-10 18:00",
+        "tooltip": ""
+       }
+      ]
+     ]
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "&Cancel",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "rolle": 0,
+     "text": "Open",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  },
+  "projekt_oeffnen_leer": {
+   "titel": "Projekt öffnen",
+   "widgets": [
+    {
+     "attribut": null,
+     "text": "Berechnete Projekte im Cache. Zusammengeführte sind markiert — sie lassen sich nur hier öffnen.",
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_tab",
+     "spalten": [
+      "Projekt",
+      "Scans",
+      "Punkte",
+      "Art",
+      "berechnet"
+     ],
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QTableWidget",
+     "zeilen": 0
+    },
+    {
+     "attribut": null,
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "",
+     "typ": "QDialogButtonBox"
+    },
+    {
+     "attribut": null,
+     "rolle": 1,
+     "text": "&Cancel",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    },
+    {
+     "attribut": null,
+     "gesperrt": true,
+     "rolle": 0,
+     "text": "Open",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QPushButton"
+    }
+   ]
+  }
+ },
+ "kachel": {
+  "31.2": {
+   "klickbar": true,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #e8734b; border-radius: 6px; background: rgba(232, 115, 75, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Explorationsgrad\nBag: probe\n\n--- Zielgebiet (Explorationsbox) ---\nAbmessungen (x/y/z):     18,0 m x 21,5 m x 6,5 m\nBereich:                 x [9,5, 27,5], y [-2,5, 19,0], z [0,5, 7,0] m\nGrundfläche:             387 m²\nVolumen:                 2516 m³\n\n--- Explorationsmodus ---\nQuelle der Phasen:       Probe\nDauer:                   83,0 s [18,7–101,7 s]\nFlugstrecke dabei:       0,0 m\nAusgewertete Scans:      0 von 1031\n\n--- Erreichte Exploration (nur im Explorationsmodus) ---\nBeobachtetes Volumen:    31,2 % des Zielvolumens\nAbgedeckte Grundfläche:  99,0 %  (Draufsicht)\n\n--- Zum Vergleich: ganzer Flug ---\nBeobachtetes Volumen:    96,8 % (2435 m³ von 2516 m³)\nAbgedeckte Grundfläche:  100,0 %\nStand bei Explorationsbeginn: 0,0 %, bei Explorationsende: 0,0 %\nZuwachs durch autonome Exploration: 0,0 Prozentpunkte\n\n(Rasterauflösung 0,50 m; liegt die Box teilweise unter\n dem Boden, sind 100 % im Volumen prinzipiell nicht erreichbar —\n deshalb steht die Grundfläche daneben.)\nDauer der Aufnahme:      103,8 s\n\n(Klicken für den vollen Bericht)",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "Explorationsmodus · 83,0 s",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #e8734b;",
+     "text": "31,2 %",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 13
+  },
+  "59.7": {
+   "klickbar": true,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #e8734b; border-radius: 6px; background: rgba(232, 115, 75, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Explorationsgrad\nBag: probe\n\n--- Zielgebiet (Explorationsbox) ---\nAbmessungen (x/y/z):     18,0 m x 21,5 m x 6,5 m\nBereich:                 x [9,5, 27,5], y [-2,5, 19,0], z [0,5, 7,0] m\nGrundfläche:             387 m²\nVolumen:                 2516 m³\n\n--- Explorationsmodus ---\nQuelle der Phasen:       Probe\nDauer:                   83,0 s [18,7–101,7 s]\nFlugstrecke dabei:       0,0 m\nAusgewertete Scans:      0 von 1031\n\n--- Erreichte Exploration (nur im Explorationsmodus) ---\nBeobachtetes Volumen:    59,7 % des Zielvolumens\nAbgedeckte Grundfläche:  99,0 %  (Draufsicht)\n\n--- Zum Vergleich: ganzer Flug ---\nBeobachtetes Volumen:    96,8 % (2435 m³ von 2516 m³)\nAbgedeckte Grundfläche:  100,0 %\nStand bei Explorationsbeginn: 0,0 %, bei Explorationsende: 0,0 %\nZuwachs durch autonome Exploration: 0,0 Prozentpunkte\n\n(Rasterauflösung 0,50 m; liegt die Box teilweise unter\n dem Boden, sind 100 % im Volumen prinzipiell nicht erreichbar —\n deshalb steht die Grundfläche daneben.)\nDauer der Aufnahme:      103,8 s\n\n(Klicken für den vollen Bericht)",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "Explorationsmodus · 83,0 s",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #e8734b;",
+     "text": "59,7 %",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 13
+  },
+  "96.8": {
+   "klickbar": true,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #4ec97a; border-radius: 6px; background: rgba(78, 201, 122, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Explorationsgrad\nBag: probe\n\n--- Zielgebiet (Explorationsbox) ---\nAbmessungen (x/y/z):     18,0 m x 21,5 m x 6,5 m\nBereich:                 x [9,5, 27,5], y [-2,5, 19,0], z [0,5, 7,0] m\nGrundfläche:             387 m²\nVolumen:                 2516 m³\n\n--- Explorationsmodus ---\nQuelle der Phasen:       Probe\nDauer:                   83,0 s [18,7–101,7 s]\nFlugstrecke dabei:       0,0 m\nAusgewertete Scans:      0 von 1031\n\n--- Erreichte Exploration (nur im Explorationsmodus) ---\nBeobachtetes Volumen:    96,8 % des Zielvolumens\nAbgedeckte Grundfläche:  99,0 %  (Draufsicht)\n\n--- Zum Vergleich: ganzer Flug ---\nBeobachtetes Volumen:    96,8 % (2435 m³ von 2516 m³)\nAbgedeckte Grundfläche:  100,0 %\nStand bei Explorationsbeginn: 0,0 %, bei Explorationsende: 0,0 %\nZuwachs durch autonome Exploration: 0,0 Prozentpunkte\n\n(Rasterauflösung 0,50 m; liegt die Box teilweise unter\n dem Boden, sind 100 % im Volumen prinzipiell nicht erreichbar —\n deshalb steht die Grundfläche daneben.)\nDauer der Aufnahme:      103,8 s\n\n(Klicken für den vollen Bericht)",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "Explorationsmodus · 83,0 s",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #4ec97a;",
+     "text": "96,8 %",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 13
+  },
+  "ganzer_flug": {
+   "klickbar": true,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #4ec97a; border-radius: 6px; background: rgba(78, 201, 122, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Explorationsgrad\nBag: probe\n\n--- Zielgebiet (Explorationsbox) ---\nAbmessungen (x/y/z):     18,0 m x 21,5 m x 6,5 m\nBereich:                 x [9,5, 27,5], y [-2,5, 19,0], z [0,5, 7,0] m\nGrundfläche:             387 m²\nVolumen:                 2516 m³\n\n--- Explorationsmodus ---\nQuelle der Phasen:       Probe\nEs gab keinen autonomen Abschnitt — der Flug wurde von Hand\ngeflogen. Der Grad unten gilt deshalb für den ganzen Flug.\n\n--- Erreichte Exploration (ganzer Flug) ---\nBeobachtetes Volumen:    96,8 % (2435 m³ von 2516 m³)\nAbgedeckte Grundfläche:  100,0 %  (Draufsicht)\nAusgewertete Scans:      1031\n\n(Rasterauflösung 0,50 m; liegt die Box teilweise unter\n dem Boden, sind 100 % im Volumen prinzipiell nicht erreichbar —\n deshalb steht die Grundfläche daneben.)\nDauer der Aufnahme:      103,8 s\n\n(Klicken für den vollen Bericht)",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "ganzer Flug",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #4ec97a;",
+     "text": "96,8 %",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 13
+  },
+  "leer": {
+   "klickbar": false,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #8b949e; border-radius: 6px; background: rgba(139, 148, 158, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Noch kein Flug geöffnet.",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "—",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #8b949e;",
+     "text": "—",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 0
+  },
+  "ohne_daten": {
+   "klickbar": false,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #8b949e; border-radius: 6px; background: rgba(139, 148, 158, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Kein Explorationsgrad für diesen Flug.\nDas Bag enthält keine EPIC-Explorationsdaten.",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "keine Daten",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #8b949e;",
+     "text": "—",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 0
+  },
+  "rechnet": {
+   "klickbar": false,
+   "widgets": [
+    {
+     "attribut": null,
+     "stil": "#explorationsgrad { border: 1px solid #8b949e; border-radius: 6px; background: rgba(139, 148, 158, 28); }",
+     "text": null,
+     "tiefe": 0,
+     "tooltip": "Der Explorationsgrad wird gerade aus dem Bag gerechnet.",
+     "typ": "ExplorationsgradAnzeige",
+     "versteckt": true
+    },
+    {
+     "attribut": "_titel",
+     "stil": "font-size: 10px; font-weight: bold;",
+     "text": "Explorationsgrad",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_bezug",
+     "stil": "font-size: 10px; color: #8b949e;",
+     "text": "wird berechnet",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    },
+    {
+     "attribut": "_wert",
+     "stil": "font-size: 19px; font-weight: bold; color: #8b949e;",
+     "text": "…",
+     "tiefe": 1,
+     "tooltip": "",
+     "typ": "QLabel"
+    }
+   ],
+   "zeiger": 0
+  }
+ },
+ "tabs": {
+  "360°-Video": [
+   {
+    "attribut": "_pano_view",
+    "text": null,
+    "tiefe": 0,
+    "tooltip": "",
+    "typ": "PanoView",
+    "versteckt": true
+   },
+   {
+    "attribut": "_pano_view._view",
+    "text": null,
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "_ZoomGraphicsView"
+   },
+   {
+    "attribut": "_pano_view._play_btn",
+    "text": "▶",
+    "tiefe": 1,
+    "tooltip": "Abspielen/Pause (Leertaste)",
+    "typ": "QToolButton"
+   },
+   {
+    "attribut": "_pano_view._prev_btn",
+    "text": "⏮",
+    "tiefe": 1,
+    "tooltip": "Ein Bild zurück (←)",
+    "typ": "QToolButton"
+   },
+   {
+    "attribut": "_pano_view._next_btn",
+    "text": "⏭",
+    "tiefe": 1,
+    "tooltip": "Ein Bild vor (→)",
+    "typ": "QToolButton"
+   },
+   {
+    "attribut": "_pano_view._speed_combo",
+    "eintraege": [
+     {
+      "daten": 0.25,
+      "text": "0,25×"
+     },
+     {
+      "daten": 0.5,
+      "text": "0,5×"
+     },
+     {
+      "daten": 1.0,
+      "text": "1×"
+     },
+     {
+      "daten": 2.0,
+      "text": "2×"
+     },
+     {
+      "daten": 4.0,
+      "text": "4×"
+     }
+    ],
+    "index": 2,
+    "text": null,
+    "tiefe": 1,
+    "tooltip": "Abspielgeschwindigkeit",
+    "typ": "QComboBox"
+   },
+   {
+    "attribut": "_pano_view._slider",
+    "bereich": [
+     0,
+     0
+    ],
+    "schritt": 1,
+    "seitenschritt": 10,
+    "text": null,
+    "tiefe": 1,
+    "tooltip": "Zeitposition (loslassen springt zum Frame)",
+    "typ": "QSlider",
+    "wert": 0
+   },
+   {
+    "attribut": "_pano_view._label",
+    "text": "Frame –/– — t=–",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_pano_view._rot_chk",
+    "haken": true,
+    "schaltbar": true,
+    "text": "180°",
+    "tiefe": 1,
+    "tooltip": "Bild um 180° drehen (Kamera kopfüber montiert)",
+    "typ": "QCheckBox"
+   },
+   {
+    "attribut": "_pano_view._fit_btn",
+    "text": "Einpassen",
+    "tiefe": 1,
+    "tooltip": "Ansicht einpassen (auch Doppelklick)",
+    "typ": "QToolButton"
+   },
+   {
+    "attribut": "_pano_view._shot_btn",
+    "text": "Screenshot…",
+    "tiefe": 1,
+    "tooltip": "Aktuelles Panorama in voller Auflösung speichern",
+    "typ": "QToolButton"
+   }
+  ],
+  "3D-Karte": [
+   {
+    "attribut": null,
+    "text": null,
+    "tiefe": 0,
+    "tooltip": "",
+    "typ": "QWidget"
+   },
+   {
+    "attribut": "_cloud_view",
+    "text": null,
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "CloudView"
+   },
+   {
+    "attribut": null,
+    "stil": "#wolkenleiste { border-bottom: 1px solid rgba(128,128,128,90); }",
+    "text": null,
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QFrame"
+   },
+   {
+    "attribut": null,
+    "text": "Farbe",
+    "tiefe": 3,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_cloud_view._farbe",
+    "eintraege": [],
+    "index": -1,
+    "text": null,
+    "tiefe": 3,
+    "tooltip": "Farbmodus der Wolke",
+    "typ": "QComboBox"
+   },
+   {
+    "attribut": null,
+    "text": "Punkte",
+    "tiefe": 3,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_cloud_view._groesse",
+    "bereich": [
+     2,
+     40
+    ],
+    "schritt": 1,
+    "seitenschritt": 10,
+    "text": null,
+    "tiefe": 3,
+    "tooltip": "Punktgröße in Pixeln, in Viertelschritten",
+    "typ": "QSlider",
+    "wert": 8
+   },
+   {
+    "attribut": "_cloud_view._groesse_lbl",
+    "text": "2",
+    "tiefe": 3,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_cloud_view._btn_messen",
+    "haken": false,
+    "schaltbar": true,
+    "text": "Messen",
+    "tiefe": 3,
+    "tooltip": "zwei Punkte anklicken (M) — Esc verwirft",
+    "typ": "QPushButton"
+   },
+   {
+    "attribut": "_cloud_view._chk_temp",
+    "gesperrt": true,
+    "haken": true,
+    "schaltbar": true,
+    "text": "Temperatur anzeigen",
+    "tiefe": 3,
+    "tooltip": "Keine Temperaturen: erst mit dem Mäanderflug und „Thermalbilder mitrechnen“ einfärben.",
+    "typ": "QCheckBox"
+   },
+   {
+    "attribut": "_cloud_view._btn_mesh",
+    "haken": false,
+    "schaltbar": true,
+    "text": "Mesh",
+    "tiefe": 3,
+    "tooltip": "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\neinmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\nProjekt gespeichert; Raster und Detail stehen im Abschnitt Export.",
+    "typ": "QPushButton"
+   },
+   {
+    "attribut": null,
+    "text": "Ansicht zurücksetzen",
+    "tiefe": 3,
+    "tooltip": "R",
+    "typ": "QPushButton"
+   },
+   {
+    "attribut": null,
+    "gesperrt": true,
+    "stil": "font-style: italic;",
+    "text": "links: drehen · rechts/Umschalt: verschieben · Rad: zoomen",
+    "tiefe": 3,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_cloud_view._vtkw",
+    "text": null,
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QVTKRenderWindowInteractor"
+   },
+   {
+    "attribut": "_cloud_view.cut_bar",
+    "text": null,
+    "tiefe": 2,
+    "tooltip": "Höhenschnitt: Griffe ziehen, auf die Schiene klicken holt den\nnäheren Griff, Mausrad verschiebt die ganze Schicht.",
+    "typ": "CutBar"
+   },
+   {
+    "attribut": "_cloud_view._cut_reset",
+    "text": "alles",
+    "tiefe": 2,
+    "tooltip": "Höhenschnitt aufheben",
+    "typ": "QPushButton"
+   },
+   {
+    "attribut": "_mess_lbl",
+    "stil": "padding: 2px 6px;",
+    "text": "",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QLabel"
+   }
+  ],
+  "GPS": [
+   {
+    "attribut": "_gps_panel",
+    "text": null,
+    "tiefe": 0,
+    "tooltip": "",
+    "typ": "GpsPanel",
+    "versteckt": true
+   },
+   {
+    "attribut": "_gps_panel._dot",
+    "stil": "background-color: #757575;border-radius: 11px; border: 1px solid rgba(0,0,0,80);",
+    "text": "",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_gps_panel._status_lbl",
+    "stil": "font-weight: bold;",
+    "text": "Keine GPS-Daten geladen",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Kennzahlen",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QGroupBox"
+   },
+   {
+    "attribut": null,
+    "text": "Fixe gesamt:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_total",
+    "beschriftung": "Fixe gesamt:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Gute Fixe:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_good",
+    "beschriftung": "Gute Fixe:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "fix_type-Histogramm:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_hist",
+    "beschriftung": "fix_type-Histogramm:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "umbruch": true
+   },
+   {
+    "attribut": null,
+    "text": "Satelliten (Median):",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_sats",
+    "beschriftung": "Satelliten (Median):",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "eph (Median):",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_eph",
+    "beschriftung": "eph (Median):",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Baseline:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_baseline",
+    "beschriftung": "Baseline:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Gründe / Hinweise",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QGroupBox"
+   },
+   {
+    "attribut": "_gps_panel._reasons",
+    "text": null,
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QListWidget",
+    "zeilen": 0
+   },
+   {
+    "attribut": "_gps_panel._btn",
+    "gesperrt": true,
+    "text": "Georeferenzierung ausführen",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QPushButton"
+   },
+   {
+    "attribut": "_gps_panel._progress_lbl",
+    "text": "",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QLabel",
+    "umbruch": true
+   },
+   {
+    "attribut": "_gps_panel._result_box",
+    "text": "Ergebnis der Georeferenzierung",
+    "tiefe": 1,
+    "tooltip": "",
+    "typ": "QGroupBox",
+    "versteckt": true
+   },
+   {
+    "attribut": null,
+    "text": "UTM-EPSG:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_epsg",
+    "beschriftung": "UTM-EPSG:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "RMS:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_rms",
+    "beschriftung": "RMS:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Verwendete Fixe:",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_used",
+    "beschriftung": "Verwendete Fixe:",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "Ursprung (Lat/Lon/Alt):",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_origin",
+    "beschriftung": "Ursprung (Lat/Lon/Alt):",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": null,
+    "text": "UTM-Offset (E/N):",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "zeilenkopf": true
+   },
+   {
+    "attribut": "_gps_panel._lbl_utm",
+    "beschriftung": "UTM-Offset (E/N):",
+    "text": "–",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel"
+   },
+   {
+    "attribut": "_gps_panel._hint_lbl",
+    "stil": "color: #4FC3F7;",
+    "text": "",
+    "tiefe": 2,
+    "tooltip": "",
+    "typ": "QLabel",
+    "umbruch": true
+   }
+  ],
+  "Protokoll": [
+   {
+    "attribut": "_log_edit",
+    "hoechstens": 20000,
+    "nur_lesen": true,
+    "text": null,
+    "tiefe": 0,
+    "tooltip": "",
+    "typ": "QPlainTextEdit",
+    "versteckt": true
+   }
+  ]
+ }
+}

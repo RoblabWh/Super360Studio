@@ -1,0 +1,31 @@
+# Selbsttests vor dem Umbau, je Zeile: Modul, Stufe von pruefe_alles.sh, Ergebnis, Aufruf oder Grund (Tab-getrennt).
+# bestanden = mit dem genannten Aufruf aus der Repo-Wurzel lauffähig (Module über python3 -m), Exit 0.
+# nicht lauffähig = ausgenommen oder fehlgeschlagen, mit Grund.
+core.bag_reader	selbsttests	bestanden	python3 -m core.bag_reader
+core.bundle	selbsttests	bestanden	python3 -m core.bundle
+core.colorizer	selbsttests	nicht lauffähig	ausgenommen: schreibt in den echten Cache (core/colorizer.py:1234-1237, 1349-1351)
+core.exploration	selbsttests	bestanden	python3 -m core.exploration
+core.fastlio_runner	selbsttests	nicht lauffähig	ausgenommen: startet FAST-LIO und schreibt ins Repo (core/fastlio_runner.py:635)
+core.fusion	selbsttests	bestanden	python3 -m core.fusion
+core.georef	selbsttests	bestanden	python3 -m core.georef
+core.meander	selbsttests	bestanden	python3 -m core.meander
+core.merge	selbsttests	bestanden	python3 -m core.merge
+core.mesh	selbsttests	bestanden	python3 -m core.mesh
+core.optik	selbsttests	bestanden	python3 -m core.optik
+core.project	selbsttests	bestanden	python3 -m core.project
+core.recording	selbsttests	bestanden	python3 -m core.recording
+core.sichtbar	selbsttests	bestanden	python3 -m core.sichtbar
+core.splat	selbsttests	bestanden	python3 -m core.splat
+core.stitcher	selbsttests	bestanden	python3 -m core.stitcher
+core.temperatur	selbsttests	bestanden	python3 -m core.temperatur
+core.colorizer_gpu	gpu	bestanden	python3 -m core.colorizer_gpu
+scripts/test_cloud_view_steuerung.py	ui	bestanden	xvfb-run -a python3 scripts/test_cloud_view_steuerung.py
+ui.bundle_dialog	ui	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.bundle_dialog
+ui.cloud_view	ui	bestanden	xvfb-run -a python3 -m ui.cloud_view
+ui.collapsible	ui	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.collapsible
+ui.explorationsgrad	ui	nicht lauffähig	ausgenommen: endet in app.exec_() (ui/explorationsgrad.py:184) und wartet auf das Schließen des Fensters
+ui.feinregler	ui	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.feinregler
+ui.gps_panel	ui	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.gps_panel
+ui.main_window	ui	nicht lauffähig	ausgenommen: startet die ganze App und endet in app.exec_()
+ui.meander_align_window	ui	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.meander_align_window
+ui.pano_view	ui-zeit	bestanden	QT_QPA_PLATFORM=offscreen python3 -m ui.pano_view

@@ -1,0 +1,4129 @@
+{
+ "familie": "maeander",
+ "grenze_bytes": 2097152,
+ "proben": {
+  "meander.as_t3": {
+   "teile": {
+    "drei": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2a78e8a51d1d36f3e32099c54dc3910a0b76a2bc5cc9a23c97ae3fe028f4bb2f",
+     "shape": [
+      3
+     ]
+    },
+    "float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4d60a4ed299f79a0d22a6f665a0a1d8b0da335b6b1035d71ad6b809200599610",
+     "shape": [
+      3
+     ]
+    },
+    "ganzzahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "577604ed0b0bc70d325c6b3d1fc8e36de59c0c2c33fd4a752ca504453bf61746",
+     "shape": [
+      3
+     ]
+    },
+    "leer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "824e8844eba860c6da5c2ea9ca505aef3a75d4dbc6f9142161937abbb197fa41",
+     "shape": [
+      3
+     ]
+    },
+    "vier_2d": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "1614c6d6489860a4134607cd8e489d4b3351adeaa6b746515dc362aec766d047",
+     "shape": [
+      3
+     ]
+    },
+    "zahl": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "1ab8eb55a48d312e7ccdd286544cd0d8344046961ac7ff81b93efd838ac481f2",
+     "shape": [
+      3
+     ]
+    },
+    "zwei": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "fbc6bbeff5fcf9bb9a4102dd1d8f75e47389152bcb7adf27ffa58a6a5e8d7a61",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.colorize_points": {
+   "teile": {
+    "einzeln_halb.am_rand_geklemmt": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "1ddf396c949d947a64139c583064ec740587c7e53dbe2336275d2b1f570afc95",
+     "shape": []
+    },
+    "einzeln_halb.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "c153f9294c0345d25c57876d530705bc0e40077d5f5ba270bb0a5fe89f568703",
+     "shape": [
+      6000
+     ]
+    },
+    "einzeln_halb.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "e03d01b4fc5af3d7df95ba9dba36a752bf1c73fdd235411bc1616f6afd5b2490",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "einzeln_halb.wie_mit_umrechnung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "einzeln_halb.wie_ohne_umrechnung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "halb.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "halb.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c4930c68eb969b45d805368e2de6dea4755a47b98fd09c1acbfba9ad82efffc0",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "pinhole.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "1e1932813302f739305eeb953df7bf5324a13b0be5f403644f64d07eb08c75f7",
+     "shape": [
+      6000
+     ]
+    },
+    "pinhole.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c2247a1b3cbe7f77227fcb3a5b6798735dc779f851de17df2b16bee2cb68e4a1",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "temperatur.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "temperatur.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c4930c68eb969b45d805368e2de6dea4755a47b98fd09c1acbfba9ad82efffc0",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "temperatur.temp": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "46be36b4619352d97ee7846147804b71e22df0237b14f6a6965e88574b33568c",
+     "shape": [
+      6000
+     ]
+    },
+    "viele.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d8b5a30e645bbe8314c493118a13f695038c0e7ec93fe1aae3d73ef220dd6a2b",
+     "shape": [
+      4
+     ]
+    },
+    "viele.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "1b248f79657d3b593adf1198f52747ff7e843628d41b9e3a0b1714de38ee428c",
+     "shape": [
+      6000
+     ]
+    },
+    "viele.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "2d297ed126248a2c53cb985812174fa3b53d772775e072fab941245fef362081",
+     "shape": [
+      170
+     ]
+    },
+    "viele.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c16f52e90557e32c7f49973cc5ffb53d9e176198a6204555b00095c6d3bfbc0c",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "voll.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0ebcb57b61d01a841c5c638245bcfb8817b014cdeae7a1671504fb6c2d33902b",
+     "shape": [
+      2
+     ]
+    },
+    "voll.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "voll.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "13d918799322f258389aa650ac26231527de2b394a4549595d93365e2ffa6670",
+     "shape": [
+      81
+     ]
+    },
+    "voll.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "d353268f353adefbac09bb7ffc3902808acba297d09188e3791fc45f7fa3d635",
+     "shape": [
+      6000,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.ebene": {
+   "teile": {
+    "danach.colors": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "6dba72703de8b4bfcee1ec7170d52ac571ef98e84afe562a2e0d047791530015",
+     "shape": [
+      1500
+     ]
+    },
+    "danach.dateien": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a6520a963f5765d25d53f0913709847866bb4485a3c6e8f8ed24b4c5b5acd022",
+     "shape": [
+      30
+     ]
+    },
+    "danach.temperatur": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "c245c41993ce6f599ddac441bcc7b41b7c8f459742a7ac79e687fdf8710541d6",
+     "shape": [
+      5
+     ]
+    },
+    "danach.valid": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "37d662b392d1d1ccaebb20f62757d3e6a250d8c8e244bcb42307704515cfcc34",
+     "shape": [
+      500
+     ]
+    },
+    "laengen.beide_kurz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "laengen.beide_kurz_kleinere_wolke": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "laengen.beide_passend": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "laengen.colors_zu_kurz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "laengen.valid_leer": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "laengen.valid_zu_kurz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "mit.colors": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "90b454a3b4f0e2dfcc451fe1da45f32a234368286249f5f87b08c11b57f907d3",
+     "shape": [
+      1500
+     ]
+    },
+    "mit.load_temperatur": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "54e75a8f620962fa9fb68e23aefc98f0383bc95271f02b410e02f3770d936374",
+     "shape": [
+      500
+     ]
+    },
+    "mit.load_temperatur_falsche_zahl": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "mit.meta": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "417ab9c4c5d580f41a59a6f6fcebd235323918faf0955bf76933ea2ecc7488bc",
+     "shape": [
+      173
+     ]
+    },
+    "mit.temperatur": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a9f726634aeb1a7231696a5c2a43f9f52ab0042125306477ec49479ae839d8b2",
+     "shape": [
+      2000
+     ]
+    },
+    "mit.valid": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "5150b77108fd87948962323e11786c56e060af73260869e8f6ac68d3bdcd026f",
+     "shape": [
+      500
+     ]
+    },
+    "ohne.colors": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "90b454a3b4f0e2dfcc451fe1da45f32a234368286249f5f87b08c11b57f907d3",
+     "shape": [
+      1500
+     ]
+    },
+    "ohne.load.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d3ace2509f824de70a6581cc34b4e25b2b04c86f6734da0d61220297902d4424",
+     "shape": [
+      500
+     ]
+    },
+    "ohne.load.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "d90b8f5fe5e0a097afa9b73b38446d67bd7da63b2ef1c2ef9fb51f58f173ef15",
+     "shape": [
+      500,
+      3
+     ]
+    },
+    "ohne.load_falsche_zahl": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "ohne.load_temperatur_none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "ohne.meta": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "d50c2f06508d6daee2c444f5484b518589b7f838cd31cdf2cdfb3f4f8612c2e1",
+     "shape": [
+      174
+     ]
+    },
+    "ohne.temperatur": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "c245c41993ce6f599ddac441bcc7b41b7c8f459742a7ac79e687fdf8710541d6",
+     "shape": [
+      5
+     ]
+    },
+    "ohne.valid": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "5150b77108fd87948962323e11786c56e060af73260869e8f6ac68d3bdcd026f",
+     "shape": [
+      500
+     ]
+    },
+    "typen.colors": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "90b454a3b4f0e2dfcc451fe1da45f32a234368286249f5f87b08c11b57f907d3",
+     "shape": [
+      1500
+     ]
+    },
+    "typen.load.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d3ace2509f824de70a6581cc34b4e25b2b04c86f6734da0d61220297902d4424",
+     "shape": [
+      500
+     ]
+    },
+    "typen.load.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "d90b8f5fe5e0a097afa9b73b38446d67bd7da63b2ef1c2ef9fb51f58f173ef15",
+     "shape": [
+      500,
+      3
+     ]
+    },
+    "typen.meta": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9913c203e714f96b440c246325725b9610eb7099a1d628c583954f3968f7fc34",
+     "shape": [
+      18
+     ]
+    },
+    "typen.temperatur": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a9f726634aeb1a7231696a5c2a43f9f52ab0042125306477ec49479ae839d8b2",
+     "shape": [
+      2000
+     ]
+    },
+    "typen.valid": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "5150b77108fd87948962323e11786c56e060af73260869e8f6ac68d3bdcd026f",
+     "shape": [
+      500
+     ]
+    },
+    "vorher.layer": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "vorher.temperatur": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "meander.guete_mit_optik": {
+   "teile": {
+    "ohne_fotopunkte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "voll.anteil_auf_flaeche_optik": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "8a61c3cf1fb1ee3fe184100f196082ac373fb5a11ef847da177d1584f66f0d57",
+     "shape": []
+    },
+    "voll.faktor_tiefe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc5c6388bb93ac9b1063bee24707b4b7b074137d957e943b9c755e82f89592b6",
+     "shape": []
+    },
+    "zu_wenige": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.korrektur_anwenden": {
+   "teile": {
+    "leer.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "945409f320d13013c8e9319e69ec28cf3eb54b97d105ee75f7c9f077f18227c1",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "leer.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8fdf64bd34cd5886465f637d136cc7c18540738390fef9134d8ebe6d96007b24",
+     "shape": [
+      3
+     ]
+    },
+    "listen.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0334b1e8c5614aa9b916752251037da8504630663b031671db517774439ee43e",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "listen.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "dd50326bc208b0accaa5d23fd373bb8f70399d079df842cfe09cb179d877f0de",
+     "shape": [
+      3
+     ]
+    },
+    "mit.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c260e920a059a3efe8f82f08d8dad2e585a73f58b5b2075c169684d9711e2d42",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "mit.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "dd50326bc208b0accaa5d23fd373bb8f70399d079df842cfe09cb179d877f0de",
+     "shape": [
+      3
+     ]
+    },
+    "ohne.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "945409f320d13013c8e9319e69ec28cf3eb54b97d105ee75f7c9f077f18227c1",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "ohne.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8fdf64bd34cd5886465f637d136cc7c18540738390fef9134d8ebe6d96007b24",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.lage_affine": {
+   "teile": {
+    "danach.t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c00323cb7cdf66d06afd1637b1fb6e538b71abc180db788a62e412ab9ece1a5b",
+     "shape": [
+      3
+     ]
+    },
+    "danach.yaw": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "767cda78c28ecf199ec1fc5ee3fca01237acea7eef7bb4224f71f42f6ae70c8c",
+     "shape": []
+    },
+    "einfach.a.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c16e4ec30ef54681c337f975d744074e4f6b885912d54ac20b7048b587983dd8",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "einfach.a.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7aebab54fb1b130bd6ea51dd90629747cc6fa9501de45558eff81f4ec6afc214",
+     "shape": [
+      3
+     ]
+    },
+    "einfach.b.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "46c8bf98de5ed094670e13da2aad895af025895991fd7deb91795df25c3f43f7",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "einfach.b.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "be4a935fe3c05b771a654030fd27c3c7409e04ca62a339524d26cb8f57b9b965",
+     "shape": [
+      3
+     ]
+    },
+    "korrektur.a.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6882dfbad2ecc0e45ba9f71533797ae908bca3f2076b75930040b21a0f232d9a",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "korrektur.a.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0b98ca488f81579794c521722c2cd5c1ad7b2749c3d4ccd5426e641ef06802b3",
+     "shape": [
+      3
+     ]
+    },
+    "korrektur.b.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "58e1473867fb48042814db6c1cb6cbfd9504a320990daec227b0bf1e505096cf",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "korrektur.b.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "9f6d105c898e9310c908bbb9937a0f99ffff19298b81d11c641c907a888b35f4",
+     "shape": [
+      3
+     ]
+    },
+    "skala.a.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7467247c7ddaffba373e91a0eecede4e1d3ee5aeeb070f5a40191356f8c9792d",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "skala.a.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8d2593d6a822f5dc3ec5a4d445c45e572d3fb1d989bb8054d6bf78efbadebd46",
+     "shape": [
+      3
+     ]
+    },
+    "skala.b.A": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c35c785c691bfad6ea41e2240507df2d3e11b61efc3092eb8e82cf2a4eabc51a",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "skala.b.b": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6c0574016cd3c8c1bba2497df2fb17361c89aae604f0bcf8129c7b229cb5f539",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.live_preview": {
+   "teile": {
+    "halb.andere_optik.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "ca7e96b04079abc9cb950f8af49e4957ae4dadfe113090c93947ce5fb5fdfbfc",
+     "shape": [
+      6000
+     ]
+    },
+    "halb.andere_optik.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "8b6a3d539a3595453d384be1a2428377d3181585b9867e7c3164727ba1b2aa2a",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "halb.bilder": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "a94672e7c67fce03ba03907f1c58e8f4e1aad9908e2a342a2dbc07f0db1f09a8",
+     "shape": [
+      5,
+      32,
+      48,
+      3
+     ]
+    },
+    "halb.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0ebcb57b61d01a841c5c638245bcfb8817b014cdeae7a1671504fb6c2d33902b",
+     "shape": [
+      2
+     ]
+    },
+    "halb.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "halb.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a41105cf76ad2a6c3e9ba9e252d6a02a8cd49c19652008249fb98762e4290bac",
+     "shape": [
+      51
+     ]
+    },
+    "halb.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "f7ee6eaa5b2d156591a4da7efdb0bed602357ce9ad171ca30394d0fbaaad22ad",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "halb.verschoben.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d526516f0d0e3c9268885fa9b03edfa9bc1c865af8f35761da3d39dccd8aded4",
+     "shape": [
+      6000
+     ]
+    },
+    "halb.verschoben.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0b21e014f0e0930d908a37bbc49e06ddf0e1986bfde1a1183662f3bdf0066730",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "sechstel.andere_optik.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "ca7e96b04079abc9cb950f8af49e4957ae4dadfe113090c93947ce5fb5fdfbfc",
+     "shape": [
+      6000
+     ]
+    },
+    "sechstel.andere_optik.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "48c670d3c9639ddda13b53a8c4bb3bb22cec97dccdda877e82a68d92bba80c35",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "sechstel.bilder": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "8ae123ff346ac8c6ff0edac745b07060af16b401a8d0e48b0a09ed61c57b0081",
+     "shape": [
+      5,
+      10,
+      16,
+      3
+     ]
+    },
+    "sechstel.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0ebcb57b61d01a841c5c638245bcfb8817b014cdeae7a1671504fb6c2d33902b",
+     "shape": [
+      2
+     ]
+    },
+    "sechstel.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "sechstel.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a41105cf76ad2a6c3e9ba9e252d6a02a8cd49c19652008249fb98762e4290bac",
+     "shape": [
+      51
+     ]
+    },
+    "sechstel.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "c947191da4fee3c0d15dd119f890d26155cecd954929a32834e81c0df378bb98",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "sechstel.verschoben.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d526516f0d0e3c9268885fa9b03edfa9bc1c865af8f35761da3d39dccd8aded4",
+     "shape": [
+      6000
+     ]
+    },
+    "sechstel.verschoben.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0b21e014f0e0930d908a37bbc49e06ddf0e1986bfde1a1183662f3bdf0066730",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "voll.andere_optik.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "ca7e96b04079abc9cb950f8af49e4957ae4dadfe113090c93947ce5fb5fdfbfc",
+     "shape": [
+      6000
+     ]
+    },
+    "voll.andere_optik.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "e9956cc23de12bd9f64b8f878dc6f000848dbd5802b1c4441d1389ef0660feaf",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "voll.bilder": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "e99878763085fa885eaef75ca4dcb12e6da1feb4d11ce2c95c58b79fb336a432",
+     "shape": [
+      5,
+      64,
+      96,
+      3
+     ]
+    },
+    "voll.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0ebcb57b61d01a841c5c638245bcfb8817b014cdeae7a1671504fb6c2d33902b",
+     "shape": [
+      2
+     ]
+    },
+    "voll.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "voll.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a41105cf76ad2a6c3e9ba9e252d6a02a8cd49c19652008249fb98762e4290bac",
+     "shape": [
+      51
+     ]
+    },
+    "voll.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "d353268f353adefbac09bb7ffc3902808acba297d09188e3791fc45f7fa3d635",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "voll.verschoben.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d526516f0d0e3c9268885fa9b03edfa9bc1c865af8f35761da3d39dccd8aded4",
+     "shape": [
+      6000
+     ]
+    },
+    "voll.verschoben.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0b21e014f0e0930d908a37bbc49e06ddf0e1986bfde1a1183662f3bdf0066730",
+     "shape": [
+      6000,
+      3
+     ]
+    },
+    "vorgabe.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ddcec178858376464bf0197b2bf8206d8e08fdd259697a0742d631629d01ef25",
+     "shape": []
+    },
+    "vorgabe_halb.bildformen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "cf7af564986c649374ea0063dff0d46b59906d40944727d3dc6d8b010a459f5a",
+     "shape": [
+      5,
+      3
+     ]
+    },
+    "vorgabe_halb.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "65c6fa6b826b8343bb587053606ffdb662c15a714660d1534b2378cd21f521d3",
+     "shape": [
+      6000
+     ]
+    },
+    "vorgabe_halb.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "428b649d469b56d28f544fa33b01f7a6b81d2b9f24940a4cc4a7676770ac1c36",
+     "shape": [
+      6000,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.pruefe_ausrichtung": {
+   "teile": {
+    "text.grenze": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "text.gut": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "text.ohne": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "text.optik_gewinnt": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "text.optik_schlecht": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b62bf1b87310bf34f304653b81e3ecde4314d0d1ff01282d87a49649af027d0c",
+     "shape": [
+      276
+     ]
+    },
+    "text.schlecht": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ceb092c7f14e7b4668d5495895a05dd4b24992e222cb0bb7cf6bf2bdb269b0e9",
+     "shape": [
+      293
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.thermal_lage": {
+   "teile": {
+    "ganzzahlen.gier": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bbbb7f830a1a803e55283d4bdaf191dcf9f62fad1fb1f2c8c64c89da666eb49c",
+     "shape": []
+    },
+    "ganzzahlen.t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ed2af7ce1ad3a6342bf04cbc32b87d6dd04f260f8d86d6d396e5affedffb9c5e",
+     "shape": [
+      3
+     ]
+    },
+    "krumm.gier": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e0456d5b5af59442b4b485e523b09b0f946772583d8ddb09592038d6aca2f4bd",
+     "shape": []
+    },
+    "krumm.t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b5074ca6a435402fa1f3b37942df59794d874c20e6b1a2b3f631ce3ed6a1c9d1",
+     "shape": [
+      3
+     ]
+    },
+    "voll.gier": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "f407eb12a12085336e70b4c0b86f62012fe3c6e4b336b6021c3d7c6ba9d9380e",
+     "shape": []
+    },
+    "voll.t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "09ee7271e66aa077084290ae74cbc589e72d854b61f3dcb3f5a28ce916815305",
+     "shape": [
+      3
+     ]
+    },
+    "zweier.gier": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "d7a5a410b783aa93a998a445585f4f2a5ddf9118b5d8f735bb0883215dc5f8f0",
+     "shape": []
+    },
+    "zweier.t": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "8f0753a554e6860014dd94777b111beceae4c57d587b1e2ed4e66d28c16e71d5",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.thermal_zuschlag": {
+   "teile": {
+    "datei": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "c638116e2c29cdd20540994645f62cdb33fb4f681e8e582c38311b1ec2809ec0",
+     "shape": [
+      107
+     ]
+    },
+    "datei_krumm": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a057a99e938ea48d3fb932fd16cba911226525f7c1cede173767a6c387764762",
+     "shape": [
+      124
+     ]
+    },
+    "dateien": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4f2d36350c37c49995ef398703de0ee33d3d0232535f1233c7c52b51ccee608b",
+     "shape": [
+      17
+     ]
+    },
+    "gelesen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4bb504e36c32afb2a2e0be6caee87fb5c1734845b2efe0e8a92b0f2a053129d8",
+     "shape": [
+      3
+     ]
+    },
+    "gelesen_krumm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2233a72451c63adf9a79de50925fdf2d165061d3c5c16ac25ab1cf10e5d8af6c",
+     "shape": [
+      3
+     ]
+    },
+    "kaputt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "824e8844eba860c6da5c2ea9ca505aef3a75d4dbc6f9142161937abbb197fa41",
+     "shape": [
+      3
+     ]
+    },
+    "ohne_datei": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "824e8844eba860c6da5c2ea9ca505aef3a75d4dbc6f9142161937abbb197fa41",
+     "shape": [
+      3
+     ]
+    },
+    "schluessel_fehlt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "824e8844eba860c6da5c2ea9ca505aef3a75d4dbc6f9142161937abbb197fa41",
+     "shape": [
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "meander.thin": {
+   "teile": {
+    "eins_darueber": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "82dd8aeac36cadb1b730d1546fca024ab296adaf84169c223bec548f189d1c21",
+     "shape": [
+      50001,
+      3
+     ]
+    },
+    "genau_grenze": {
+     "abgelegt": false,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "412975f939ccee1f553bc9d5f758ea9b82e4d4e964b6c92637844144db197a5b",
+     "shape": [
+      100000,
+      3
+     ]
+    },
+    "gross": {
+     "abgelegt": false,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d52434496ba2a22f649e6826cc38e6129296576115d39503e8c73e68776d3f4d",
+     "shape": [
+      83334,
+      3
+     ]
+    },
+    "klein_float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "6990c02a56fbc6148a567bec939868a987fe02fec24709c0236fda519d4aa0f7",
+     "shape": [
+      50,
+      3
+     ]
+    },
+    "liste": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c71deecc1d2815b3a36e9deeb2a4f03af8a55d4f908cca08ecb6eac96957983d",
+     "shape": [
+      2,
+      3
+     ]
+    },
+    "vorgabe_float32": {
+     "abgelegt": false,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "69aa1fa68d8190ddfe2c73c8a7cfb036ab9e649879127b7cfc0ce783f59d3b49",
+     "shape": [
+      200001,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.anteil_auf_flaeche": {
+   "teile": {
+    "eng": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "da368930e64f61c389af8681c614b10ae246ca9dc797772dc4adc5851f3e8549",
+     "shape": []
+    },
+    "faktor_eins": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bbf591c5dc21ae2ef24840e1a6e16a1ca7aebaaf948ff4d946b4557ba22ca0f0",
+     "shape": []
+    },
+    "faktor_tiefe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "9cf07ecb6e3288a218f5346ba6b57e2b91eba6cb767fde7ed50cd2367ca91873",
+     "shape": []
+    },
+    "knapp_daneben": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e723c6d35cd544522dfabc1a5ed0049d4c37df4b64db3311734f4add7ab3baf5",
+     "shape": []
+    },
+    "knapp_links": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1d901c11672f428aebce4ef393d6bc0c2f9e09611dfbd02535f2570286c98750",
+     "shape": []
+    },
+    "knapp_unten": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e198f3eafad7339407e1ec61de83e6ea0b4a982deb7bcfdfcb5b662281132a85",
+     "shape": []
+    },
+    "luecken.faktor_eins": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "2aa0c9984046d6f81004afba895f19c621fa8d2ada8c362cef3150743ecf3f55",
+     "shape": []
+    },
+    "luecken.faktor_tiefe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "164db77c117697a680f20ffe270cc214bb25cb9f898758fedcfdc85b3ecd05f0",
+     "shape": []
+    },
+    "luecken.fotopunkte_ueber_luecke": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "96f6098406064d5c12469cb4f658fef08cadd8501cfe0cb07e8d018d70d30564",
+     "shape": []
+    },
+    "luecken.punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "06f448a4ff6c1f9aaf793976178a6cfddd995ced4a7ed236c269fa3c4451e9a9",
+     "shape": []
+    },
+    "luecken.weit": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "0778da0d3afc2ab03a65ce0abcf5f6f790ad76615c42947c9c62903d68b7a412",
+     "shape": []
+    },
+    "ohne_fotopunkte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "versetzt": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "4681cf61967feec8af8c4f06a25da30be5dab384f5c7f7779b9e24d00f4ce790",
+     "shape": []
+    },
+    "weit": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "4c263ffeca627794b3be2bc025a9ca50e956f00f0998ac767a8f2306d0e036d6",
+     "shape": []
+    },
+    "weit_daneben": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.datei": {
+   "teile": {
+    "dateien": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "7f3b3e21d4c53bf21fe66a6042a9603208651244a6212d729d3bba3f428450bb",
+     "shape": [
+      23
+     ]
+    },
+    "kaputt.geladen.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "kaputt.geladen.thermal": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "kaputt.geladen.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "ohne_datei.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "ohne_datei.thermal": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "ohne_datei.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "ohne_datei.vorhanden": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "aa9113f29fe6a0ad93c2775c1e6bde20c0eecb79d8ca27dbd104972dd5c963a3",
+     "shape": []
+    },
+    "teil.geladen.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ddc80db752762a920d1ca172c839248a906a2455a94bdf8785bf7c54828c325e",
+     "shape": []
+    },
+    "teil.geladen.thermal": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "teil.geladen.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "text.datei": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "c1819b084a0d7e9e0dd118a6afab9138184ffaf71d41023a5b6e6caced196e3c",
+     "shape": [
+      68
+     ]
+    },
+    "text.geladen.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "33d1f85b337b2968913e7b895f46b98971c6a3094396258ba1dea32ef1267c7d",
+     "shape": []
+    },
+    "text.geladen.thermal": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "text.geladen.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "unlesbarer_faktor.geladen.rgb_faktor": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9accbb7818437506efa64f0f9e1415d4f5fa8c4c3f1fef12502cfec2a3f57ac0",
+     "shape": [
+      4
+     ]
+    },
+    "unlesbarer_faktor.geladen.thermal": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "unlesbarer_faktor.geladen.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "762ba4dab743ffa393d8d41516696a49742904a732f5f850dcbc95ebac09f513",
+     "shape": []
+    },
+    "voll.datei": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "e4f3f11111d2d82a95895a1227bf681399ed9379cb894fc8495b612bf7d96f7d",
+     "shape": [
+      880
+     ]
+    },
+    "voll.geladen.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "dc46cf50a30bfe5b420d3a90fb4beb4eda14b2ffc072ce469a8526b80be59021",
+     "shape": []
+    },
+    "voll.geladen.hoehe.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "dc46cf50a30bfe5b420d3a90fb4beb4eda14b2ffc072ce469a8526b80be59021",
+     "shape": []
+    },
+    "voll.geladen.hoehe.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "645ed6bbc27ddabd13788b0705e3c7e219c2f659e38460773c15a9dbd4a3924c",
+     "shape": [
+      2
+     ]
+    },
+    "voll.geladen.hoehe.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "f07020f1306d0f8556e6e003c001430b884aafd7c1c9969a7fee567769c9ea82",
+     "shape": []
+    },
+    "voll.geladen.hoehe.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "a0e9a727758cc6a0027641a37af6bd8e11408a7f97f0ee43b0a82056c75bfb84",
+     "shape": []
+    },
+    "voll.geladen.korrektur.M": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "19bca47c55e369e2da66936118134b1c5ae03276b37565b65f15a4eb3d137119",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "voll.geladen.korrektur.v": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b8ed548be895121def66277b5cb207f76279f5616cb40584d5b3654c2d6a6c4f",
+     "shape": [
+      3
+     ]
+    },
+    "voll.geladen.notiz": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "72df4781205a478e34d77f9e3afe1fd2ca66388ad3c4b867acdfa68faf9c99ad",
+     "shape": [
+      17
+     ]
+    },
+    "voll.geladen.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "92fe08fdb6ff505925e0e32db9ffd31573f4d1f40ceea7851987cf244b413b7f",
+     "shape": []
+    },
+    "voll.geladen.thermal.breite": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80904ed09b2be44e61845aa6d06ec5da20e2ce8c7f10f846f5fa0a86c41591f0",
+     "shape": []
+    },
+    "voll.geladen.thermal.cx": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "fc6cd899048096828b85b3562017e4be4a18bcf83cb769284d86eccd6e764e98",
+     "shape": []
+    },
+    "voll.geladen.thermal.cy": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1356bac79498fd15a9502009a22df602af6610048114d39d7071610cd5efd655",
+     "shape": []
+    },
+    "voll.geladen.thermal.drehung_grad": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e3aafd6c74cb09949bd895e3ad8bc1612cd8aee7178a500e6927e60519229a16",
+     "shape": [
+      3
+     ]
+    },
+    "voll.geladen.thermal.f": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5c728e0f09a8c5829dfb266f55331c04d6e84cf36c1b4994865e44eeec9a51ae",
+     "shape": []
+    },
+    "voll.geladen.thermal.hoehe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "69d1cf9886788ad32c4f8212b7ec9e0ea7b9001cd4258385beaf96a09d082aab",
+     "shape": []
+    },
+    "voll.geladen.thermal.k1": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "86dc3c6bb88e13441505aee164da79523096d17edd1d9d7f2a16f1ac6e85531b",
+     "shape": []
+    },
+    "voll.geladen.thermal.k2": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e727c9e371c4ac2da815bf289a3e4a7841fda275677077ae6ca355ce8d0f334b",
+     "shape": []
+    },
+    "voll.geladen.thermal.mi_nachher": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "0466dc0a2e8448e18df1db0ba8bdcb1a2605e290c064e85b2b0dc93ce51b4f3f",
+     "shape": []
+    },
+    "voll.geladen.thermal.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "voll.geladen.thermal_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c4d311b6096d6e35f2a86bfff67eb37cfd3cc533677324991a560a55ddf60bc6",
+     "shape": []
+    },
+    "voll.geladen.verfahren": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "a4f43073a1be5981fa656e785bc87ba43da3d00adccb2f3a92f1b67d075e49bb",
+     "shape": [
+      5
+     ]
+    },
+    "voll.vorhanden": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.drehung": {
+   "teile": {
+    "ganzzahlen": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c1cedcbf972c34e34148bbdc9ac2c0b6981ca7fc03742fb0fc0a50d3ccb18db4",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "gross": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "3a5e1c5f6983c8e38eac47928097016c5dd022123dbe6e49a71a6dd9166f6f11",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "null": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "44134b0c30d2377382c2e6fa0ae91ea6c88d9554cf1117e7e64c573d8caaec3a",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "schielwinkel": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "3c8c4ef07a68a9eb88fd33085847f055d4d81028587f200d2e8cd5b477334a4f",
+     "shape": [
+      3,
+      3
+     ]
+    },
+    "winzig": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "beb17245f759964d8ef2489f7164c3e9e2576d4d26b7eadff7b30a433ccaebd2",
+     "shape": [
+      3,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.dsm": {
+   "teile": {
+    "fein.dsm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "25504e4f96940078e9e553b506063a53c604b0599c996050d45afd2292316b10",
+     "shape": [
+      151,
+      128
+     ]
+    },
+    "fein.res": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "767cda78c28ecf199ec1fc5ee3fca01237acea7eef7bb4224f71f42f6ae70c8c",
+     "shape": []
+    },
+    "fein.x0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c72e3280c65bd5bce03ce220c0aff5624936a5364e4430dec33a5a0e7b484792",
+     "shape": []
+    },
+    "fein.y0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "54a5ba9048d42d5e0185df281e5f9d4d9b90465ce4799efb6638bca4f6720ab7",
+     "shape": []
+    },
+    "gelaende.dsm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "07b15b0f3632a09c786bc3117d2b3070a9583f7d4f6dcd8a02186b737b810137",
+     "shape": [
+      121,
+      121
+     ]
+    },
+    "gelaende.x0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "d530e11aa82f2f86cc5bc20d7ba589d79dffea2cbd8470956337b5b165634dc6",
+     "shape": []
+    },
+    "gelaende.y0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "d530e11aa82f2f86cc5bc20d7ba589d79dffea2cbd8470956337b5b165634dc6",
+     "shape": []
+    },
+    "grob.dsm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e979c6cca493c70841ea9ba354899b4cf37b5541f2fe2fd45dd1311fd8aba82e",
+     "shape": [
+      16,
+      13
+     ]
+    },
+    "grob.res": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "f5775a95a1bbb437c22c9275ca3e3c91394892f5ec14cc4f0f746653b71dd7fa",
+     "shape": []
+    },
+    "grob.x0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c72e3280c65bd5bce03ce220c0aff5624936a5364e4430dec33a5a0e7b484792",
+     "shape": []
+    },
+    "grob.y0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "54a5ba9048d42d5e0185df281e5f9d4d9b90465ce4799efb6638bca4f6720ab7",
+     "shape": []
+    },
+    "vorgabe.dsm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c8db4f5f1ebfead2342123baa239181ecd227ce2c7e94ffd3622e945703c3234",
+     "shape": [
+      61,
+      51
+     ]
+    },
+    "vorgabe.res": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "99a3bc23708deca9b557a507421cec2500b08a3430e20dea0db678aa2a102b82",
+     "shape": []
+    },
+    "vorgabe.x0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c72e3280c65bd5bce03ce220c0aff5624936a5364e4430dec33a5a0e7b484792",
+     "shape": []
+    },
+    "vorgabe.y0": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "54a5ba9048d42d5e0185df281e5f9d4d9b90465ce4799efb6638bca4f6720ab7",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.farbkonsistenz": {
+   "teile": {
+    "andere_optik": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "94992659fcf9df2576c70b7f67facbe50a8bc2c427b514db376f7658a880aa8b",
+     "shape": []
+    },
+    "bilder": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "1a469c2b0c03b7ed84089a741c1e4905e9cdb5118377460445b5106bffad1d52",
+     "shape": [
+      5,
+      32,
+      48
+     ]
+    },
+    "skala": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7edc97816282971a00dd40040c88c287ad64d9d80f5a85f29bbcd62af9b8ed61",
+     "shape": [
+      5
+     ]
+    },
+    "streuung": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e7157c77b297851748bdf4ef1f04f79964f06f0594023d823ef146010b75117a",
+     "shape": []
+    },
+    "verschoben": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "39c40beb6414db2bdef0b0ff174e5783b63df274ac37ef04d9de89f77abb4c11",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.foto_hoehe": {
+   "teile": {
+    "eingabe_danach": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "92bd9d629d25738e659b7d4d6a87146ff3c7e0d0947ec74ce714f7d9ced6601f",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "faktor_eins": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "92bd9d629d25738e659b7d4d6a87146ff3c7e0d0947ec74ce714f7d9ced6601f",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "bb5aaca89e097cc68e49d346253ca942c7fc7cb92efc9d9094227121ae0f9cbe",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "kuerzer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "2d36841dffca6ce5641319e9c7651a5ae44956fb25811ec791e38ec22deda833",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "laenger": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d411ef614658d21b0e9e535d40c06b75cde95e5e38ee40b8e8fddd98c8dcff9e",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "ohne_kameras": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "92bd9d629d25738e659b7d4d6a87146ff3c7e0d0947ec74ce714f7d9ced6601f",
+     "shape": [
+      400,
+      3
+     ]
+    },
+    "ohne_punkte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "f2b471f93bebcd2e1371313c7f9a1c34f83a7d9552e63dd0c5365047c5843edb",
+     "shape": [
+      0,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.hoehe_aus_lrf": {
+   "teile": {
+    "beschnitten_links.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "9ef9d2e1429b5065526695817bc7804a4f023e1b920d8cfd6f6d0a5c8d1933e0",
+     "shape": []
+    },
+    "beschnitten_links.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "d335084f69eb49823361c12ad804b1bcc00c5bf53311c942fde055177b3fdcb7",
+     "shape": [
+      2
+     ]
+    },
+    "beschnitten_links.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "011f2c6efb42639044776c013791e9824030ca9d85e406e9f9a341beae859d9b",
+     "shape": []
+    },
+    "beschnitten_links.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "04e5edd05f5559ad3cab5c76160bad55328f0ccfa45df3b2246f2b5941054f16",
+     "shape": []
+    },
+    "beschnitten_links.punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "a1f9dfa27c11d1c9a753e90ff3374d9a5f71c45876a5c5b73a8eb5af4d4184d8",
+     "shape": []
+    },
+    "beschnitten_unten.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "a7f13c60dcbbca498737041ac5763bb425161402ac2080d279124ca9b9407e74",
+     "shape": []
+    },
+    "beschnitten_unten.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "61ed7d65369bf071125c0b0d29a69b214614915050e7145092e88e2fc0fe7ad3",
+     "shape": [
+      2
+     ]
+    },
+    "beschnitten_unten.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "04e5edd05f5559ad3cab5c76160bad55328f0ccfa45df3b2246f2b5941054f16",
+     "shape": []
+    },
+    "beschnitten_unten.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "e1ac3ed083f9b1886f261e1c0b6a8a1521caafb4d02f237f8af338c7b8d7d8f7",
+     "shape": []
+    },
+    "beschnitten_unten.punkte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "f90d12081636ada23ca156a28c3bfa7c334bb1857777b46e8a39334e592b77a2",
+     "shape": []
+    },
+    "float32.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ca9e4abd9acaa902eaaad954f7bc22053d8c61cc1ea81760cfb97d893bfae927",
+     "shape": []
+    },
+    "float32.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e1cde786d5fefed2e00bc9072d7048931158060eb0e233304adef5a31a5ad9cf",
+     "shape": [
+      2
+     ]
+    },
+    "float32.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "b75ac5b56ecf84b0626134cf71a4e1e78f1920a3d7b3076b389a205d4373da31",
+     "shape": []
+    },
+    "float32.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "6f0f90c526def3d002902a0614c22bbed1209f2280bf97c680e34ae3022ca2f3",
+     "shape": []
+    },
+    "hoeher.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "461ce4d0eff9b7c25938b8a93383b84146e4f34b3f5a13b812fa448dfbe8a328",
+     "shape": []
+    },
+    "hoeher.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4e3990a3b0d3e07d1d0f10d39068d3e7d98900f3add3b63b429b89083ca524a0",
+     "shape": [
+      2
+     ]
+    },
+    "hoeher.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "b75ac5b56ecf84b0626134cf71a4e1e78f1920a3d7b3076b389a205d4373da31",
+     "shape": []
+    },
+    "hoeher.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "6f0f90c526def3d002902a0614c22bbed1209f2280bf97c680e34ae3022ca2f3",
+     "shape": []
+    },
+    "leerer_ordner": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "lies_lrf.DJI_0000_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "c54b6ac6b07e83c7e650ff3a25552d82e922afffd630c9d4604211c8266b8aa7",
+     "shape": []
+    },
+    "lies_lrf.DJI_0001_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ac38d432b3b38e057ec9378189388dc954bb6dad0c9a53c170434108c6e5c52a",
+     "shape": []
+    },
+    "lies_lrf.DJI_0002_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "d02e476282056dab2f2d1b27bca03ce702b3d53d84906460df980a2b81f6fe4c",
+     "shape": []
+    },
+    "lies_lrf.DJI_0003_W.JPG": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "lies_lrf.DJI_0004_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "0b8ebd92e350755f1380d325c7990c470803a83172bde7c689c59c858b11207c",
+     "shape": []
+    },
+    "lies_lrf.DJI_0005_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "aaeb0286911c3cf89b0c4b0d038ea054874511c1a0a2e59f608909a4376ef791",
+     "shape": []
+    },
+    "lies_lrf.DJI_0006_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "0485cfc411cf04f5d82ded3c14136df47911d88e6667850fa739258e8a24dd8d",
+     "shape": []
+    },
+    "lies_lrf.DJI_0008_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "da02128b1779de3202baea97b4d147f9f34e2d712a35404fb1f868a459d349f2",
+     "shape": []
+    },
+    "lies_lrf.DJI_0009_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "b3a062ee9bc23e70086a91c0095fa975e369d36e34d369d8af0a098fcd784859",
+     "shape": []
+    },
+    "lies_lrf.DJI_0010_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "30ec9d284533d2858e019dbfed12c200dcddb32864919ad96b3a32b3b79aeff4",
+     "shape": []
+    },
+    "lies_lrf.DJI_0011_W.JPG": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "9430193c71dd11a45d7e2542c74744aadf42938f881c11a886936fce54396da1",
+     "shape": []
+    },
+    "lies_lrf.fehlt": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "voll.dz": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ca9e4abd9acaa902eaaad954f7bc22053d8c61cc1ea81760cfb97d893bfae927",
+     "shape": []
+    },
+    "voll.iqr": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e1cde786d5fefed2e00bc9072d7048931158060eb0e233304adef5a31a5ad9cf",
+     "shape": [
+      2
+     ]
+    },
+    "voll.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "b75ac5b56ecf84b0626134cf71a4e1e78f1920a3d7b3076b389a205d4373da31",
+     "shape": []
+    },
+    "voll.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "6f0f90c526def3d002902a0614c22bbed1209f2280bf97c680e34ae3022ca2f3",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.mi": {
+   "teile": {
+    "ausserhalb": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "25c3a16c17454a13b9e8b81d9a1baba25daaf14a3e93b8c2fba9354d52a5583e",
+     "shape": []
+    },
+    "bins_16": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "ab2ee536d532066ae9926e99e30ee63105941078197125633ecf3d2f6147d1e8",
+     "shape": []
+    },
+    "float32": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "267d314634575c7183a448fb23f7b87fa69207eb6cb3e83d5877fb41373b3434",
+     "shape": []
+    },
+    "gleich": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "a385b9ad6375afbb6cb3b698d1ee5a767c4c1c83c9a51478f14a69034679ba55",
+     "shape": []
+    },
+    "invertiert": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "a385b9ad6375afbb6cb3b698d1ee5a767c4c1c83c9a51478f14a69034679ba55",
+     "shape": []
+    },
+    "leer": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "25c3a16c17454a13b9e8b81d9a1baba25daaf14a3e93b8c2fba9354d52a5583e",
+     "shape": []
+    },
+    "verrauscht": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "267d314634575c7183a448fb23f7b87fa69207eb6cb3e83d5877fb41373b3434",
+     "shape": []
+    },
+    "zufall": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "7fbf5494f0c9efb0950decf7280fc9f7abe2c7f565c5b7065428bf695834ba7a",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.rgb_cams": {
+   "teile": {
+    "cams_dict.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "cams_dict.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "79d7299ce99f701996757b2caa0b9858c400cde107e12082e2d75647ab13eac2",
+     "shape": [
+      13
+     ]
+    },
+    "cams_dict.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "cams_dict.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "9e4d591c1cce88662f4de50d19d7c7a2b08e9b6158c633dd47a096852f9ea642",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "cams_dict.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c0544780d730c7fd1710005609b72f7554351ab2db43f618de941584c92a9fdb",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "cams_dict.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "danach.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "eff3653938d1c8a9d50984ea1a4403f29f197406896563cd0842d4ffd3952042",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "eins.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "eins.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "79d7299ce99f701996757b2caa0b9858c400cde107e12082e2d75647ab13eac2",
+     "shape": [
+      13
+     ]
+    },
+    "eins.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "eins.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "eff3653938d1c8a9d50984ea1a4403f29f197406896563cd0842d4ffd3952042",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "eins.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c0544780d730c7fd1710005609b72f7554351ab2db43f618de941584c92a9fdb",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "eins.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "faktor.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "faktor.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "79d7299ce99f701996757b2caa0b9858c400cde107e12082e2d75647ab13eac2",
+     "shape": [
+      13
+     ]
+    },
+    "faktor.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "faktor.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "47a5b8567d2d528ece5813fa5129195b82576c587c422aa734bd2157f4545d6f",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "faktor.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c0544780d730c7fd1710005609b72f7554351ab2db43f618de941584c92a9fdb",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "faktor.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "pinhole.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "pinhole.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "212b18c4d38439fb16fef103ca0d1bdebf86bdf54c2328f2bbcc4f31acf28ea1",
+     "shape": [
+      7
+     ]
+    },
+    "pinhole.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "pinhole.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ec21d49428dc014bab79891ca858bfdf2317a7968b75e98a4c5e90e607bfcb89",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "pinhole.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c0544780d730c7fd1710005609b72f7554351ab2db43f618de941584c92a9fdb",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "pinhole.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "versatz.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "versatz.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "79d7299ce99f701996757b2caa0b9858c400cde107e12082e2d75647ab13eac2",
+     "shape": [
+      13
+     ]
+    },
+    "versatz.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "versatz.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "979c4f99bf14da86268d19b904a45b1948cc41e31bf493c0e5ddcb58b223fe6f",
+     "shape": [
+      12,
+      4
+     ]
+    },
+    "versatz.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c0544780d730c7fd1710005609b72f7554351ab2db43f618de941584c92a9fdb",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "versatz.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.schaetze_rgb_faktor_tiefe": {
+   "teile": {
+    "hoeher.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "83b76f9bde54ebee8f4314f11c9437fe023f281493b7322a07f3633c6256a6d4",
+     "shape": []
+    },
+    "hoeher.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "3e11069c6abc1751ae3e0593822772dbf003da02846f1ffbe8b71015f0e4508b",
+     "shape": []
+    },
+    "hoeher.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "57d7ec4de4f3945e0e1b2cc84e655c19b12d1b725714e8b17e9288dcd021ee00",
+     "shape": []
+    },
+    "knapp_daneben.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "36f786f0368712635dcc900c8e09c087a847462d4d609648d600b8f561113523",
+     "shape": []
+    },
+    "knapp_daneben.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "3e11069c6abc1751ae3e0593822772dbf003da02846f1ffbe8b71015f0e4508b",
+     "shape": []
+    },
+    "knapp_daneben.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "787e9d6b4d918c43d830e49c98bf566c5518ea5cc61d75ce9ab720aedcadd6c5",
+     "shape": []
+    },
+    "knapp_links.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "14f4a32f5b33a3f473d88495c5da310983854f9d14b31e6bbed6d13343362d01",
+     "shape": []
+    },
+    "knapp_links.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "3e11069c6abc1751ae3e0593822772dbf003da02846f1ffbe8b71015f0e4508b",
+     "shape": []
+    },
+    "knapp_links.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80e853d0655888b66615a27e14dbbdab9d543150e6e5712408b431716a8dd75b",
+     "shape": []
+    },
+    "listen.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc5c6388bb93ac9b1063bee24707b4b7b074137d957e943b9c755e82f89592b6",
+     "shape": []
+    },
+    "listen.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "3e11069c6abc1751ae3e0593822772dbf003da02846f1ffbe8b71015f0e4508b",
+     "shape": []
+    },
+    "listen.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "efcc0af17641be362e21f0cbfb2c12ff06d1a08cf152f7df7d712bb9111a78f2",
+     "shape": []
+    },
+    "luecken.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5d640b9f007273d3a9e857d80483c1235cf33c9f76baf2a427f853ef54960559",
+     "shape": []
+    },
+    "luecken.fotopunkte_ueber_luecke": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "96f6098406064d5c12469cb4f658fef08cadd8501cfe0cb07e8d018d70d30564",
+     "shape": []
+    },
+    "luecken.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "20179d799c609c206a0cdf5eede971ca6a55184eea8075fb48e517f46942662f",
+     "shape": []
+    },
+    "luecken.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "478eb2627b344a87420c6a18668f21755e28e4d7199b488b6e8b6d2399c6f1d2",
+     "shape": []
+    },
+    "ohne_fotopunkte": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "versetzt.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "59a591402eb7e147b26b5f2da8fb1f5ac737c73e3cbd4db38b76f9fae6ad73ae",
+     "shape": []
+    },
+    "versetzt.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "9c8684b2f00fe0b6455a9e3be58bd2fa808855926cb2cea134cd7b8bd8dd5498",
+     "shape": []
+    },
+    "versetzt.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "36be1668518f7d2dac777e627befaf0eba8f4df8e4005c046cc816e80cc970e9",
+     "shape": []
+    },
+    "voll.faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc5c6388bb93ac9b1063bee24707b4b7b074137d957e943b9c755e82f89592b6",
+     "shape": []
+    },
+    "voll.n": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "3e11069c6abc1751ae3e0593822772dbf003da02846f1ffbe8b71015f0e4508b",
+     "shape": []
+    },
+    "voll.n_spitze": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "efcc0af17641be362e21f0cbfb2c12ff06d1a08cf152f7df7d712bb9111a78f2",
+     "shape": []
+    },
+    "weit_daneben": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    },
+    "zu_wenige": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "9766789e6bab4df9c11ad53dae384e94f3a16883dca23d12e6b9992060241e46",
+     "shape": [
+      4
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "optik.thermal_cams": {
+   "teile": {
+    "exif.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "exif.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "88d6f800dab4d557bae4b0d84ca55fac96849a740f9e2a60ec9294b57b519224",
+     "shape": [
+      14
+     ]
+    },
+    "exif.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "exif.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "5bdea6a1be2f6b69d47f1ebd66df16495bd93a87852ba32dcbd35d8343f3ee35",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "exif.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "exif.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "exif_danach.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "5bdea6a1be2f6b69d47f1ebd66df16495bd93a87852ba32dcbd35d8343f3ee35",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "exif_faktor.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c805905e2ced9ffdbf982402f21416cb611b7c7de52f85f1e77097736d79661b",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "exif_faktor.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "88d6f800dab4d557bae4b0d84ca55fac96849a740f9e2a60ec9294b57b519224",
+     "shape": [
+      14
+     ]
+    },
+    "exif_faktor.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "exif_faktor.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ed7ecbea57826b0364b7c377285452545d5ff7f2f391ad3b8a40b365a6deddc1",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "exif_faktor.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "exif_faktor.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "a9794a66d77aef1574cf52bac1e92df69ceb43e60b342a6286acaacd3e859c8e",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "kal.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "51247319ef2e42bd893d5376670b3f641ae1ef98c286de96d9ffd09ed84e3af2",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "kal.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ee1289ce1505af9ec780e6562847e964b62398b236abf94225c5b1a35db9b759",
+     "shape": [
+      6
+     ]
+    },
+    "kal.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "kal.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "715dd422d458522ff2a3171e206e19a0ca1a91a6ab0a15d4a4be46ef34c5a484",
+     "shape": [
+      12,
+      5
+     ]
+    },
+    "kal.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "kal.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b47e04f5b0c72836e3397aaa6e2b57d3f68d4940d763163c8a56cb57fc433cb0",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "kal_faktoren.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0b2e2523204fd0411146b80293f3034b01a36ec0f4cc7d783a527643614c6bfb",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "kal_faktoren.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ee1289ce1505af9ec780e6562847e964b62398b236abf94225c5b1a35db9b759",
+     "shape": [
+      6
+     ]
+    },
+    "kal_faktoren.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "kal_faktoren.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4b329742435a695f999443c6de6528db89103d2d22e80e466c6222f1625ffcf5",
+     "shape": [
+      12,
+      5
+     ]
+    },
+    "kal_faktoren.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "kal_faktoren.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0eab306b33713a309c6a3de15a4cd66e69f90f19f8ee4ac9a8a6b134d8df3773",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "kal_ohne_rgb_faktor.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0b2e2523204fd0411146b80293f3034b01a36ec0f4cc7d783a527643614c6bfb",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "kal_ohne_rgb_faktor.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ee1289ce1505af9ec780e6562847e964b62398b236abf94225c5b1a35db9b759",
+     "shape": [
+      6
+     ]
+    },
+    "kal_ohne_rgb_faktor.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "kal_ohne_rgb_faktor.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "5d397f1a86cf9269f432bea1ca4e54f2230945205adaccc4547b47a37ffcb270",
+     "shape": [
+      12,
+      5
+     ]
+    },
+    "kal_ohne_rgb_faktor.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "kal_ohne_rgb_faktor.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "0eab306b33713a309c6a3de15a4cd66e69f90f19f8ee4ac9a8a6b134d8df3773",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "kal_versatz.Rcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "4243291b7b4da779af61744501a0b0f04cf7ce1767718bd8a83994b94967323f",
+     "shape": [
+      12,
+      3,
+      3
+     ]
+    },
+    "kal_versatz.model": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "ee1289ce1505af9ec780e6562847e964b62398b236abf94225c5b1a35db9b759",
+     "shape": [
+      6
+     ]
+    },
+    "kal_versatz.names": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "4bb294bf5c1284294c10939ba5e1f4307fa5deb17165beeab78cbace39e9fa9b",
+     "shape": [
+      179
+     ]
+    },
+    "kal_versatz.params": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "ecf001474f6fe933caec4d05c026a00f55041a37c62c25bbb345c8fa29489795",
+     "shape": [
+      12,
+      5
+     ]
+    },
+    "kal_versatz.size": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "7e8a5b8ed51c34b584dc007b692a58ddc983db09657157fc800317c89243ea70",
+     "shape": [
+      12,
+      2
+     ]
+    },
+    "kal_versatz.tcw": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "67c789a16509f810bd777abaeda9860955b419a6ba906a68f7257b0793d59113",
+     "shape": [
+      12,
+      3
+     ]
+    },
+    "ohne_alles": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "optik.thermal_umrechnen": {
+   "teile": {
+    "eins.breite": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80904ed09b2be44e61845aa6d06ec5da20e2ce8c7f10f846f5fa0a86c41591f0",
+     "shape": []
+    },
+    "eins.cx": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "fc6cd899048096828b85b3562017e4be4a18bcf83cb769284d86eccd6e764e98",
+     "shape": []
+    },
+    "eins.cy": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1356bac79498fd15a9502009a22df602af6610048114d39d7071610cd5efd655",
+     "shape": []
+    },
+    "eins.drehung_grad": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "e3aafd6c74cb09949bd895e3ad8bc1612cd8aee7178a500e6927e60519229a16",
+     "shape": [
+      3
+     ]
+    },
+    "eins.f": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5c728e0f09a8c5829dfb266f55331c04d6e84cf36c1b4994865e44eeec9a51ae",
+     "shape": []
+    },
+    "eins.hoehe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "69d1cf9886788ad32c4f8212b7ec9e0ea7b9001cd4258385beaf96a09d082aab",
+     "shape": []
+    },
+    "eins.k1": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "86dc3c6bb88e13441505aee164da79523096d17edd1d9d7f2a16f1ac6e85531b",
+     "shape": []
+    },
+    "eins.k2": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "e727c9e371c4ac2da815bf289a3e4a7841fda275677077ae6ca355ce8d0f334b",
+     "shape": []
+    },
+    "eins.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "ganz.breite": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80904ed09b2be44e61845aa6d06ec5da20e2ce8c7f10f846f5fa0a86c41591f0",
+     "shape": []
+    },
+    "ganz.cx": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "fc6cd899048096828b85b3562017e4be4a18bcf83cb769284d86eccd6e764e98",
+     "shape": []
+    },
+    "ganz.cy": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1356bac79498fd15a9502009a22df602af6610048114d39d7071610cd5efd655",
+     "shape": []
+    },
+    "ganz.drehung_grad": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "52c4999e2fa9a393cb59c0479095e2ae028fae38c06ecb6e85bc052ee1ca7567",
+     "shape": [
+      3
+     ]
+    },
+    "ganz.f": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "5e9583958967fcd82d36775c809334d23704dbe32a73f2ae9661b257b81a4e0f",
+     "shape": []
+    },
+    "ganz.hoehe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "69d1cf9886788ad32c4f8212b7ec9e0ea7b9001cd4258385beaf96a09d082aab",
+     "shape": []
+    },
+    "ganz.k1": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bb7dd1ddccaf9ce4c7d1eb4051ce5ce3745c94b0e446b341d0b12292d805ca5d",
+     "shape": []
+    },
+    "ganz.k2": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "0b3eb1bab541f0b81f92d84a471a61f9498179f06fc2d9ab57201ec5877c1a48",
+     "shape": []
+    },
+    "ganz.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "kuerzer.breite": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80904ed09b2be44e61845aa6d06ec5da20e2ce8c7f10f846f5fa0a86c41591f0",
+     "shape": []
+    },
+    "kuerzer.cx": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "fc6cd899048096828b85b3562017e4be4a18bcf83cb769284d86eccd6e764e98",
+     "shape": []
+    },
+    "kuerzer.cy": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1356bac79498fd15a9502009a22df602af6610048114d39d7071610cd5efd655",
+     "shape": []
+    },
+    "kuerzer.drehung_grad": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "531aa99997d09e971501bc2bba73df509497e9a6f425262f40ad6a120689f6ac",
+     "shape": [
+      3
+     ]
+    },
+    "kuerzer.f": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1bdf31d830b4880acd3d97192473bcbe2ae88f5673cebd4d54c3ce62be8198be",
+     "shape": []
+    },
+    "kuerzer.hoehe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "69d1cf9886788ad32c4f8212b7ec9e0ea7b9001cd4258385beaf96a09d082aab",
+     "shape": []
+    },
+    "kuerzer.k1": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "6a028ff4ae5c0363fc85fc1da93542d30e8d1aa9ea230f3c9221530eedbc920e",
+     "shape": []
+    },
+    "kuerzer.k2": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1a3938181d8458aae3ddfb598b090623bb69fa8001f27aebf0c43647b0d5031a",
+     "shape": []
+    },
+    "kuerzer.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    },
+    "laenger.breite": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "80904ed09b2be44e61845aa6d06ec5da20e2ce8c7f10f846f5fa0a86c41591f0",
+     "shape": []
+    },
+    "laenger.cx": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "fc6cd899048096828b85b3562017e4be4a18bcf83cb769284d86eccd6e764e98",
+     "shape": []
+    },
+    "laenger.cy": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "1356bac79498fd15a9502009a22df602af6610048114d39d7071610cd5efd655",
+     "shape": []
+    },
+    "laenger.drehung_grad": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "b9f3b9929d863af6b52785165ffe2a3942f7d6e6c51e2274916513a3c74dc8f4",
+     "shape": [
+      3
+     ]
+    },
+    "laenger.f": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "431e785f3d05ef09b65fad6b90ef62caa88b80ac2d69e6cd64a7f49e7658419c",
+     "shape": []
+    },
+    "laenger.hoehe": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "69d1cf9886788ad32c4f8212b7ec9e0ea7b9001cd4258385beaf96a09d082aab",
+     "shape": []
+    },
+    "laenger.k1": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "8597fd5e7c7cfb9578f7427adceca597072b747c5545d1d166a13e773ff12d9a",
+     "shape": []
+    },
+    "laenger.k2": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "85ed9b2c9db371bb21e750bd48d250830fad29a60db8e2fd0254ca3cfd796a06",
+     "shape": []
+    },
+    "laenger.rgb_faktor": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<f8",
+     "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "sichtbar.colorize_sichtbar": {
+   "teile": {
+    "daneben.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "b3e987fd861895fe51698ce1247b391d4b50e1387949e8effc82dfa6843c75a1",
+     "shape": [
+      21600
+     ]
+    },
+    "daneben.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "ac35790638ec895c158d4ac95d4ed38b273f08f5e82891608af3ea4da274d95c",
+     "shape": [
+      21600,
+      3
+     ]
+    },
+    "einzeln_halb.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "435c741d9bb0639974d9aa5249220302d337915d9ef9b9f92e51a2416bb223b9",
+     "shape": [
+      21600
+     ]
+    },
+    "einzeln_halb.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "60728bba4c800e2e39f7a8db80bae9a8874e626edf70527b3eee2b4de94bfa79",
+     "shape": [
+      21600,
+      3
+     ]
+    },
+    "farbe.fortschritt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "c184c3ca9133e04bfc1e1f53c9650c10b3a0f9b9efbd07db1d192642e3d8187d",
+     "shape": [
+      3
+     ]
+    },
+    "farbe.log": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "eb49154201e934562612df64926cbe5757bb1d2d8ac004f50a33119685e73315",
+     "shape": [
+      239
+     ]
+    },
+    "farbe.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "9007629ad0233577c9bb4a1c082e39942280de62098559ef084aedbce0e2e6c2",
+     "shape": [
+      21600
+     ]
+    },
+    "farbe.meldungen": {
+     "abgelegt": true,
+     "art": "bytes",
+     "dtype": "|u1",
+     "hash": "b5b6be6a535ac3aa7ad6fcb0115e50aceccb72af630e2aed5ca83e0c5bb2efe3",
+     "shape": [
+      160
+     ]
+    },
+    "farbe.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "440fbe0c9ad7993c46da3238a2cba763d05ee23d137c957d01eb3e62826b97b1",
+     "shape": [
+      21600,
+      3
+     ]
+    },
+    "probe_mit_tiefe.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "91e60bcc5b596afe89138b757bde3d2daa24b388fdca8f67edfbc979a23a3e8d",
+     "shape": [
+      540
+     ]
+    },
+    "probe_mit_tiefe.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "fe3e94f19f9bfb0da8de5b6a306ed3473affcae023bc5f6db6c06b57fedd2a53",
+     "shape": [
+      540,
+      3
+     ]
+    },
+    "probe_mit_tiefe.temp": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "cba98f0dde6191c7fcf4ca80b7f35ff5c28539c45f24a8ae8b4d10f76193ff3f",
+     "shape": [
+      540
+     ]
+    },
+    "probe_ohne_tiefe.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "d29add991426b0d42b1a18caea064dedd1ec78d79d991e178d5e7424ea2206cc",
+     "shape": [
+      540
+     ]
+    },
+    "probe_ohne_tiefe.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "0535ab750289a8a62ddb61beeb5afcb5a900dd0fe7ef9f90891f8a17802b0e19",
+     "shape": [
+      540,
+      3
+     ]
+    },
+    "schwelle.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "27f648464a9dd5a3e67836fb40b18c8bf4b0fe3ae5184756223fe11c9bfb4f69",
+     "shape": [
+      21600
+     ]
+    },
+    "schwelle.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "de4c41aca989a01b0e7f0e1fa41c000ad63ed557a4e5ac4ec20fa790224e8c96",
+     "shape": [
+      21600,
+      3
+     ]
+    },
+    "temperatur.maske": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|b1",
+     "hash": "9007629ad0233577c9bb4a1c082e39942280de62098559ef084aedbce0e2e6c2",
+     "shape": [
+      21600
+     ]
+    },
+    "temperatur.rgb": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "|u1",
+     "hash": "440fbe0c9ad7993c46da3238a2cba763d05ee23d137c957d01eb3e62826b97b1",
+     "shape": [
+      21600,
+      3
+     ]
+    },
+    "temperatur.temp": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "9e238d5762d02db12322f58aeadadac83d8b2f82e41cfbab8f1ed955ce295dc2",
+     "shape": [
+      21600
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "sichtbar.tiefenkarte": {
+   "teile": {
+    "grob.karte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "14023024803abf9178287364a2fdc83bbdd8d582e723cc632cdecbc540a6b660",
+     "shape": [
+      300
+     ]
+    },
+    "grob.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "1055c95a754e1d43a90ec74e2dd94a7353293abc9e935c02e5f12ea2db40801e",
+     "shape": [
+      5000
+     ]
+    },
+    "halb.karte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "758d25561fb565d6b26b3d81d7c4b1d724ae1f30aec02bab919077af12955914",
+     "shape": [
+      7500
+     ]
+    },
+    "halb.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "e69a1ef0ce2b77d6fb3b6e35541d513ba9c648a0097ad38915c68aa2c279fc20",
+     "shape": [
+      5000
+     ]
+    },
+    "leer.karte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "5f0db9506ba2ff9db8e14d085eba7bbdaad218f89ea25e4f6dcc3c18b9d54ae6",
+     "shape": [
+      7500
+     ]
+    },
+    "leer.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "3b505d926f7ed9d0ae4fcca8dcad336dec99376bc05fad59c246c9145201d961",
+     "shape": [
+      0
+     ]
+    },
+    "voll.karte": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "d2bdc0ef416d7baf50e3ea653ea70927529c99b673eba951551ab71d87df2ab5",
+     "shape": [
+      30000
+     ]
+    },
+    "voll.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "847ae017be040530af53097213e6919c8597a130f767e8de0b35d7a947fd44bf",
+     "shape": [
+      5000
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "sichtbar.zellen": {
+   "teile": {
+    "float32.h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "ccf8971e6443a341242dcab27a2f32f8e0119cdc9d3a82a533c6e55eb8158c8b",
+     "shape": []
+    },
+    "float32.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "1f72ac1a7a792f6baa2b15c514a09fc4d4c1f849f0f4eeccd34b803e6320dc0d",
+     "shape": [
+      3000
+     ]
+    },
+    "float32.w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "447d85fdd4480be36855a7017d517b63ea34c37c46dcd43f50076dded5bec786",
+     "shape": []
+    },
+    "halb.h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "ccf8971e6443a341242dcab27a2f32f8e0119cdc9d3a82a533c6e55eb8158c8b",
+     "shape": []
+    },
+    "halb.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "1f72ac1a7a792f6baa2b15c514a09fc4d4c1f849f0f4eeccd34b803e6320dc0d",
+     "shape": [
+      3000
+     ]
+    },
+    "halb.w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "447d85fdd4480be36855a7017d517b63ea34c37c46dcd43f50076dded5bec786",
+     "shape": []
+    },
+    "krumm.h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "2f779c57eddfe06406871413badba18918bc2c4493d3657c30ccddce912a91dd",
+     "shape": []
+    },
+    "krumm.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "984b0319a9a750515658d5ee7e56465ab6492b79b26f56dd3ce20e4a4905285f",
+     "shape": [
+      3000
+     ]
+    },
+    "krumm.w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "cd2a1506d1d80afc4cca30f8e789a94645abe23eebc5fd1c70162c1771fce6eb",
+     "shape": []
+    },
+    "voll.h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "6239a7b981e997974ba56ab0660fbc0d95797992f7ea0d970faf8c43a9940dfe",
+     "shape": []
+    },
+    "voll.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "b22954fe0bbd21c21249225a725f50c3a2c6f667cff51836261b35144e3482cc",
+     "shape": [
+      3000
+     ]
+    },
+    "voll.w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "eb83e86463e6950187ddb5130187eee58c8a6408ea8dbdb1c1fb9497fabce4d3",
+     "shape": []
+    },
+    "winzig.h": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "winzig.lin": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<i8",
+     "hash": "23b8388749e9d183efe35558d79d0e96b0e46c54d4194b2d8c5ecfc18712384e",
+     "shape": [
+      3000
+     ]
+    },
+    "winzig.w": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  },
+  "temperatur.abtasten": {
+   "teile": {
+    "doppelt": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "26016fc1006fb297f71c001c1894b5876e840b91f93e87ebbd7710cef7162f06",
+     "shape": [
+      4000
+     ]
+    },
+    "float32": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "26016fc1006fb297f71c001c1894b5876e840b91f93e87ebbd7710cef7162f06",
+     "shape": [
+      4000
+     ]
+    },
+    "float64_bild": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f8",
+     "hash": "bdceae76844165eed37dcb8472ba2c51bb006ade648d3b68deda67ab299260fd",
+     "shape": [
+      4000
+     ]
+    },
+    "gleich_gross": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "2cf25a77f5bfb35b9f144a172ddff9e8c5a72e18f1b4a5b7f162c3299398d30c",
+     "shape": [
+      4000
+     ]
+    },
+    "kleiner": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "85df8a8e52e606278add35321908dab2430c2330d3f37ec24f0a51e24c314438",
+     "shape": [
+      4000
+     ]
+    },
+    "krumm": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "e10aba1fad19b6be7830fc79e56a8be49052881028acc85d73b0853a05fd2392",
+     "shape": [
+      4000
+     ]
+    },
+    "leer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "ff5083c7fa99ca2b699bdcf5dbf906efc5602b124855bf56f04d59dbb6647eb5",
+     "shape": [
+      0
+     ]
+    }
+   },
+   "unstet": null
+  },
+  "temperatur.lies_rjpeg": {
+   "teile": {
+    "falsches_format.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "fehlt.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "gut": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "17b377b0c3b84304df16c04aaf32a28803c8ec0a558e1d1564272480f1c2842d",
+     "shape": [
+      128,
+      160
+     ]
+    },
+    "kurze_tabelle.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "nicht_monoton.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "ohne_rohwerte.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "quelle.behalten": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "quelle.ohne_paare": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "quelle.ohne_rohwerte": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "quelle.treffer": {
+     "abgelegt": true,
+     "art": "ndarray",
+     "dtype": "<f4",
+     "hash": "17b377b0c3b84304df16c04aaf32a28803c8ec0a558e1d1564272480f1c2842d",
+     "shape": [
+      128,
+      160
+     ]
+    },
+    "quelle.unbekannt": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    },
+    "zu_gross.none": {
+     "abgelegt": true,
+     "art": "zahl",
+     "dtype": "<i8",
+     "hash": "32c7874789718ddc5adae075d80da2e6514ab4a7f0b49ae8a7366aec63c2a8e9",
+     "shape": []
+    }
+   },
+   "unstet": null
+  }
+ },
+ "umgebung": {
+  "Pillow": "12.1.1",
+  "PyQt5": "5.15.6",
+  "Qt": "5.15.3",
+  "VTK": "9.1.0",
+  "cv2": "4.12.0.88",
+  "laspy": "2.7.0",
+  "numpy": "2.2.6",
+  "open3d": "0.19.0",
+  "pointcloudmerger": {
+   "dateien": {
+    "README.md": "0e4dca3664fe7db15686a9fb14554941a041df3afcfae9fd281a1e4028b78adc",
+    "__init__.py": "e6170b63839cedd986e2cc457a63a4a9186de58aa56bb8611f10d1ce1772e403",
+    "_colmap_worker.py": "66feb7fad383eb500efc2ed0cd6bbecfb7d5e06eee548c32cf77b32b79e215c2",
+    "cli.py": "75247ca0ee9f0cbe177edd247075ca0f87b6c0f44ff04197bec9df0e72bb6f4c",
+    "cloudio.py": "70f54988a2c46ac6171332cddf9e85543b45b4c40d93136695ecf2e5e6c4fcfe",
+    "colorize.py": "437d8d7bb1532a0eed97dd0d3487e9aae809e447581c571108615bc8448d3f9a",
+    "georef.py": "ec5a32dd300dd215895ad9749b5c8245cb97f817032b47183e3a976e7196e3de",
+    "gui.py": "ce8af828a984d19e18531735fead69e2d04b043fff42806312e798afd2ca36c0",
+    "photos.py": "19fc53de5543bfeaf14a488c6c6b8f5fde772a14cd6c5ff272674803454b4f2a",
+    "pipeline.py": "1c54ead6b1781623b2c40d4ecbf0af6d448e34f53dcb03e783c9eddb084a5f27",
+    "preview.py": "b7eb32f7269d6fb2c6d8d6af169871dece0216d95b3aa1cc31fd93ed4789b19f",
+    "register.py": "c7d9daaba7ebe48418c18726dc98b6acaeef6a64a6b137b6cceca419c05eb730",
+    "run.sh": "72a083b4cce0dc12937d3f35aac0ab0dea4ffbd5e13c0603b9cb0ea41cb6291a",
+    "sfm.py": "cfbc1e6cfbbb329f670e616809ae653f9c718119affe046737b1437d42e0073a"
+   },
+   "git": "a09018d429ef2424d5769ceec18fbafecb714b99"
+  },
+  "pyproj": "3.7.1",
+  "python": "3.10.12",
+  "scipy": "1.14.1"
+ }
+}

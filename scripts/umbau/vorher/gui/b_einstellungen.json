@@ -1,0 +1,2384 @@
+{
+ "faelle": {
+  "beispiel": {
+   "background": {
+    "typ": "str",
+    "wert": "hell"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": true
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 270
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 180
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 60
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 30
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 45
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 210
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 35
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "hoehe"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "mid360.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 520
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": true
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 5
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "meander_rgb"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": false
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": "<arbeitswurzel>"
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": false
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 10
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 8
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1280
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 3.5
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 0.5
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     12.5,
+     -7.25
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": false,
+     "aufnahme": false,
+     "einfaerbung": false,
+     "export": false,
+     "karte": false,
+     "maeander": true,
+     "splat": true,
+     "wiedergabe": true,
+     "zusammen": true
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 7
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 2.5
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 450
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": false
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": false
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.08
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 6500
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 22000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 2
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": false
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     -3.0,
+     4.5
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.1
+   }
+  },
+  "beispiel_dann_vorgabe": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": "<arbeitswurzel>"
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": false,
+     "aufnahme": false,
+     "einfaerbung": false,
+     "export": false,
+     "karte": false,
+     "maeander": true,
+     "splat": true,
+     "wiedergabe": true,
+     "zusammen": true
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "blau_alt_170_250_25_40": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "blau_alt_200_240_40_60": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "mesh_5_11_mit_stand_3": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 11
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 5
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "mesh_5_11_ohne_stand": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "mesh_trim_5_mit_stand_1": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "mesh_trim_5_mit_stand_2": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 5
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "start": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": false
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": false
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "vorgabe": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": false
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "rgb"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 3
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 4
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 1.0
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 3000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.0
+   }
+  },
+  "vorgabe_plus_teilmenge": {
+   "background": {
+    "typ": "str",
+    "wert": "dunkel"
+   },
+   "blue_filter": {
+    "typ": "bool",
+    "wert": true
+   },
+   "blue_hue_hi": {
+    "typ": "int",
+    "wert": 290
+   },
+   "blue_hue_lo": {
+    "typ": "int",
+    "wert": 150
+   },
+   "blue_neutral": {
+    "typ": "int",
+    "wert": 100
+   },
+   "blue_sat": {
+    "typ": "int",
+    "wert": 5
+   },
+   "blue_val": {
+    "typ": "int",
+    "wert": 10
+   },
+   "brightness_max": {
+    "typ": "int",
+    "wert": 235
+   },
+   "brightness_min": {
+    "typ": "int",
+    "wert": 20
+   },
+   "color_mode": {
+    "typ": "str",
+    "wert": "hoehe"
+   },
+   "config": {
+    "typ": "str",
+    "wert": "whs_dense.yaml"
+   },
+   "edge_r": {
+    "typ": "int",
+    "wert": 600
+   },
+   "edl": {
+    "typ": "bool",
+    "wert": false
+   },
+   "k_frames": {
+    "typ": "int",
+    "wert": 5
+   },
+   "layer": {
+    "typ": "str",
+    "wert": "onboard"
+   },
+   "lens_best": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_dir": {
+    "typ": "str",
+    "wert": ""
+   },
+   "meander_sichtbar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_solo": {
+    "typ": "bool",
+    "wert": true
+   },
+   "meander_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_an": {
+    "typ": "bool",
+    "wert": false
+   },
+   "mesh_depth": {
+    "typ": "int",
+    "wert": 12
+   },
+   "mesh_hybrid": {
+    "typ": "bool",
+    "wert": true
+   },
+   "mesh_stand": {
+    "typ": "int",
+    "wert": 3
+   },
+   "mesh_trim": {
+    "typ": "int",
+    "wert": 0
+   },
+   "mesh_voxel_cm": {
+    "typ": "int",
+    "wert": 8
+   },
+   "only_colored": {
+    "typ": "bool",
+    "wert": true
+   },
+   "pano_width": {
+    "typ": "int",
+    "wert": 1920
+   },
+   "point_size": {
+    "typ": "float",
+    "wert": 2.0
+   },
+   "rate": {
+    "typ": "float",
+    "wert": 0.5
+   },
+   "rgb_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "sections": {
+    "typ": "dict[bool]",
+    "wert": {
+     "anzeige": true,
+     "aufnahme": true,
+     "einfaerbung": true,
+     "export": true,
+     "karte": true,
+     "maeander": false,
+     "splat": false,
+     "wiedergabe": false,
+     "zusammen": false
+    }
+   },
+   "show_path": {
+    "typ": "bool",
+    "wert": false
+   },
+   "sidebar": {
+    "typ": "bool",
+    "wert": true
+   },
+   "sky_grow": {
+    "typ": "int",
+    "wert": 4
+   },
+   "splat_anker_mio": {
+    "typ": "float",
+    "wert": 4.0
+   },
+   "splat_frames": {
+    "typ": "int",
+    "wert": 300
+   },
+   "splat_posen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_pruefen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "splat_raster": {
+    "typ": "float",
+    "wert": 0.05
+   },
+   "splat_schritte": {
+    "typ": "int",
+    "wert": 5000
+   },
+   "splat_schritte_onboard": {
+    "typ": "int",
+    "wert": 15000
+   },
+   "splat_sh": {
+    "typ": "int",
+    "wert": 1
+   },
+   "splat_thermal": {
+    "typ": "bool",
+    "wert": true
+   },
+   "temperatur_anzeigen": {
+    "typ": "bool",
+    "wert": true
+   },
+   "thermal_versatz": {
+    "typ": "list[float]",
+    "wert": [
+     0.0,
+     0.0
+    ]
+   },
+   "voxel": {
+    "typ": "float",
+    "wert": 0.2
+   }
+  }
+ },
+ "vorgabe_dict": {
+  "background": {
+   "typ": "str",
+   "wert": "dunkel"
+  },
+  "blue_filter": {
+   "typ": "bool",
+   "wert": false
+  },
+  "blue_hue_hi": {
+   "typ": "int",
+   "wert": 290
+  },
+  "blue_hue_lo": {
+   "typ": "int",
+   "wert": 150
+  },
+  "blue_neutral": {
+   "typ": "int",
+   "wert": 100
+  },
+  "blue_sat": {
+   "typ": "int",
+   "wert": 5
+  },
+  "blue_val": {
+   "typ": "int",
+   "wert": 10
+  },
+  "brightness_max": {
+   "typ": "int",
+   "wert": 235
+  },
+  "brightness_min": {
+   "typ": "int",
+   "wert": 20
+  },
+  "color_mode": {
+   "typ": "str",
+   "wert": "rgb"
+  },
+  "config": {
+   "typ": "str",
+   "wert": "whs_dense.yaml"
+  },
+  "edge_r": {
+   "typ": "int",
+   "wert": 600
+  },
+  "edl": {
+   "typ": "bool",
+   "wert": false
+  },
+  "k_frames": {
+   "typ": "int",
+   "wert": 3
+  },
+  "layer": {
+   "typ": "str",
+   "wert": "onboard"
+  },
+  "lens_best": {
+   "typ": "bool",
+   "wert": true
+  },
+  "mesh_an": {
+   "typ": "bool",
+   "wert": false
+  },
+  "mesh_depth": {
+   "typ": "int",
+   "wert": 12
+  },
+  "mesh_hybrid": {
+   "typ": "bool",
+   "wert": true
+  },
+  "mesh_trim": {
+   "typ": "int",
+   "wert": 0
+  },
+  "mesh_voxel_cm": {
+   "typ": "int",
+   "wert": 4
+  },
+  "only_colored": {
+   "typ": "bool",
+   "wert": true
+  },
+  "pano_width": {
+   "typ": "int",
+   "wert": 1920
+  },
+  "point_size": {
+   "typ": "int",
+   "wert": 2
+  },
+  "rate": {
+   "typ": "float",
+   "wert": 1.0
+  },
+  "show_path": {
+   "typ": "bool",
+   "wert": false
+  },
+  "sky_grow": {
+   "typ": "int",
+   "wert": 4
+  },
+  "voxel": {
+   "typ": "float",
+   "wert": 0.0
+  }
+ }
+}

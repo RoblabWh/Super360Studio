@@ -1,0 +1,25 @@
+{
+ "umgebung": {
+  "PyQt5": "5.15.6",
+  "Qt": "5.15.3",
+  "VTK": "9.1.0",
+  "python": "3.10.12"
+ },
+ "zusammenfassung": {
+  "abschnitte": 9,
+  "aktionen": 37,
+  "attribute": 159,
+  "einstellungsschluessel": 47,
+  "handler_close": true,
+  "handler_fehlend": [],
+  "handler_on": 36,
+  "kuerzel": 15,
+  "methoden": 184,
+  "nicht_ladbar": [],
+  "sidebar_breite": 467,
+  "untermenues": 3,
+  "verbindungen": 156,
+  "widgets_seitenleiste": 317,
+  "zustaende": 21
+ }
+}

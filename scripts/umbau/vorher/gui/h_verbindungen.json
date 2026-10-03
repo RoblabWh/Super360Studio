@@ -1,0 +1,960 @@
+{
+ "dateien": {
+  "ui/bundle_dialog.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "ExportDialog",
+    "signal": "cb.stateChanged",
+    "slot": "self._summe"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ExportDialog",
+    "signal": "self._pfad.textChanged",
+    "slot": "self._pruefen"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ExportDialog",
+    "signal": "knopf.clicked",
+    "slot": "self._waehlen"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ExportDialog",
+    "signal": "self._buttons.accepted",
+    "slot": "self.accept"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ExportDialog",
+    "signal": "self._buttons.rejected",
+    "slot": "self.reject"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ProjectOpenDialog",
+    "signal": "self._tab.doubleClicked",
+    "slot": "lambda *_: self.accept()"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ProjectOpenDialog",
+    "signal": "knoepfe.accepted",
+    "slot": "self.accept"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "ProjectOpenDialog",
+    "signal": "knoepfe.rejected",
+    "slot": "self.reject"
+   }
+  ],
+  "ui/cloud_view.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "CloudView",
+    "signal": "self._cut_reset.clicked",
+    "slot": "self.cut_bar.reset"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "CloudView",
+    "signal": "self.cut_bar.changed",
+    "slot": "self._on_cut_changed"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "CloudView",
+    "signal": "self._hover_timer.timeout",
+    "slot": "self._hover_zeigen"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "self._farbe.activated",
+    "slot": "lambda i: self.farbmodus_gewaehlt.emit(str(self._farbe.itemData(i)))"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "self._groesse.valueChanged",
+    "slot": "self._groesse_gezogen"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "self._btn_messen.clicked",
+    "slot": "lambda : self.messen_angefordert.emit()"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "self._chk_temp.toggled",
+    "slot": "self._temp_umgeschaltet"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "self._btn_mesh.toggled",
+    "slot": "self._mesh_umgeschaltet"
+   },
+   {
+    "funktion": "_leiste_bauen",
+    "klasse": "CloudView",
+    "signal": "knopf.clicked",
+    "slot": "self.reset_camera"
+   }
+  ],
+  "ui/collapsible.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "Section",
+    "signal": "self._head.clicked",
+    "slot": "self._on_clicked"
+   },
+   {
+    "funktion": "add",
+    "klasse": "SectionStack",
+    "signal": "sec.toggled",
+    "slot": "self.toggled"
+   }
+  ],
+  "ui/explorationsgrad.py": [
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "a.angeklickt",
+    "slot": "lambda : print('angeklickt')"
+   }
+  ],
+  "ui/feinregler.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "FeinRegler",
+    "signal": "s.valueChanged",
+    "slot": "self._geschoben"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "FeinRegler",
+    "signal": "self._zahl.valueChanged",
+    "slot": "self._getippt"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "FeinRegler",
+    "signal": "null.clicked",
+    "slot": "lambda : self._setzen(0.0, melden=True)"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "r.valueChanged",
+    "slot": "gesehen.append"
+   }
+  ],
+  "ui/gps_panel.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "GpsPanel",
+    "signal": "self._btn.clicked",
+    "slot": "self._start_align"
+   },
+   {
+    "funktion": "_start_align",
+    "klasse": "GpsPanel",
+    "signal": "self._worker.progressed",
+    "slot": "lambda f, m: self._progress_lbl.setText(f'{int(f * 100)} % — {m}')"
+   },
+   {
+    "funktion": "_start_align",
+    "klasse": "GpsPanel",
+    "signal": "self._worker.succeeded",
+    "slot": "lambda res, g=gen: self._on_success(res, g)"
+   },
+   {
+    "funktion": "_start_align",
+    "klasse": "GpsPanel",
+    "signal": "self._worker.failed",
+    "slot": "lambda msg, g=gen: self._on_failed(msg, g)"
+   },
+   {
+    "funktion": "_start_align",
+    "klasse": "GpsPanel",
+    "signal": "self._worker.finished",
+    "slot": "self._on_worker_done"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "panel.georefReady",
+    "slot": "results.append"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "panel.georefReady",
+    "slot": "lambda _res: loop.quit()"
+   }
+  ],
+  "ui/main_window.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "_ImageDialog",
+    "signal": "btn.clicked",
+    "slot": "self.accept"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MainWindow",
+    "signal": "self._live_timer.timeout",
+    "slot": "self._live_update"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MainWindow",
+    "signal": "self._merge_timer.timeout",
+    "slot": "self._on_merge_manual"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MainWindow",
+    "signal": "self._zuschlag_timer.timeout",
+    "slot": "lambda : self._meander_speichere_zuschlag()"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MainWindow",
+    "signal": "self.rvizLog",
+    "slot": "self._log"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._grad_anzeige.angeklickt",
+    "slot": "self._on_exploration_zeigen"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._btn_cancel.clicked",
+    "slot": "self._on_cancel"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.measured",
+    "slot": "self._on_measured"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.farbmodus_gewaehlt",
+    "slot": "self._on_farbleiste"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.punktgroesse_geaendert",
+    "slot": "self._on_leiste_punktgroesse"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.messen_angefordert",
+    "slot": "self._on_toggle_measure"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.temperatur_umgeschaltet",
+    "slot": "self._on_leiste_temperatur"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._cloud_view.mesh_umgeschaltet",
+    "slot": "self._on_leiste_mesh"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._mesh_timer.timeout",
+    "slot": "self._mesh_sicherstellen"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._pano_view.frameChanged",
+    "slot": "self._on_pano_frame"
+   },
+   {
+    "funktion": "_build_ui",
+    "klasse": "MainWindow",
+    "signal": "self._gps_panel.georefReady",
+    "slot": "self._on_georef_ready"
+   },
+   {
+    "funktion": "_build_sidebar",
+    "klasse": "MainWindow",
+    "signal": "self._sections.toggled",
+    "slot": "lambda *_: self._on_setting_changed()"
+   },
+   {
+    "funktion": "_group_rosbag",
+    "klasse": "MainWindow",
+    "signal": "self._btn_open.clicked",
+    "slot": "self._on_open_clicked"
+   },
+   {
+    "funktion": "_group_fastlio",
+    "klasse": "MainWindow",
+    "signal": "self._combo_config.currentIndexChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_fastlio",
+    "klasse": "MainWindow",
+    "signal": "self._spin_rate.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_fastlio",
+    "klasse": "MainWindow",
+    "signal": "self._btn_fastlio.clicked",
+    "slot": "self._on_fastlio_clicked"
+   },
+   {
+    "funktion": "_slider_row",
+    "klasse": "MainWindow",
+    "signal": "slider.valueChanged",
+    "slot": "lambda v, l=lbl: l.setText(str(v))"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._sld_bmin.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._sld_bmax.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._spin_kframes.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._spin_sky.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._chk_lens.toggled",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._spin_edge.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._chk_blue.toggled",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._chk_blue.toggled",
+    "slot": "self._update_blue_widgets"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "sld.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._sld_blue_lo.valueChanged",
+    "slot": "self._update_blue_widgets"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._sld_blue_hi.valueChanged",
+    "slot": "self._update_blue_widgets"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._btn_blue_defaults.clicked",
+    "slot": "self._on_blue_defaults"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._btn_blue_preview.clicked",
+    "slot": "self._on_blue_preview_clicked"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "spin.valueChanged",
+    "slot": "self._on_extrinsic_changed"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._btn_autocal.clicked",
+    "slot": "self._on_autocal_clicked"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._btn_overlay.clicked",
+    "slot": "self._on_overlay_clicked"
+   },
+   {
+    "funktion": "_group_colorize",
+    "klasse": "MainWindow",
+    "signal": "self._btn_colorize.clicked",
+    "slot": "self._on_colorize_clicked"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_pick.clicked",
+    "slot": "self._on_meander_pick"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._chk_thermal.stateChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_align.clicked",
+    "slot": "self._on_meander_align"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_run.clicked",
+    "slot": "self._on_meander_run"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_fenster.clicked",
+    "slot": "self._on_meander_fenster"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_optik.clicked",
+    "slot": "lambda : self._on_meander_einmessen()"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_fein.clicked",
+    "slot": "lambda : self._on_meander_fein()"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._btn_meander_auto.clicked",
+    "slot": "lambda : self._on_meander_auto()"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._chk_sichtbar.stateChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "regler.valueChanged",
+    "slot": "lambda _v, o=optik: self._on_meander_manual(o)"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "m.valueChanged",
+    "slot": "lambda _v, o=optik: self._on_meander_massstab(o)"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "self._chk_solo.stateChanged",
+    "slot": "self._on_solo_changed"
+   },
+   {
+    "funktion": "_group_meander",
+    "klasse": "MainWindow",
+    "signal": "sp.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "self._btn_splat_pruefen.clicked",
+    "slot": "self._on_splat_pruefen"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "chk.stateChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "self._chk_splat_thermal.stateChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "self._btn_splat_maeander.clicked",
+    "slot": "self._on_splat_maeander"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "self._btn_splat_onboard.clicked",
+    "slot": "self._on_splat_onboard"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "self._btn_splat_gemeinsam.clicked",
+    "slot": "self._on_splat_gemeinsam"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "sp.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_splat",
+    "klasse": "MainWindow",
+    "signal": "cb.currentIndexChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "self._btn_merge_pick.clicked",
+    "slot": "self._on_merge_pick"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "sp.valueChanged",
+    "slot": "lambda *_: self._merge_timer.start()"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "self._btn_merge_auto.clicked",
+    "slot": "lambda : self._on_merge_align('auto')"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "self._btn_merge_icp.clicked",
+    "slot": "lambda : self._on_merge_align('icp')"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "self._btn_merge_apply.clicked",
+    "slot": "self._on_merge_apply"
+   },
+   {
+    "funktion": "_group_merge",
+    "klasse": "MainWindow",
+    "signal": "self._btn_merge_drop.clicked",
+    "slot": "self._on_merge_discard"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._spin_pointsize.valueChanged",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._combo_colormode.currentIndexChanged",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._combo_layer.currentIndexChanged",
+    "slot": "self._on_layer_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._chk_only_colored.toggled",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._combo_voxel.currentIndexChanged",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._combo_bg.currentIndexChanged",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._chk_edl.toggled",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_display",
+    "klasse": "MainWindow",
+    "signal": "self._chk_path.toggled",
+    "slot": "self._on_display_changed"
+   },
+   {
+    "funktion": "_group_rviz",
+    "klasse": "MainWindow",
+    "signal": "self._btn_rviz_start.clicked",
+    "slot": "self._on_rviz_start"
+   },
+   {
+    "funktion": "_group_rviz",
+    "klasse": "MainWindow",
+    "signal": "self._btn_rviz_stop.clicked",
+    "slot": "self._on_rviz_stop"
+   },
+   {
+    "funktion": "_group_rviz",
+    "klasse": "MainWindow",
+    "signal": "self._btn_rviz_replay.clicked",
+    "slot": "self._on_rviz_replay"
+   },
+   {
+    "funktion": "_group_rviz",
+    "klasse": "MainWindow",
+    "signal": "self._rviz_timer.timeout",
+    "slot": "self._refresh_rviz_state"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._btn_export_plypcd.clicked",
+    "slot": "self._on_export_plypcd"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._btn_export_las.clicked",
+    "slot": "self._on_export_las"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "w.valueChanged",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "w.valueChanged",
+    "slot": "self._on_mesh_param_changed"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._chk_mesh_hybrid.toggled",
+    "slot": "self._on_setting_changed"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._chk_mesh_hybrid.toggled",
+    "slot": "self._on_mesh_param_changed"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._btn_mesh_cc.clicked",
+    "slot": "self._on_mesh_cloudcompare"
+   },
+   {
+    "funktion": "_group_export",
+    "klasse": "MainWindow",
+    "signal": "self._btn_cloud_cc.clicked",
+    "slot": "self._on_cloud_cloudcompare"
+   },
+   {
+    "funktion": "_start_worker",
+    "klasse": "MainWindow",
+    "signal": "worker.progress",
+    "slot": "self._on_progress"
+   },
+   {
+    "funktion": "_start_worker",
+    "klasse": "MainWindow",
+    "signal": "worker.progress",
+    "slot": "extra_progress"
+   },
+   {
+    "funktion": "_start_worker",
+    "klasse": "MainWindow",
+    "signal": "worker.log",
+    "slot": "self._log"
+   },
+   {
+    "funktion": "_start_worker",
+    "klasse": "MainWindow",
+    "signal": "worker.finished",
+    "slot": "lambda res, w=worker, cb=on_done: self._worker_done(w, cb, res)"
+   },
+   {
+    "funktion": "_start_worker",
+    "klasse": "MainWindow",
+    "signal": "worker.failed",
+    "slot": "lambda msg, w=worker, t=text, cb=on_failed: self._worker_failed(w, t, msg, cb)"
+   },
+   {
+    "funktion": "_on_exploration_zeigen",
+    "klasse": "MainWindow",
+    "signal": "knopf.clicked",
+    "slot": "dlg.accept"
+   },
+   {
+    "funktion": "_on_meander_fenster",
+    "klasse": "MainWindow",
+    "signal": "fenster.uebernommen",
+    "slot": "self._on_meander_fenster_lage"
+   },
+   {
+    "funktion": "_autotest_begin",
+    "klasse": "MainWindow",
+    "signal": "self._autotest_timer.timeout",
+    "slot": "self._autotest_poll"
+   }
+  ],
+  "ui/meander_align_window.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._modus.currentIndexChanged",
+    "slot": "lambda *_: self._neu()"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._richtung.activated",
+    "slot": "lambda *_: self.ansicht.blick(*self._richtung.currentData())"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "knopf_fit.clicked",
+    "slot": "self.ansicht.einpassen"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._punkt.valueChanged",
+    "slot": "self._punktgroesse"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "regler.valueChanged",
+    "slot": "lambda *_: self._angefasst('rgb')"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._massstab_rgb.valueChanged",
+    "slot": "lambda *_: self._angefasst('rgb')"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "regler.valueChanged",
+    "slot": "lambda *_: self._angefasst('thermal')"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._massstab_th.valueChanged",
+    "slot": "lambda *_: self._angefasst('thermal')"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "knopf_null.clicked",
+    "slot": "self._zuruecksetzen"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "knoepfe.accepted",
+    "slot": "self._uebernehmen"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "knoepfe.rejected",
+    "slot": "self.reject"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "MeanderAlignWindow",
+    "signal": "self._timer.timeout",
+    "slot": "self._neu"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "w.uebernommen",
+    "slot": "empfangen.append"
+   }
+  ],
+  "ui/menubar.py": [
+   {
+    "funktion": "_add",
+    "klasse": null,
+    "signal": "act.triggered",
+    "slot": "lambda _checked=False, f=fn: f()"
+   },
+   {
+    "funktion": "build",
+    "klasse": null,
+    "signal": "edl.toggled",
+    "slot": "fn"
+   },
+   {
+    "funktion": "build",
+    "klasse": null,
+    "signal": "ueber.triggered",
+    "slot": "lambda _c=False, f=fn: f()"
+   },
+   {
+    "funktion": "fill_radio_menu",
+    "klasse": null,
+    "signal": "act.triggered",
+    "slot": "lambda _c=False, d=data: handler(d)"
+   }
+  ],
+  "ui/pano_view.py": [
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._play_btn.clicked",
+    "slot": "self._toggle_play"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._prev_btn.clicked",
+    "slot": "lambda : self._step(-1)"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._next_btn.clicked",
+    "slot": "lambda : self._step(+1)"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._speed_combo.currentIndexChanged",
+    "slot": "self._on_speed_changed"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._slider.sliderReleased",
+    "slot": "self._on_slider_released"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._fit_btn.clicked",
+    "slot": "self._view.fit"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._shot_btn.clicked",
+    "slot": "self._on_screenshot"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._rot_chk.toggled",
+    "slot": "self._on_rotate_toggled"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "sc.activated",
+    "slot": "fn"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._timer.timeout",
+    "slot": "self._on_tick"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "self._prefetch.panoReady",
+    "slot": "self._on_pano_ready"
+   },
+   {
+    "funktion": "__init__",
+    "klasse": "PanoView",
+    "signal": "app.aboutToQuit",
+    "slot": "self._shutdown"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "pv.frameChanged",
+    "slot": "lambda i, t: events.append((time.monotonic(), i, t))"
+   },
+   {
+    "funktion": "<modul>",
+    "klasse": null,
+    "signal": "hb.timeout",
+    "slot": "lambda : heartbeats.append(time.monotonic())"
+   }
+  ]
+ }
+}

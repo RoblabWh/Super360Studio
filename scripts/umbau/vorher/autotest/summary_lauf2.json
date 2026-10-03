@@ -1,0 +1,18 @@
+{
+  "bag": "~/RosBagSuper_Gui/rosbag_2026-07-11_15-37-07_seg0",
+  "colors_loaded": true,
+  "gps_reasons": [
+    "NavSatFix-Status < 0 (kein Fix) bei 226/226 Fixen",
+    "lat=lon=0 (keine gültige Position) bei 226/226 Fixen",
+    "fix_type=0 (kein GPS-Gerät erkannt) bei 226/226 Fixen",
+    "nur 0 Satelliten (Median, benötigt ≥6) — 226/226 Fixe betroffen",
+    "eph > 500 cm oder unbekannt (Sentinel 9999) bei 226/226 Fixen",
+    "Positions-Kovarianz > 10 m bei 226/226 Fixen",
+    "nur 0 brauchbare Fixe (benötigt ≥20)"
+  ],
+  "gps_usable": false,
+  "n_frames": 944,
+  "n_points": 7367510,
+  "n_scans": 460,
+  "pano_frames": 944
+}

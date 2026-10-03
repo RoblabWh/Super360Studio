@@ -1,0 +1,1596 @@
+{
+ "_erklaerung": "Zuordnung von ui/main_window.py (Stand vor-umbau) auf die Zielmodule nach Plan Abschnitt 3. 'methoden' und 'klassenattribute': Name -> Modulschlüssel. 'modulnamen': Name -> Zieldatei und Name dort. 'bereiche' sind die Zeilen des Plans (für main_window abgeleitet: was in MainWindow bleibt). 'umbenennungen' gelten nur in der genannten Zieldatei; 'modul.' heißt: Präfix entfällt. 'vertragsstellen': Zeile im Vorher-Stand -> umgebende Methode -> Zieldatei.",
+ "quelle": "ui/main_window.py",
+ "stand": "vor-umbau",
+ "sha256": "54dcc48119152ef996f018cfae403299be7c09b2ef1a3c4bd1d969367ce027bf",
+ "module": {
+  "grundgeruest": {
+   "datei": "ui/fenster/grundgeruest.py",
+   "klasse": "GrundgeruestMixin",
+   "titel": "Grundgerüst: Protokoll, Freigabe, Arbeiter",
+   "bereiche": [
+    [
+     1343,
+     1534
+    ]
+   ],
+   "angelegt_von": "Z1"
+  },
+  "einstellungen": {
+   "datei": "ui/fenster/einstellungen.py",
+   "klasse": "EinstellungenMixin",
+   "titel": "Einstellungen",
+   "bereiche": [
+    [
+     1538,
+     1689
+    ],
+    [
+     4112,
+     4121
+    ]
+   ],
+   "angelegt_von": "Z1"
+  },
+  "projekt": {
+   "datei": "ui/fenster/projekt.py",
+   "klasse": "ProjektMixin",
+   "titel": "Aufnahme, Karte und Projekt",
+   "bereiche": [
+    [
+     614,
+     656
+    ],
+    [
+     1804,
+     2351
+    ]
+   ],
+   "angelegt_von": "Z2"
+  },
+  "zusammenfuehren": {
+   "datei": "ui/fenster/zusammenfuehren.py",
+   "klasse": "ZusammenfuehrenMixin",
+   "titel": "Zusammenführen",
+   "bereiche": [
+    [
+     1115,
+     1167
+    ],
+    [
+     4135,
+     4382
+    ]
+   ],
+   "angelegt_von": "Z4"
+  },
+  "kalibrierung": {
+   "datei": "ui/fenster/kalibrierung.py",
+   "klasse": "KalibrierungMixin",
+   "titel": "Kamera-Kalibrierung",
+   "bereiche": [
+    [
+     1773,
+     1800
+    ],
+    [
+     4108,
+     4110
+    ],
+    [
+     4518,
+     4575
+    ]
+   ],
+   "angelegt_von": "Z2"
+  },
+  "einfaerbung": {
+   "datei": "ui/fenster/einfaerbung.py",
+   "klasse": "EinfaerbungMixin",
+   "titel": "360°-Einfärbung",
+   "bereiche": [
+    [
+     658,
+     859
+    ],
+    [
+     4387,
+     4516
+    ]
+   ],
+   "angelegt_von": "Z2"
+  },
+  "maeander": {
+   "datei": "ui/fenster/maeander.py",
+   "klasse": "MaeanderMixin",
+   "titel": "Mäander",
+   "bereiche": [
+    [
+     861,
+     998
+    ],
+    [
+     2355,
+     2552
+    ],
+    [
+     2713,
+     2831
+    ],
+    [
+     3100,
+     3240
+    ]
+   ],
+   "angelegt_von": "Z3"
+  },
+  "maeander_justage": {
+   "datei": "ui/fenster/maeander_justage.py",
+   "klasse": "MaeanderJustageMixin",
+   "titel": "Mäander-Justage und Live-Vorschau",
+   "bereiche": [
+    [
+     2554,
+     2711
+    ],
+    [
+     2833,
+     3098
+    ]
+   ],
+   "angelegt_von": "Z3"
+  },
+  "splat": {
+   "datei": "ui/fenster/splat.py",
+   "klasse": "SplatMixin",
+   "titel": "Gaussian Splat und Fusion",
+   "bereiche": [
+    [
+     1000,
+     1113
+    ],
+    [
+     3244,
+     3681
+    ]
+   ],
+   "angelegt_von": "Z4"
+  },
+  "mesh": {
+   "datei": "ui/fenster/mesh.py",
+   "klasse": "MeshMixin",
+   "titel": "Mesh",
+   "bereiche": [
+    [
+     3831,
+     3968
+    ],
+    [
+     4663,
+     4700
+    ]
+   ],
+   "angelegt_von": "Z5"
+  },
+  "export": {
+   "datei": "ui/fenster/export.py",
+   "klasse": "ExportMixin",
+   "titel": "Export",
+   "bereiche": [
+    [
+     1278,
+     1339
+    ],
+    [
+     4579,
+     4661
+    ],
+    [
+     4702,
+     4721
+    ]
+   ],
+   "angelegt_von": "Z5"
+  },
+  "anzeige": {
+   "datei": "ui/fenster/anzeige.py",
+   "klasse": "AnzeigeMixin",
+   "titel": "Anzeige, Farbebenen und Menü",
+   "bereiche": [
+    [
+     1169,
+     1212
+    ],
+    [
+     1691,
+     1769
+    ],
+    [
+     3685,
+     3827
+    ],
+    [
+     3972,
+     4106
+    ],
+    [
+     4123,
+     4131
+    ]
+   ],
+   "angelegt_von": "Z5"
+  },
+  "wiedergabe": {
+   "datei": "ui/fenster/wiedergabe.py",
+   "klasse": "WiedergabeMixin",
+   "titel": "Wiedergabe (RViz)",
+   "bereiche": [
+    [
+     1214,
+     1276
+    ]
+   ],
+   "angelegt_von": "Z1"
+  },
+  "autotest": {
+   "datei": "ui/fenster/autotest.py",
+   "klasse": "AutotestMixin",
+   "titel": "Autotest",
+   "bereiche": [
+    [
+     4725,
+     4808
+    ]
+   ],
+   "angelegt_von": "Z1"
+  },
+  "main_window": {
+   "datei": "ui/main_window.py",
+   "klasse": "MainWindow",
+   "titel": "bleibt in MainWindow",
+   "bereiche": [
+    [
+     376,
+     612
+    ],
+    [
+     4809,
+     4832
+    ]
+   ],
+   "angelegt_von": "Z99"
+  }
+ },
+ "methoden": {
+  "__init__": "main_window",
+  "_build_ui": "main_window",
+  "_build_sidebar": "main_window",
+  "_group_rosbag": "projekt",
+  "_group_fastlio": "projekt",
+  "_slider_row": "einfaerbung",
+  "_update_blue_widgets": "einfaerbung",
+  "_blue_args": "einfaerbung",
+  "_on_blue_defaults": "einfaerbung",
+  "_on_blue_preview_clicked": "einfaerbung",
+  "_group_colorize": "einfaerbung",
+  "_group_meander": "maeander",
+  "_group_splat": "splat",
+  "_group_merge": "zusammenfuehren",
+  "_group_display": "anzeige",
+  "_group_rviz": "wiedergabe",
+  "_refresh_rviz_state": "wiedergabe",
+  "_rviz_job": "wiedergabe",
+  "_on_rviz_start": "wiedergabe",
+  "_on_rviz_stop": "wiedergabe",
+  "_on_rviz_replay": "wiedergabe",
+  "_group_export": "export",
+  "_log": "grundgeruest",
+  "_show_error": "grundgeruest",
+  "_autotest_active": "grundgeruest",
+  "_update_enabled": "grundgeruest",
+  "_set_busy": "grundgeruest",
+  "_on_progress": "grundgeruest",
+  "_on_cancel": "grundgeruest",
+  "_start_worker": "grundgeruest",
+  "_worker_done": "grundgeruest",
+  "_worker_failed": "grundgeruest",
+  "_retire": "grundgeruest",
+  "_apply_settings_to_widgets": "einstellungen",
+  "_collect_settings": "einstellungen",
+  "_save_settings": "einstellungen",
+  "_on_setting_changed": "einstellungen",
+  "_sync_after_display": "anzeige",
+  "_push_display_settings": "anzeige",
+  "_farbleiste_key": "anzeige",
+  "_sync_farbleiste": "anzeige",
+  "_on_farbleiste": "anzeige",
+  "_on_leiste_punktgroesse": "anzeige",
+  "_on_leiste_temperatur": "anzeige",
+  "_on_display_changed": "anzeige",
+  "_extrinsic_from_spins": "kalibrierung",
+  "_spins_from_extrinsic": "kalibrierung",
+  "_on_extrinsic_changed": "kalibrierung",
+  "_on_open_clicked": "projekt",
+  "_open_bag": "projekt",
+  "_clear_bag_state": "projekt",
+  "_on_bag_opened": "projekt",
+  "_zeige_exploration": "projekt",
+  "_on_exploration_zeigen": "projekt",
+  "_on_exploration_neu": "projekt",
+  "_populate_info_table": "projekt",
+  "_start_pano_job": "projekt",
+  "_on_pano_ready": "projekt",
+  "_on_pano_frame": "projekt",
+  "_start_recording_load": "projekt",
+  "_parts_from_meta": "projekt",
+  "_on_recording_loaded": "projekt",
+  "_on_fastlio_clicked": "projekt",
+  "_on_fastlio_done": "projekt",
+  "_bag_paths": "projekt",
+  "_on_export_project": "projekt",
+  "_on_open_project": "projekt",
+  "_on_import_project": "projekt",
+  "_open_project_only": "projekt",
+  "_meander_versatz": "maeander",
+  "_on_meander_pick": "maeander",
+  "_meander_args": "maeander",
+  "_meander_build": "maeander",
+  "_meander_bereit": "maeander",
+  "_meander_ask_colmap": "maeander",
+  "_on_meander_align": "maeander",
+  "_on_meander_aligned": "maeander",
+  "_start_live_preview": "maeander_justage",
+  "_on_solo_changed": "maeander_justage",
+  "_meander_zustand_text": "maeander_justage",
+  "_meander_lage": "maeander_justage",
+  "_faktor": "maeander_justage",
+  "_meander_cams": "maeander_justage",
+  "_meander_setze_optik": "maeander_justage",
+  "_meander_lade_optik": "maeander_justage",
+  "_meander_speichere_optik": "maeander_justage",
+  "_on_meander_massstab": "maeander_justage",
+  "_on_meander_einmessen": "maeander",
+  "_on_meander_fein": "maeander",
+  "_on_meander_auto": "maeander",
+  "_auto_weiter": "maeander",
+  "_thermal_zuschlag": "maeander_justage",
+  "_meander_lage_thermal": "maeander_justage",
+  "_hat_thermal": "maeander_justage",
+  "_meander_setze_thermal": "maeander_justage",
+  "_meander_lade_thermal": "maeander_justage",
+  "_meander_speichere_zuschlag": "maeander_justage",
+  "_meander_lade_zuschlag": "maeander_justage",
+  "_meander_speichere_thermal": "maeander_justage",
+  "_on_meander_fenster": "maeander_justage",
+  "_on_meander_fenster_lage": "maeander_justage",
+  "_on_meander_manual": "maeander_justage",
+  "_live_update": "maeander_justage",
+  "_meander_apply_manual": "maeander_justage",
+  "_live_hide": "maeander_justage",
+  "_live_clear": "maeander_justage",
+  "_on_meander_run": "maeander",
+  "_on_meander_done": "maeander",
+  "_splat_cfg": "splat",
+  "_on_splat_pruefen": "splat",
+  "_ebene_passt": "splat",
+  "_splat_lauf": "splat",
+  "_splat_gegenprobe": "splat",
+  "_on_splat_maeander": "splat",
+  "_on_splat_onboard": "splat",
+  "_on_splat_gemeinsam": "splat",
+  "_fusion_quellen": "splat",
+  "_on_fusion": "splat",
+  "_on_splat_done": "splat",
+  "_reload_layers": "anzeige",
+  "_refresh_layer_combo": "anzeige",
+  "_fill_layer_menu": "anzeige",
+  "_on_menu_layer": "anzeige",
+  "_on_layer_changed": "anzeige",
+  "_apply_layer": "anzeige",
+  "_on_leiste_mesh": "mesh",
+  "_mesh_param": "mesh",
+  "_mesh_ziel": "mesh",
+  "_mesh_vergessen": "mesh",
+  "_mesh_nachholen": "mesh",
+  "_on_mesh_param_changed": "mesh",
+  "_mesh_sicherstellen": "mesh",
+  "_mesh_farben_zeigen": "mesh",
+  "_fill_view_menus": "anzeige",
+  "_sync_menu_state": "anzeige",
+  "_on_menu_colormode": "anzeige",
+  "_on_menu_background": "anzeige",
+  "_on_menu_edl": "anzeige",
+  "_set_sidebar_visible": "anzeige",
+  "_on_toggle_sidebar": "anzeige",
+  "_on_expand_all": "anzeige",
+  "_on_collapse_all": "anzeige",
+  "_on_toggle_measure": "anzeige",
+  "_on_measured": "anzeige",
+  "_on_toggle_preview": "anzeige",
+  "_sync_preview_action": "anzeige",
+  "_on_reset_camera": "anzeige",
+  "_on_cut_reset": "anzeige",
+  "_on_screenshot": "anzeige",
+  "_on_extrinsic_reset": "kalibrierung",
+  "_on_settings_reset": "einstellungen",
+  "_on_about": "anzeige",
+  "_merge_reset_state": "zusammenfuehren",
+  "_merge_T_from_spins": "zusammenfuehren",
+  "_merge_refresh_preview": "zusammenfuehren",
+  "_on_merge_manual": "zusammenfuehren",
+  "_on_merge_pick": "zusammenfuehren",
+  "_merge_run_fastlio": "zusammenfuehren",
+  "_merge_load_second": "zusammenfuehren",
+  "_on_merge_loaded": "zusammenfuehren",
+  "_on_merge_align": "zusammenfuehren",
+  "_on_merge_aligned": "zusammenfuehren",
+  "_on_merge_discard": "zusammenfuehren",
+  "_on_merge_apply": "zusammenfuehren",
+  "_on_merge_applied": "zusammenfuehren",
+  "_import_colorizer": "einfaerbung",
+  "_on_colorize_clicked": "einfaerbung",
+  "_on_colorize_done": "einfaerbung",
+  "_on_overlay_clicked": "kalibrierung",
+  "_on_autocal_clicked": "kalibrierung",
+  "_export_arrays": "export",
+  "_on_export_plypcd": "export",
+  "_on_export_las": "export",
+  "_cc_arrays": "export",
+  "_cc_open": "export",
+  "_on_mesh_cloudcompare": "mesh",
+  "_on_cloud_cloudcompare": "export",
+  "_on_georef_ready": "export",
+  "_autotest_begin": "autotest",
+  "_autotest_poll": "autotest",
+  "_autotest_shots": "autotest",
+  "_autotest_snap": "autotest",
+  "_autotest_finish": "autotest",
+  "closeEvent": "main_window"
+ },
+ "klassenattribute": {
+  "rvizLog": "main_window",
+  "_SECTIONS": "main_window",
+  "_ZUSCHLAG": "maeander_justage"
+ },
+ "modulnamen": {
+  "_REPO_ROOT": {
+   "art": "konstante",
+   "zeilen": [
+    61,
+    61
+   ],
+   "ziel": "core/kalibrierung.py",
+   "name": "REPO_WURZEL",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "modul:_CALIB_CANDIDATES"
+   ]
+  },
+  "_CALIB_CANDIDATES": {
+   "art": "konstante",
+   "zeilen": [
+    67,
+    74
+   ],
+   "ziel": "core/kalibrierung.py",
+   "name": "CALIB_CANDIDATES",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "modul:_default_calib"
+   ]
+  },
+  "_LAYER_LABELS": {
+   "art": "konstante",
+   "zeilen": [
+    77,
+    86
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_LAYER_LABELS",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_THERMAL_LAYERS": {
+   "art": "konstante",
+   "zeilen": [
+    88,
+    88
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_THERMAL_LAYERS",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_LIVE_PUNKTE": {
+   "art": "konstante",
+   "zeilen": [
+    92,
+    92
+   ],
+   "ziel": "ui/fenster/maeander_justage.py",
+   "name": "_LIVE_PUNKTE",
+   "modul": "maeander_justage",
+   "angelegt_von": "Z3",
+   "benutzt_in": [
+    "maeander_justage"
+   ]
+  },
+  "_DEFAULT_SETTINGS": {
+   "art": "konstante",
+   "zeilen": [
+    94,
+    123
+   ],
+   "ziel": "ui/fenster/einstellungen.py",
+   "name": "_DEFAULT_SETTINGS",
+   "modul": "einstellungen",
+   "angelegt_von": "Z1",
+   "benutzt_in": [
+    "einfaerbung",
+    "einstellungen",
+    "export",
+    "main_window",
+    "projekt"
+   ]
+  },
+  "_COLOR_MODE_ITEMS": {
+   "art": "konstante",
+   "zeilen": [
+    125,
+    126
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_COLOR_MODE_ITEMS",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_FARBLEISTE": {
+   "art": "konstante",
+   "zeilen": [
+    128,
+    136
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_FARBLEISTE",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_VOXEL_ITEMS": {
+   "art": "konstante",
+   "zeilen": [
+    137,
+    137
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_VOXEL_ITEMS",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_BG_ITEMS": {
+   "art": "konstante",
+   "zeilen": [
+    138,
+    138
+   ],
+   "ziel": "ui/fenster/anzeige.py",
+   "name": "_BG_ITEMS",
+   "modul": "anzeige",
+   "angelegt_von": "Z5",
+   "benutzt_in": [
+    "anzeige"
+   ]
+  },
+  "_CONFIG_ITEMS": {
+   "art": "konstante",
+   "zeilen": [
+    139,
+    140
+   ],
+   "ziel": "ui/fenster/projekt.py",
+   "name": "_CONFIG_ITEMS",
+   "modul": "projekt",
+   "angelegt_von": "Z2",
+   "benutzt_in": [
+    "projekt"
+   ]
+  },
+  "_AUTOCAL_WEAK_SCORE": {
+   "art": "konstante",
+   "zeilen": [
+    141,
+    141
+   ],
+   "ziel": "ui/fenster/kalibrierung.py",
+   "name": "_AUTOCAL_WEAK_SCORE",
+   "modul": "kalibrierung",
+   "angelegt_von": "Z2",
+   "benutzt_in": [
+    "kalibrierung"
+   ]
+  },
+  "_default_calib": {
+   "art": "funktion",
+   "zeilen": [
+    144,
+    149
+   ],
+   "ziel": "core/kalibrierung.py",
+   "name": "default_calib",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "main_window"
+   ]
+  },
+  "_fmt_int": {
+   "art": "funktion",
+   "zeilen": [
+    152,
+    153
+   ],
+   "ziel": "core/gemeinsam.py",
+   "name": "fmt_int",
+   "angelegt_von": "A3",
+   "benutzt_in": [
+    "einfaerbung",
+    "export",
+    "maeander_justage",
+    "mesh",
+    "projekt",
+    "splat",
+    "zusammenfuehren"
+   ]
+  },
+  "ThreadLocalBag": {
+   "art": "klasse",
+   "zeilen": [
+    156,
+    198
+   ],
+   "ziel": "core/bag_reader.py",
+   "name": "ThreadLocalBag",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "main_window",
+    "projekt",
+    "zusammenfuehren"
+   ],
+   "entfallen": [
+    "iter_camera"
+   ],
+   "hinweis": "iter_camera hat keinen Aufrufer und entfällt (Plan Abschnitt 4)"
+  },
+  "Worker": {
+   "art": "klasse",
+   "zeilen": [
+    201,
+    239
+   ],
+   "ziel": "ui/jobs.py",
+   "name": "Worker",
+   "angelegt_von": "A1",
+   "benutzt_in": [
+    "grundgeruest",
+    "main_window"
+   ]
+  },
+  "_ImageDialog": {
+   "art": "klasse",
+   "zeilen": [
+    242,
+    260
+   ],
+   "ziel": "ui/bausteine.py",
+   "name": "_ImageDialog",
+   "angelegt_von": "A1",
+   "benutzt_in": [
+    "einfaerbung",
+    "kalibrierung",
+    "main_window"
+   ]
+  },
+  "_compact_combo": {
+   "art": "funktion",
+   "zeilen": [
+    263,
+    268
+   ],
+   "ziel": "ui/bausteine.py",
+   "name": "_compact_combo",
+   "angelegt_von": "A1",
+   "benutzt_in": [
+    "anzeige",
+    "projekt",
+    "splat"
+   ]
+  },
+  "_cap_width": {
+   "art": "funktion",
+   "zeilen": [
+    271,
+    278
+   ],
+   "ziel": "ui/bausteine.py",
+   "name": "_cap_width",
+   "angelegt_von": "A1",
+   "benutzt_in": [
+    "modul:_compact_combo"
+   ]
+  },
+  "_wrappable": {
+   "art": "funktion",
+   "zeilen": [
+    281,
+    284
+   ],
+   "ziel": "ui/bausteine.py",
+   "name": "_wrappable",
+   "angelegt_von": "A1",
+   "benutzt_in": [
+    "anzeige",
+    "einfaerbung",
+    "export",
+    "maeander",
+    "projekt",
+    "splat",
+    "zusammenfuehren"
+   ]
+  },
+  "_load_color_files": {
+   "art": "funktion",
+   "zeilen": [
+    287,
+    321
+   ],
+   "ziel": "core/ebenen.py",
+   "name": "lade_farbdateien",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "anzeige",
+    "einfaerbung",
+    "projekt"
+   ]
+  },
+  "_exploration_rechnen": {
+   "art": "funktion",
+   "zeilen": [
+    324,
+    356
+   ],
+   "ziel": "core/exploration.py",
+   "name": "rechnen_und_ablegen",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "modul:_exploration_holen",
+    "projekt"
+   ]
+  },
+  "_exploration_holen": {
+   "art": "funktion",
+   "zeilen": [
+    359,
+    372
+   ],
+   "ziel": "core/exploration.py",
+   "name": "holen",
+   "angelegt_von": "A2",
+   "benutzt_in": [
+    "projekt"
+   ]
+  }
+ },
+ "kopien": {
+  "_THERMAL_LAYERS": [
+   {
+    "ziel": "core/ebenen.py",
+    "name": "THERMAL",
+    "angelegt_von": "A2"
+   }
+  ],
+  "_ebene_passt": [
+   {
+    "ziel": "core/ebenen.py",
+    "name": "passt",
+    "angelegt_von": "A2",
+    "hinweis": "staticmethod wird Modulfunktion; die Methode bleibt in splat bis zur Umstellung"
+   }
+  ]
+ },
+ "umbenennungen": {
+  "core/kalibrierung.py": {
+   "_REPO_ROOT": "REPO_WURZEL",
+   "_CALIB_CANDIDATES": "CALIB_CANDIDATES",
+   "_default_calib": "default_calib"
+  },
+  "core/gemeinsam.py": {
+   "_fmt_int": "fmt_int"
+  },
+  "core/ebenen.py": {
+   "_load_color_files": "lade_farbdateien",
+   "_ebene_passt": "passt",
+   "_THERMAL_LAYERS": "THERMAL"
+  },
+  "core/exploration.py": {
+   "_exploration_rechnen": "rechnen_und_ablegen",
+   "_exploration_holen": "holen",
+   "exploration.": ""
+  }
+ },
+ "bekannte_abweichungen": [
+  {
+   "name": "_import_colorizer",
+   "zeilen": [
+    4386,
+    4392
+   ],
+   "grund": "Dekoratorzeile 4386 (@staticmethod) liegt vor dem Bereich 4387-4516; die Methode geht samt Dekorator nach einfaerbung"
+  }
+ ],
+ "vertragsstellen": [
+  {
+   "was": "_hat_lage: 'es gibt eine Lage' (Pipeline da und pipe.yaw nicht None), neun Stellen",
+   "massnahme": "Property _hat_lage in maeander_justage.py; Reaktion bleibt je Aufrufer",
+   "pakete": [
+    "F2",
+    "F3",
+    "B2"
+   ],
+   "stellen": [
+    {
+     "zeile": 1383,
+     "name": "_update_enabled",
+     "datei": "ui/fenster/grundgeruest.py"
+    },
+    {
+     "zeile": 2628,
+     "name": "_meander_zustand_text",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2716,
+     "name": "_on_meander_einmessen",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2766,
+     "name": "_on_meander_fein",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2815,
+     "name": "_on_meander_auto",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2917,
+     "name": "_on_meander_fenster",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2981,
+     "name": "_on_meander_manual",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 3000,
+     "name": "_live_update",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 3073,
+     "name": "_meander_apply_manual",
+     "datei": "ui/fenster/maeander_justage.py"
+    }
+   ]
+  },
+  {
+   "was": "Drei Splat-Jobs mit gleichem Kern",
+   "massnahme": "Kern nach core/splat.py",
+   "pakete": [
+    "K2",
+    "F10"
+   ],
+   "stellen": [
+    {
+     "zeile": 3347,
+     "name": "_on_splat_maeander",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3458,
+     "name": "_on_splat_onboard",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3535,
+     "name": "_on_splat_gemeinsam",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3295,
+     "name": "_splat_lauf",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3312,
+     "name": "_splat_gegenprobe",
+     "datei": "ui/fenster/splat.py"
+    }
+   ]
+  },
+  {
+   "was": "Mäander- und Onboard-Vorspann, Kameras/Affine, Fertig-Handler",
+   "massnahme": "_maeander_kontext, _onboard_kontext, meander.kameras, _ebenen_melden/_ebene_waehlen",
+   "pakete": [
+    "K1",
+    "F2",
+    "F4",
+    "F6",
+    "F10"
+   ],
+   "stellen": [
+    {
+     "zeile": 3101,
+     "name": "_on_meander_run",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3119,
+     "name": "_on_meander_run",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3329,
+     "name": "_on_splat_maeander",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3345,
+     "name": "_on_splat_maeander",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3512,
+     "name": "_on_splat_gemeinsam",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3531,
+     "name": "_on_splat_gemeinsam",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3127,
+     "name": "_on_meander_run",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3183,
+     "name": "_on_meander_run",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3217,
+     "name": "_on_meander_done",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3240,
+     "name": "_on_meander_done",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 3667,
+     "name": "_on_splat_done",
+     "datei": "ui/fenster/splat.py"
+    },
+    {
+     "zeile": 3681,
+     "name": "_on_splat_done",
+     "datei": "ui/fenster/splat.py"
+    }
+   ]
+  },
+  {
+   "was": "Pipeline bauen und ausrichten",
+   "massnahme": "meander.bauen, bereit_machen",
+   "pakete": [
+    "K1",
+    "F2"
+   ],
+   "stellen": [
+    {
+     "zeile": 2498,
+     "name": "_on_meander_align",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2506,
+     "name": "_on_meander_align",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2433,
+     "name": "_meander_bereit",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2456,
+     "name": "_meander_bereit",
+     "datei": "ui/fenster/maeander.py"
+    }
+   ]
+  },
+  {
+   "was": "Mäander-Justage, Reglerbau, Live-Vorschau, Lage-Diagnose",
+   "massnahme": "meander.Justage, vorschau, lage_diagnose; Baustein LageRegler (siehe Entscheidung 1 der Nutzerin)",
+   "pakete": [
+    "K1",
+    "I1",
+    "F3",
+    "F11",
+    "B7"
+   ],
+   "stellen": [
+    {
+     "zeile": 2646,
+     "name": "_meander_lage",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2673,
+     "name": "_meander_cams",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 943,
+     "name": "_group_meander",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 970,
+     "name": "_group_meander",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2997,
+     "name": "_live_update",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 3068,
+     "name": "_live_update",
+     "datei": "ui/fenster/maeander_justage.py"
+    }
+   ]
+  },
+  {
+   "was": "Zuschlag-/Optik-IO, JPEG zählen, Stichprobe",
+   "massnahme": "nach core/meander",
+   "pakete": [
+    "K1",
+    "F2",
+    "F3"
+   ],
+   "stellen": [
+    {
+     "zeile": 2872,
+     "name": "_meander_speichere_zuschlag",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2902,
+     "name": "_meander_lade_zuschlag",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2374,
+     "name": "_on_meander_pick",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2376,
+     "name": "_on_meander_pick",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2477,
+     "name": "_meander_ask_colmap",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2479,
+     "name": "_meander_ask_colmap",
+     "datei": "ui/fenster/maeander.py"
+    },
+    {
+     "zeile": 2561,
+     "name": "_start_live_preview",
+     "datei": "ui/fenster/maeander_justage.py"
+    },
+    {
+     "zeile": 2563,
+     "name": "_start_live_preview",
+     "datei": "ui/fenster/maeander_justage.py"
+    }
+   ]
+  },
+  {
+   "was": "Mesh laden-oder-bauen; Speichern-Dialog; PLY-Schreibjob",
+   "massnahme": "mesh.geometrie_holen, bausteine.speicherpfad, ein Schreibjob-Helfer",
+   "pakete": [
+    "K6",
+    "I1",
+    "F6",
+    "F7"
+   ],
+   "stellen": [
+    {
+     "zeile": 3897,
+     "name": "_mesh_sicherstellen",
+     "datei": "ui/fenster/mesh.py"
+    },
+    {
+     "zeile": 3910,
+     "name": "_mesh_sicherstellen",
+     "datei": "ui/fenster/mesh.py"
+    },
+    {
+     "zeile": 4678,
+     "name": "_on_mesh_cloudcompare",
+     "datei": "ui/fenster/mesh.py"
+    },
+    {
+     "zeile": 4686,
+     "name": "_on_mesh_cloudcompare",
+     "datei": "ui/fenster/mesh.py"
+    },
+    {
+     "zeile": 4588,
+     "name": "_on_export_plypcd",
+     "datei": "ui/fenster/export.py"
+    },
+    {
+     "zeile": 4638,
+     "name": "_on_export_las",
+     "datei": "ui/fenster/export.py"
+    },
+    {
+     "zeile": 4092,
+     "name": "_on_screenshot",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 4106,
+     "name": "_on_screenshot",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 4602,
+     "name": "_on_export_plypcd",
+     "datei": "ui/fenster/export.py"
+    },
+    {
+     "zeile": 4605,
+     "name": "_on_export_plypcd",
+     "datei": "ui/fenster/export.py"
+    },
+    {
+     "zeile": 4708,
+     "name": "_on_cloud_cloudcompare",
+     "datei": "ui/fenster/export.py"
+    },
+    {
+     "zeile": 4712,
+     "name": "_on_cloud_cloudcompare",
+     "datei": "ui/fenster/export.py"
+    }
+   ]
+  },
+  {
+   "was": "FAST-LIO-Job und Aufzeichnung laden; Statustext",
+   "massnahme": "_fastlio_job, recording.lade_mit_hinweis, ein Formatierer",
+   "pakete": [
+    "K8",
+    "F1",
+    "F8"
+   ],
+   "stellen": [
+    {
+     "zeile": 2177,
+     "name": "_on_fastlio_clicked",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2181,
+     "name": "_on_fastlio_clicked",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 4223,
+     "name": "_merge_run_fastlio",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 4227,
+     "name": "_merge_run_fastlio",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 2056,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2060,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 4243,
+     "name": "_merge_load_second",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 4247,
+     "name": "_merge_load_second",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 2141,
+     "name": "_on_recording_loaded",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2191,
+     "name": "_on_fastlio_done",
+     "datei": "ui/fenster/projekt.py"
+    }
+   ]
+  },
+  {
+   "was": "Projekt aktivieren, Exploration-Cache, Öffnen-Weiche, Busy-Abfrage",
+   "massnahme": "_projekt_aktivieren, exploration.aus_cache, _oeffne_projekt, _beschaeftigt_melden",
+   "pakete": [
+    "K9",
+    "F1",
+    "B2"
+   ],
+   "stellen": [
+    {
+     "zeile": 1900,
+     "name": "_on_bag_opened",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 1912,
+     "name": "_on_bag_opened",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2326,
+     "name": "_open_project_only",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2337,
+     "name": "_open_project_only",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 362,
+     "name": "_exploration_holen",
+     "datei": "core/exploration.py"
+    },
+    {
+     "zeile": 370,
+     "name": "_exploration_holen",
+     "datei": "core/exploration.py"
+    },
+    {
+     "zeile": 2340,
+     "name": "_open_project_only",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2346,
+     "name": "_open_project_only",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2280,
+     "name": "_on_open_project",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2284,
+     "name": "_on_open_project",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2314,
+     "name": "_on_import_project",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2318,
+     "name": "_on_import_project",
+     "datei": "ui/fenster/projekt.py"
+    }
+   ]
+  },
+  {
+   "was": "Onboard-Farben zweimal gelesen; Teile-Liste zweimal gebaut",
+   "massnahme": "erster Ladevorgang und Inline-Liste entfallen",
+   "pakete": [
+    "F1",
+    "F8"
+   ],
+   "stellen": [
+    {
+     "zeile": 2063,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2076,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2124,
+     "name": "_on_recording_loaded",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2132,
+     "name": "_on_recording_loaded",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 4363,
+     "name": "_on_merge_applied",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 4364,
+     "name": "_on_merge_applied",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    }
+   ]
+  },
+  {
+   "was": "Farbebenen-IO",
+   "massnahme": "core/ebenen.py",
+   "pakete": [
+    "A2",
+    "K1"
+   ],
+   "stellen": [
+    {
+     "zeile": 287,
+     "name": "_load_color_files",
+     "datei": "core/ebenen.py"
+    },
+    {
+     "zeile": 321,
+     "name": "_load_color_files",
+     "datei": "core/ebenen.py"
+    }
+   ]
+  },
+  {
+   "was": "Farbe/Ebene über drei Codepfade",
+   "massnahme": "erst _ebene_waehlen, dann _setze_farbe über Zustand",
+   "pakete": [
+    "F6",
+    "B11"
+   ],
+   "stellen": [
+    {
+     "zeile": 1729,
+     "name": "_on_farbleiste",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 1752,
+     "name": "_on_farbleiste",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 3773,
+     "name": "_on_menu_layer",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 3784,
+     "name": "_on_layer_changed",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 3988,
+     "name": "_sync_menu_state",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 4001,
+     "name": "_sync_menu_state",
+     "datei": "ui/fenster/anzeige.py"
+    }
+   ]
+  },
+  {
+   "was": "Freigabe doppelt; Einstellungen vierfach",
+   "massnahme": "Befehlstabelle; Tabelle _EINSTELLUNGEN",
+   "pakete": [
+    "I2",
+    "B2",
+    "I3",
+    "B11"
+   ],
+   "stellen": [
+    {
+     "zeile": 1363,
+     "name": "_update_enabled",
+     "datei": "ui/fenster/grundgeruest.py"
+    },
+    {
+     "zeile": 1441,
+     "name": "_update_enabled",
+     "datei": "ui/fenster/grundgeruest.py"
+    },
+    {
+     "zeile": 94,
+     "name": "_DEFAULT_SETTINGS",
+     "datei": "ui/fenster/einstellungen.py"
+    },
+    {
+     "zeile": 123,
+     "name": "_DEFAULT_SETTINGS",
+     "datei": "ui/fenster/einstellungen.py"
+    },
+    {
+     "zeile": 1538,
+     "name": "_apply_settings_to_widgets",
+     "datei": "ui/fenster/einstellungen.py"
+    },
+    {
+     "zeile": 1677,
+     "name": "_collect_settings",
+     "datei": "ui/fenster/einstellungen.py"
+    }
+   ]
+  },
+  {
+   "was": "Colorizer-Handler: Import-Fang, Frame-Wahl, Extrinsik speichern",
+   "massnahme": "_mit_colorizer, _aktueller_frame, _zeige_bild, _speichere_extrinsik",
+   "pakete": [
+    "F4",
+    "F5",
+    "B6"
+   ],
+   "stellen": [
+    {
+     "zeile": 710,
+     "name": "_on_blue_preview_clicked",
+     "datei": "ui/fenster/einfaerbung.py"
+    },
+    {
+     "zeile": 730,
+     "name": "_on_blue_preview_clicked",
+     "datei": "ui/fenster/einfaerbung.py"
+    },
+    {
+     "zeile": 4397,
+     "name": "_on_colorize_clicked",
+     "datei": "ui/fenster/einfaerbung.py"
+    },
+    {
+     "zeile": 4416,
+     "name": "_on_colorize_clicked",
+     "datei": "ui/fenster/einfaerbung.py"
+    },
+    {
+     "zeile": 4521,
+     "name": "_on_overlay_clicked",
+     "datei": "ui/fenster/kalibrierung.py"
+    },
+    {
+     "zeile": 4567,
+     "name": "_on_autocal_clicked",
+     "datei": "ui/fenster/kalibrierung.py"
+    }
+   ]
+  },
+  {
+   "was": "Einmal-Timer; BGR->QPixmap",
+   "massnahme": "ui/bausteine.py",
+   "pakete": [
+    "I1",
+    "B1"
+   ],
+   "stellen": [
+    {
+     "zeile": 413,
+     "name": "__init__",
+     "datei": "ui/main_window.py"
+    },
+    {
+     "zeile": 464,
+     "name": "__init__",
+     "datei": "ui/main_window.py"
+    },
+    {
+     "zeile": 248,
+     "name": "_ImageDialog",
+     "datei": "ui/bausteine.py"
+    },
+    {
+     "zeile": 251,
+     "name": "_ImageDialog",
+     "datei": "ui/bausteine.py"
+    }
+   ]
+  },
+  {
+   "was": "Gier-Matrix",
+   "massnahme": "merge.lage_aus_reglern",
+   "pakete": [
+    "K7",
+    "F8"
+   ],
+   "stellen": [
+    {
+     "zeile": 4149,
+     "name": "_merge_T_from_spins",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 4160,
+     "name": "_merge_T_from_spins",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    }
+   ]
+  },
+  {
+   "was": "Toter Code und Sonderstellen",
+   "massnahme": "_on_menu_colormode entfällt; immer wahre Bedingung 3946; __file__ in _on_open_clicked zeigt nach dem Verschieben auf ui/fenster",
+   "pakete": [
+    "F6",
+    "F7",
+    "F1"
+   ],
+   "stellen": [
+    {
+     "zeile": 4003,
+     "name": "_on_menu_colormode",
+     "datei": "ui/fenster/anzeige.py"
+    },
+    {
+     "zeile": 3946,
+     "name": "_mesh_sicherstellen",
+     "datei": "ui/fenster/mesh.py"
+    },
+    {
+     "zeile": 1811,
+     "name": "_on_open_clicked",
+     "datei": "ui/fenster/projekt.py"
+    }
+   ]
+  }
+ ]
+}
