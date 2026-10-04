@@ -91,6 +91,38 @@ class MaeanderJustageMixin:
         self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._save_settings()
 
+    def _freigabe_maeander(self, zustand: dict, busy: bool) -> None:
+        """Handregler samt Tooltips und Lagetext nach ``zustand`` freigeben.
+
+        Die Regler erst, wenn es eine Lage gibt, auf die sie sich beziehen
+        koennen. Ein Regler, der stillschweigend nichts tut, ist schlimmer als
+        ein grauer.
+        """
+        hat_lage, hat_thermal = zustand["lage"], zustand["thermal"]
+        for sp in self._spin_meander.values():
+            sp.setEnabled(not busy and hat_lage)
+            sp.setToolTip(
+                "RGB: Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke."
+                if hat_lage else
+                "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, "
+                "auf die sich die Regler beziehen könnten.")
+        self._massstab["rgb"].setEnabled(not busy and hat_lage)
+        self._massstab["thermal"].setEnabled(not busy and hat_thermal)
+        for sp in self._spin_meander_th.values():
+            sp.setEnabled(not busy and hat_thermal)
+            if hat_thermal:
+                sp.setToolTip(
+                    "Thermal: Zuschlag auf die RGB-Lage; wirkt sofort und zeigt "
+                    "dabei die Thermalvorschau.\nWird RGB verschoben, zieht "
+                    "Thermal mit. Der Wert bleibt im Projekt gespeichert.")
+            elif hat_lage:
+                sp.setToolTip("Keine Thermalbilder in diesem Lauf — "
+                              "„Thermalbilder mitrechnen“ anhaken und neu "
+                              "ausrichten.")
+            else:
+                sp.setToolTip("Erst 'Ausrichten' laufen lassen.")
+        self._lbl_meander_lage.setText(self._meander_zustand_text())
+
     def _meander_zustand_text(self) -> str:
         """Was die Handregler gerade koennen — und was fehlt, wenn nicht."""
         if not self._meander_dir:

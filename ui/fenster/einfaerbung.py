@@ -185,19 +185,16 @@ class EinfaerbungMixin:
             "kein Blaulicht mehr zu sehen war. Grün (Bäume) bleibt.")
         self._btn_blue_defaults.clicked.connect(self._on_blue_defaults)
         form.addRow(self._btn_blue_defaults)
-        self._btn_blue_preview = QPushButton("Blaumaske im Frame zeigen")
-        self._btn_blue_preview.setToolTip(
-            "Markiert im aktuellen Kamerabild magenta, was als Blaulicht gilt.")
-        self._btn_blue_preview.clicked.connect(self._on_blue_preview_clicked)
+        # Die Blaumaske lässt sich auch ohne Filter ansehen: der Knopf folgt
+        # seiner Aktion, nicht dem Haken.
+        self._btn_blue_preview = self._befehlsknopf("blaumaske")
         form.addRow(self._btn_blue_preview)
         self._blue_widgets = (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
                               self._sld_blue_val, self._sld_blue_neutral,
-                              self._btn_blue_defaults, self._lbl_blue_band,
-                              self._btn_blue_preview)
+                              self._btn_blue_defaults, self._lbl_blue_band)
         self._update_blue_widgets()
 
-        self._btn_colorize = QPushButton("Einfärben")
-        self._btn_colorize.clicked.connect(self._on_colorize_clicked)
+        self._btn_colorize = self._befehlsknopf("colorize")
         form.addRow(self._btn_colorize)
         return box
 

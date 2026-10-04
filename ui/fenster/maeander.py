@@ -13,8 +13,7 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox,
-    QPushButton, QWidget,
+    QCheckBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QWidget,
 )
 
 from ui.bausteine import _wrappable, still_setzen
@@ -24,11 +23,7 @@ class MaeanderMixin:
     def _abschnitt_maeander(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._btn_meander_pick = QPushButton("Mäanderflug wählen …")
-        self._btn_meander_pick.setToolTip(
-            "Ordner mit den Bildern eines DJI-Kartierungsfluges.\n"
-            "Gesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.")
-        self._btn_meander_pick.clicked.connect(self._on_meander_pick)
+        self._btn_meander_pick = self._befehlsknopf("meander")
         form.addRow(self._btn_meander_pick)
         self._lbl_meander = QLabel("Kein Mäanderflug geladen.")
         self._lbl_meander.setWordWrap(True)
@@ -45,48 +40,23 @@ class MaeanderMixin:
         row = QWidget()
         hl = QHBoxLayout(row)
         hl.setContentsMargins(0, 0, 0, 0)
-        self._btn_meander_align = QPushButton("Ausrichten")
-        self._btn_meander_align.setToolTip(
-            "Grob per Kreuzkorrelation über den Gierwinkel, fein über den\n"
-            "Höhenunterschied zum Rastermodell der Wolke. Kein ICP — das würde\n"
-            "an Gebäudekanten verkippen und die Lotrechte zerstören.")
-        self._btn_meander_align.clicked.connect(self._on_meander_align)
-        self._btn_meander_run = QPushButton("Einfärben")
-        self._btn_meander_run.clicked.connect(self._on_meander_run)
+        self._btn_meander_align = self._befehlsknopf("meander_align")
+        self._btn_meander_run = self._befehlsknopf("meander_run")
         hl.addWidget(self._btn_meander_align)
         hl.addWidget(self._btn_meander_run)
         form.addRow(row)
-        self._btn_meander_fenster = QPushButton("Überlagern und justieren …")
-        self._btn_meander_fenster.setToolTip(
-            "Eigenes Fenster: Karte und Flug übereinander, live verschieben,\n"
-            "mit Farbvorschau. Das Hauptfenster bleibt unberührt.")
-        self._btn_meander_fenster.clicked.connect(self._on_meander_fenster)
+        self._btn_meander_fenster = self._befehlsknopf("meander_fenster")
         form.addRow(self._btn_meander_fenster)
-        self._btn_meander_optik = QPushButton("Optik einmessen")
-        self._btn_meander_optik.setToolTip(
-            "Höhe über den Laser-Entfernungsmesser der Drohne, RGB-Brennweite\n"
-            "über die Farbkonsistenz der Bilder, Thermalkamera (Brennweite,\n"
-            "Verzeichnung, Schielwinkel) gegen das RGB-Bild desselben Auslösers.\n"
-            "Rund eine Minute. Läuft nach dem ersten Ausrichten von selbst.")
-        self._btn_meander_optik.clicked.connect(lambda: self._on_meander_einmessen())
-        self._btn_meander_fein = QPushButton("Feinausrichten")
-        self._btn_meander_fein.setToolTip(
-            "Fotomodell auf die Karte legen: Neigung und Höhe über die\n"
-            "Oberfläche, Versatz in der Ebene über die Kanten. Gegengeprüft über\n"
-            "die Farbkonsistenz — was nicht hilft, wird nicht übernommen.")
-        self._btn_meander_fein.clicked.connect(lambda: self._on_meander_fein())
+        self._btn_meander_optik = self._befehlsknopf("meander_optik")
+        self._btn_meander_fein = self._befehlsknopf("meander_fein")
         row = QWidget()
         hl = QHBoxLayout(row)
         hl.setContentsMargins(0, 0, 0, 0)
         hl.addWidget(self._btn_meander_optik)
         hl.addWidget(self._btn_meander_fein)
         form.addRow(row)
-        self._btn_meander_auto = QPushButton("Automatisch: ausrichten bis zur Farbe")
-        self._btn_meander_auto.setToolTip(
-            "Alles hintereinander: Ausrichten, Optik einmessen, Feinausrichten,\n"
-            "Einfärben mit Sichtprüfung. Rund sechs Minuten.")
+        self._btn_meander_auto = self._befehlsknopf("meander_auto")
         self._btn_meander_auto.setStyleSheet("font-weight: bold;")
-        self._btn_meander_auto.clicked.connect(lambda: self._on_meander_auto())
         form.addRow(self._btn_meander_auto)
         self._chk_sichtbar = QCheckBox("Beim Einfärben Sichtbarkeit prüfen (Wände)")
         self._chk_sichtbar.setChecked(True)

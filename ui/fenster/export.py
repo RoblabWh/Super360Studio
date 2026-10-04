@@ -9,7 +9,7 @@ import os
 
 import numpy as np
 
-from PyQt5.QtWidgets import QMessageBox, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from core import georef
 from core.gemeinsam import GRAU_ANZEIGE, fmt_int as _fmt_int
@@ -21,14 +21,11 @@ class ExportMixin:
     def _abschnitt_export(self) -> QWidget:
         box = QWidget()
         lay = QVBoxLayout(box)
-        self._btn_export_plypcd = QPushButton("PLY/PCD speichern…")
-        self._btn_export_plypcd.clicked.connect(self._on_export_plypcd)
-        self._btn_export_las = QPushButton("LAS speichern…")
-        self._btn_export_las.clicked.connect(self._on_export_las)
+        self._btn_export_plypcd = self._befehlsknopf("export_ply")
+        self._btn_export_las = self._befehlsknopf("export_las")
         lay.addWidget(self._btn_export_plypcd)
         lay.addWidget(self._btn_export_las)
-        self._btn_cloud_cc = QPushButton("Punktwolke in CloudCompare öffnen")
-        self._btn_cloud_cc.clicked.connect(self._on_cloud_cloudcompare)
+        self._btn_cloud_cc = self._befehlsknopf("cloud_cc")
         lay.addWidget(self._btn_cloud_cc)
         return box
 

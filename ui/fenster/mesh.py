@@ -10,7 +10,7 @@ import os
 from typing import Optional
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QFormLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget,
+    QApplication, QCheckBox, QFormLayout, QLabel, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from core.gemeinsam import fmt_int as _fmt_int
@@ -65,11 +65,7 @@ class MeshMixin:
         form.addRow("Ränder kürzen:", self._spin_mesh_trim)
         form.addRow(self._chk_mesh_hybrid)
         lay.addLayout(form)
-        self._btn_mesh_cc = QPushButton("Mesh erzeugen und in CloudCompare zeigen")
-        self._btn_mesh_cc.setToolTip(
-            "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\n"
-            "Projektordner unter mesh/.")
-        self._btn_mesh_cc.clicked.connect(self._on_mesh_cloudcompare)
+        self._btn_mesh_cc = self._befehlsknopf("mesh_cc")
         lay.addWidget(self._btn_mesh_cc)
         return box
 
@@ -115,6 +111,18 @@ class MeshMixin:
         if self._mesh_wartet:
             self._mesh_wartet = False
             self._mesh_sicherstellen()
+
+    def _mesh_timer_abgelaufen(self) -> None:
+        """Mesh nach einer Parameteraenderung nachziehen, nicht bei offenem Dialog.
+
+        Sonst startete das Mesh, waehrend jemand in einem Datei- oder
+        Rueckfragedialog steht, und der Schritt, den dieser Dialog vorbereitet,
+        faende danach einen laufenden Arbeiter vor.
+        """
+        if QApplication.activeModalWidget() is not None:
+            self._mesh_timer.start()
+            return
+        self._mesh_sicherstellen()
 
     def _on_mesh_param_changed(self, *_a) -> None:
         if self._cloud_view.mesh_an() and not self._loading_ui:

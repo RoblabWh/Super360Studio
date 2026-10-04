@@ -49,8 +49,7 @@ class ProjektMixin:
     def _abschnitt_aufnahme(self) -> QWidget:
         box = QWidget()
         lay = QVBoxLayout(box)
-        self._btn_open = QPushButton("Bag öffnen…")
-        self._btn_open.clicked.connect(self._on_open_clicked)
+        self._btn_open = self._befehlsknopf("open")
         lay.addWidget(self._btn_open)
         self._info_table = QTableWidget(0, 2, box)
         self._info_table.setHorizontalHeaderLabels(["Eigenschaft", "Wert"])
@@ -78,8 +77,7 @@ class ProjektMixin:
         self._spin_rate.setValue(1.0)
         self._spin_rate.valueChanged.connect(self._on_setting_changed)
         form.addRow("Abspielrate:", self._spin_rate)
-        self._btn_fastlio = QPushButton("Karte berechnen")
-        self._btn_fastlio.clicked.connect(self._on_fastlio_clicked)
+        self._btn_fastlio = self._befehlsknopf("fastlio")
         form.addRow(self._btn_fastlio)
         self._pbar_fastlio = QProgressBar()
         self._pbar_fastlio.setRange(0, 1000)
@@ -206,6 +204,7 @@ class ProjektMixin:
         # Aufzeichnung muss auch ohne Kamera-Topic bzw. bei Pano-Fehlern laden.
         if not info.camera_topic:
             self._log("Kein Kamera-Topic im Bag — 360°-Video/Einfärbung nicht verfügbar.")
+        self._update_enabled()
         if self._calib and info.camera_topic:
             self._start_pano_job()
         elif self._project.has_recording():

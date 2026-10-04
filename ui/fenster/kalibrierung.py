@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from PyQt5.QtWidgets import QFormLayout, QLabel, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import QFormLayout, QLabel, QMessageBox, QWidget
 
 from ui.bausteine import _wrappable
 
@@ -34,10 +34,8 @@ class KalibrierungMixin:
             self._ext_spins[key] = spin
             form.addRow(label, spin)
 
-        self._btn_autocal = QPushButton("Auto-Kalibrierung (grob)")
-        self._btn_autocal.clicked.connect(self._on_autocal_clicked)
-        self._btn_overlay = QPushButton("Overlay-Vorschau")
-        self._btn_overlay.clicked.connect(self._on_overlay_clicked)
+        self._btn_autocal = self._befehlsknopf("autocal")
+        self._btn_overlay = self._befehlsknopf("overlay")
         form.addRow(self._btn_autocal)
         form.addRow(self._btn_overlay)
         return box

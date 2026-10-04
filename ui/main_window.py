@@ -159,6 +159,9 @@ class MainWindow(GrundgeruestMixin,
         self._pano_src: Optional[StitchingPanoSource] = None
         self._worker: Optional[Worker] = None
         self._retired: list[Worker] = []
+        # Beenden und Wiederholen der RViz-Wiedergabe laufen in einem eigenen
+        # Arbeiter neben dem Schritt (s. _rviz_job)
+        self._rviz_worker: Optional[Worker] = None
         self._busy = False
         self._loading_ui = False
         self._closing = False
@@ -200,7 +203,7 @@ class MainWindow(GrundgeruestMixin,
     def _build_ui(self) -> None:
         # ------------------------------------------------- Aktionen und Menü
         # Zuerst: so steht jede Aktion schon, wenn die Seitenleiste entsteht.
-        self._actions = menubar_mod.build(self)
+        self._actions = menubar_mod.baue(self)
         # Explorationsgrad ganz oben rechts: in der Ecke der Menueleiste steht
         # er ueber allen Bereichen und bleibt beim Tabwechsel stehen.
         self._grad_anzeige = ExplorationsgradAnzeige(self)
@@ -311,7 +314,7 @@ class MainWindow(GrundgeruestMixin,
         self._cloud_view.messen_angefordert.connect(self._on_toggle_measure)
         self._cloud_view.temperatur_umgeschaltet.connect(self._on_leiste_temperatur)
         self._cloud_view.mesh_umgeschaltet.connect(self._on_leiste_mesh)
-        self._mesh_timer.timeout.connect(self._mesh_sicherstellen)
+        self._mesh_timer.timeout.connect(self._mesh_timer_abgelaufen)
         self._pano_view.frameChanged.connect(self._on_pano_frame)
         self._gps_panel.georefReady.connect(self._on_georef_ready)
 
@@ -358,6 +361,12 @@ class MainWindow(GrundgeruestMixin,
             # "QThread: Destroyed while thread is still running" abbrechen
             # lassen und ROS-Prozesse verwaisen.
             self._worker.wait()
+        if self._rviz_worker is not None:
+            # Beenden oder Wiederholen der RViz-Wiedergabe läuft noch; erst
+            # danach darf der Player unten geräumt werden.
+            self._status_lbl.setText("Warte auf die RViz-Wiedergabe …")
+            self.statusBar().repaint()
+            self._rviz_worker.wait()
         for w in self._retired:
             w.wait(30000)
         try:

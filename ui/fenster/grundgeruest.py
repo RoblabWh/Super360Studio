@@ -10,8 +10,10 @@ import traceback
 from typing import Callable
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QPushButton
 
+from ui import menubar as menubar_mod
+from ui.bausteine import aktionsknopf
 from ui.jobs import Worker
 
 
@@ -33,96 +35,42 @@ class GrundgeruestMixin:
     def _autotest_active(self) -> bool:
         return bool(getattr(self, "_autotest_path", None))
 
+    def _befehlsknopf(self, schluessel: str) -> QPushButton:
+        """Knopf der Seitenleiste zum Befehl ``schluessel`` der Befehlstabelle.
+
+        Er folgt seiner Aktion (Freigabe, Tooltip samt fehlender Voraussetzung)
+        und trägt den Knopftext der Tabelle.
+        """
+        return aktionsknopf(self._actions[schluessel],
+                            menubar_mod.BEFEHLE[schluessel].knopf)
+
     def _update_enabled(self) -> None:
         busy = self._busy
-        has_bag = self._bag is not None
-        has_rec = self._rec is not None
-        has_world = self._world is not None
-        self._btn_open.setEnabled(not busy)
-        self._btn_fastlio.setEnabled(not busy and has_bag)
-        for b in (self._btn_autocal, self._btn_overlay, self._btn_colorize):
-            b.setEnabled(not busy and has_bag and has_rec and bool(self._calib))
-        for b in (self._btn_export_plypcd, self._btn_export_las, self._btn_mesh_cc,
-                  self._btn_cloud_cc):
-            b.setEnabled(not busy and has_world)
-        # Schritte, die nur die Karte brauchen und ohne Bag weiterlaufen
-        for b in (self._btn_merge_pick, self._btn_meander_pick,
-                  self._btn_merge_auto, self._btn_merge_icp,
-                  self._btn_merge_apply, self._btn_merge_drop):
-            b.setEnabled(not busy and has_rec)
-        # Maeander: erst mit gewaehltem Flug, und die Handregler erst, wenn
-        # es eine Lage gibt, auf die sie sich beziehen koennen. Ein Regler,
-        # der stillschweigend nichts tut, ist schlimmer als ein grauer.
-        hat_flug = bool(self._meander_dir)
-        for b in (self._btn_meander_align, self._btn_meander_run):
-            b.setEnabled(not busy and has_rec and hat_flug)
-            if not hat_flug:
-                b.setToolTip("Erst einen Mäanderflug wählen.")
-        hat_lage = (self._meander_pipe is not None
-                    and getattr(self._meander_pipe, "yaw", None) is not None)
-        self._btn_meander_fenster.setEnabled(not busy and hat_lage)
-        for key, sp in self._spin_meander.items():
-            sp.setEnabled(not busy and hat_lage)
-            sp.setToolTip(
-                "RGB: Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke."
-                if hat_lage else
-                "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, "
-                "auf die sich die Regler beziehen könnten.")
-        self._btn_meander_optik.setEnabled(not busy and hat_lage)
-        self._btn_meander_fein.setEnabled(not busy and hat_lage)
-        self._btn_meander_auto.setEnabled(not busy and has_rec and hat_flug)
-        self._btn_splat_pruefen.setEnabled(not busy)
-        self._btn_splat_maeander.setEnabled(not busy and has_rec and hat_flug)
-        self._btn_splat_onboard.setEnabled(not busy and has_bag and has_rec
-                                           and bool(self._calib))
-        self._btn_splat_gemeinsam.setEnabled(not busy and has_bag and has_rec
-                                             and hat_flug and bool(self._calib))
-        self._massstab["rgb"].setEnabled(not busy and hat_lage)
-        hat_thermal = hat_lage and self._hat_thermal()
-        self._massstab["thermal"].setEnabled(not busy and hat_thermal)
-        for key, sp in self._spin_meander_th.items():
-            sp.setEnabled(not busy and hat_thermal)
-            if hat_thermal:
-                sp.setToolTip(
-                    "Thermal: Zuschlag auf die RGB-Lage; wirkt sofort und zeigt "
-                    "dabei die Thermalvorschau.\nWird RGB verschoben, zieht "
-                    "Thermal mit. Der Wert bleibt im Projekt gespeichert.")
-            elif hat_lage:
-                sp.setToolTip("Keine Thermalbilder in diesem Lauf — "
-                              "„Thermalbilder mitrechnen“ anhaken und neu "
-                              "ausrichten.")
-            else:
-                sp.setToolTip("Erst 'Ausrichten' laufen lassen.")
-        self._lbl_meander_lage.setText(self._meander_zustand_text())
-        for key, an in (("project_export", not busy and has_rec),
-                        ("project_import", not busy),
-                        ("measure", not busy and has_world),
-                        ("fastlio", not busy and has_bag),
-                        ("exploration", not busy and has_bag),
-                        ("colorize", not busy and has_bag and has_rec
-                         and bool(self._calib)),
-                        ("meander_run", not busy and has_rec),
-                        ("splat_meander", not busy and has_rec
-                         and bool(self._meander_dir)),
-                        ("splat_onboard", not busy and has_bag and has_rec
-                         and bool(self._calib)),
-                        ("splat_gemeinsam", not busy and has_bag and has_rec
-                         and bool(self._meander_dir) and bool(self._calib)),
-                        ("fusion", not busy and has_world
-                         and self._fusion_quellen() is not None),
-                        ("meander", not busy and has_rec),
-                        ("merge", not busy and has_rec),
-                        ("merge_apply", not busy and has_rec),
-                        ("export_ply", not busy and has_world),
-                        ("export_las", not busy and has_world)):
-            act = self._actions.get(key)
-            if act is not None:
-                act.setEnabled(bool(an))
+        lage = self._hat_lage
+        # Was die Befehle der Tabelle voraussetzen (menubar.GRUENDE); ob es
+        # Thermalbilder gibt, weiß erst die ausgerichtete Pipeline.
+        zustand = {
+            "bag": self._bag is not None,
+            "rec": self._rec is not None,
+            "world": self._world is not None,
+            "calib": bool(self._calib),
+            "flug": bool(self._meander_dir),
+            "lage": lage,
+            "thermal": lage and self._hat_thermal(),
+            "zweitflug": self._merge_rec is not None,
+            "fusion": self._fusion_quellen() is not None,
+        }
+        # Die Knöpfe der Seitenleiste folgen ihren Aktionen.
+        menubar_mod.schalte(self._actions, zustand, busy)
+        # Was kein Befehl ist: die Handregler des Mäanders und der Abbrechen-Knopf
+        self._freigabe_maeander(zustand, busy)
         can_cancel = busy and (self._worker is None or self._worker.cancellable)
         self._btn_cancel.setEnabled(can_cancel)
         self._btn_cancel.setToolTip(
             "Dieser Schritt kann nicht abgebrochen werden."
             if busy and not can_cancel else "")
+        # Starten der RViz-Wiedergabe hängt am laufenden Schritt
+        self._refresh_rviz_state()
 
     def _set_busy(self, busy: bool, text: str | None = None) -> None:
         self._busy = busy
@@ -149,6 +97,17 @@ class GrundgeruestMixin:
                       on_failed: Callable[[str], None] | None = None,
                       cancellable: bool = True) -> None:
         if self._closing:
+            return
+        if self._busy:
+            # Ein Schritt nach dem anderen: ein zweiter Arbeiter überschriebe
+            # self._worker, den laufenden könnte dann niemand mehr abbrechen
+            # oder beim Schließen abwarten.
+            self._log(f"Nicht gestartet — es läuft noch ein Arbeitsschritt: {text}")
+            self._auto_kette = False
+            QMessageBox.information(
+                self, "Beschäftigt",
+                f"„{text.rstrip(' …')}“ wurde nicht gestartet — es läuft noch ein "
+                "Arbeitsschritt. Bitte warten oder abbrechen.")
             return
         self._retired = [w for w in self._retired if not w.isFinished()]
         worker = Worker(job, self, cancellable=cancellable)

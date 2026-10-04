@@ -13,8 +13,7 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QPushButton,
-    QWidget,
+    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QWidget,
 )
 
 from core.bag_reader import BagReader
@@ -31,11 +30,7 @@ class ZusammenfuehrenMixin:
     def _abschnitt_zusammen(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._btn_merge_pick = QPushButton("Zweiten Flug wählen …")
-        self._btn_merge_pick.setToolTip(
-            "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\n"
-            "sonst wird gefragt, ob sie jetzt berechnet werden soll.")
-        self._btn_merge_pick.clicked.connect(self._on_merge_pick)
+        self._btn_merge_pick = self._befehlsknopf("merge")
         form.addRow(self._btn_merge_pick)
         self._lbl_merge = QLabel("Kein zweiter Flug geladen.")
         self._lbl_merge.setWordWrap(True)
@@ -54,15 +49,8 @@ class ZusammenfuehrenMixin:
         row = QWidget()
         hl = QHBoxLayout(row)
         hl.setContentsMargins(0, 0, 0, 0)
-        self._btn_merge_auto = QPushButton("Auto-Ausrichten")
-        self._btn_merge_auto.setToolTip(
-            "Globale Suche (FGR über FPFH) plus ICP von grob nach fein.\n"
-            "Dauert je nach Wolkengröße ein bis mehrere Minuten.")
-        self._btn_merge_auto.clicked.connect(self._on_merge_auto)
-        self._btn_merge_icp = QPushButton("Nur ICP")
-        self._btn_merge_icp.setToolTip(
-            "Verfeinert nur die aktuelle Lage — nach einer Handjustage genug.")
-        self._btn_merge_icp.clicked.connect(self._on_merge_icp)
+        self._btn_merge_auto = self._befehlsknopf("merge_auto")
+        self._btn_merge_icp = self._befehlsknopf("merge_icp")
         hl.addWidget(self._btn_merge_auto)
         hl.addWidget(self._btn_merge_icp)
         form.addRow(row)
@@ -70,13 +58,8 @@ class ZusammenfuehrenMixin:
         row2 = QWidget()
         hl2 = QHBoxLayout(row2)
         hl2.setContentsMargins(0, 0, 0, 0)
-        self._btn_merge_apply = QPushButton("Übernehmen")
-        self._btn_merge_apply.setToolTip(
-            "Schreibt eine gemeinsame Aufzeichnung und öffnet sie als Arbeitswolke.\n"
-            "Sie lässt sich danach als Ganzes einfärben und exportieren.")
-        self._btn_merge_apply.clicked.connect(self._on_merge_apply)
-        self._btn_merge_drop = QPushButton("Verwerfen")
-        self._btn_merge_drop.clicked.connect(self._on_merge_discard)
+        self._btn_merge_apply = self._befehlsknopf("merge_apply")
+        self._btn_merge_drop = self._befehlsknopf("merge_reset")
         hl2.addWidget(self._btn_merge_apply)
         hl2.addWidget(self._btn_merge_drop)
         form.addRow(row2)
@@ -243,6 +226,7 @@ class ZusammenfuehrenMixin:
                   f"gehört erst nach 'Übernehmen' zur Karte. Ausblenden über "
                   f"Ansicht → Zweiten Flug anzeigen.")
         self._sync_preview_action()
+        self._update_enabled()
 
     def _on_merge_auto(self) -> None:
         self._on_merge_align("auto")
@@ -306,6 +290,7 @@ class ZusammenfuehrenMixin:
         self._merge_reset_state()
         self._sync_preview_action()
         self._log("Zweiter Flug verworfen.")
+        self._update_enabled()
 
     def _on_merge_apply(self) -> None:
         if self._merge_rec is None or self._rec is None or self._project is None:

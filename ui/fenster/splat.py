@@ -14,8 +14,7 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QSpinBox,
-    QWidget,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QSpinBox, QWidget,
 )
 
 from core.gemeinsam import fmt_int as _fmt_int
@@ -49,8 +48,7 @@ class SplatMixin:
         self._lbl_splat = QLabel("GPU noch nicht geprüft.")
         self._lbl_splat.setWordWrap(True)
         form.addRow(self._lbl_splat)
-        self._btn_splat_pruefen = QPushButton("GPU und Interpreter prüfen")
-        self._btn_splat_pruefen.clicked.connect(self._on_splat_pruefen)
+        self._btn_splat_pruefen = self._befehlsknopf("splat_pruefen")
         form.addRow(self._btn_splat_pruefen)
 
         self._combo_splat_raster = _compact_combo(QComboBox())
@@ -113,8 +111,7 @@ class SplatMixin:
             "Palette — die skaliert die Kamera je Bild selbst.")
         self._chk_splat_thermal.stateChanged.connect(self._on_setting_changed)
         form.addRow(self._chk_splat_thermal)
-        self._btn_splat_maeander = QPushButton("Mäander per Splat einfärben")
-        self._btn_splat_maeander.clicked.connect(self._on_splat_maeander)
+        self._btn_splat_maeander = self._befehlsknopf("splat_meander")
         form.addRow(self._btn_splat_maeander)
 
         form.addRow(QLabel("<b>360°-Kamera an Bord</b>"))
@@ -131,18 +128,10 @@ class SplatMixin:
         self._spin_splat_schritte_onboard.setSingleStep(1000)
         self._spin_splat_schritte_onboard.setValue(15000)
         form.addRow("Schritte:", self._spin_splat_schritte_onboard)
-        self._btn_splat_onboard = QPushButton("Onboard per Splat einfärben")
-        self._btn_splat_onboard.setToolTip(
-            "Nimmt Extrinsik, Helligkeitsfenster und Himmelssaum aus Abschnitt 3.")
-        self._btn_splat_onboard.clicked.connect(self._on_splat_onboard)
+        self._btn_splat_onboard = self._befehlsknopf("splat_onboard")
         form.addRow(self._btn_splat_onboard)
         form.addRow(QLabel("<b>Beide gemeinsam</b>"))
-        self._btn_splat_gemeinsam = QPushButton("Onboard + Mäander in einem Splat")
-        self._btn_splat_gemeinsam.setToolTip(
-            "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\n"
-            "bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\n"
-            "Liegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.")
-        self._btn_splat_gemeinsam.clicked.connect(self._on_splat_gemeinsam)
+        self._btn_splat_gemeinsam = self._befehlsknopf("splat_gemeinsam")
         form.addRow(self._btn_splat_gemeinsam)
         for sp in (self._spin_splat_anker, self._spin_splat_schritte,
                    self._spin_splat_frames, self._spin_splat_schritte_onboard):

@@ -448,9 +448,29 @@ class Sitzung:
     def wartend(self) -> int:
         return len(self._schlange)
 
+    def _rviz_abwarten(self) -> None:
+        """Wartet auf den eigenen RViz-Arbeiter des Fensters, falls einer läuft.
+
+        Beenden und Wiederholen laufen (ab dem Umbau) in einem echten Thread
+        neben dem Rekorder. Ohne Warten hinge die Aufzeichnung davon ab, wie
+        weit er gerade ist; so ist er durch und seine Fertig-Meldung zugestellt,
+        bevor der nächste Job läuft und bevor der Fall endet.
+        """
+        from PyQt5.QtWidgets import QApplication
+        f = self.fenster
+        arbeiter = getattr(f, "_rviz_worker", None)
+        if arbeiter is None:
+            return
+        arbeiter.wait(30000)
+        for _ in range(100):
+            QApplication.processEvents()
+            if getattr(f, "_rviz_worker", None) is not arbeiter:
+                break
+
     def laufe(self, hoechstens: int = 100) -> None:
         """Fährt die wartenden Jobs samt Folge-Arbeitern, bis keiner mehr wartet."""
         f = self.fenster
+        self._rviz_abwarten()
         while self._schlange:
             hoechstens -= 1
             if hoechstens < 0:
@@ -688,6 +708,7 @@ class Sitzung:
 
     def abschluss(self) -> dict:
         self.laufe()
+        self._rviz_abwarten()
         for art, schlange in sorted(self.dialoge._antworten.items()):
             if schlange:
                 self.ereignis("antworten übrig", art, len(schlange))
