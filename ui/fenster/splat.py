@@ -14,14 +14,25 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QMessageBox,
-    QPushButton, QSpinBox, QWidget,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QLabel, QPushButton, QSpinBox,
+    QWidget,
 )
 
 from core.gemeinsam import fmt_int as _fmt_int
 from core.project import Project
 
 from ui.bausteine import _compact_combo, _wrappable
+
+
+def _splat_anker(welt, cfg, progress_cb, cancel, log_cb, von, bis) -> dict:
+    """Anker auf der Karte setzen, Fortschritt von ``von`` bis ``bis``; mit Logzeile."""
+    from core import splat as splat_mod
+    ak = splat_mod.anker(welt, cfg["raster"], cfg["max_anker"],
+                         progress=lambda f, m: progress_cb(von + (bis - von) * f, m),
+                         cancel=lambda: cancel.is_set(), log=log_cb)
+    log_cb(f"Splat-Anker: {_fmt_int(len(ak['pos']))} Gaussians, Raster "
+           f"{ak['voxel'] * 100:.1f} cm.")
+    return ak
 
 
 class SplatMixin:
@@ -170,124 +181,46 @@ class SplatMixin:
 
         self._start_worker("Prüfe GPU und Splat-Interpreter …", job, fertig)
 
-    @staticmethod
-    def _ebene_passt(ordner: str, **soll) -> bool:
-        """Gehoert eine gespeicherte Ebene zu dieser Lage? Vergleicht Werte der meta.json."""
-        try:
-            with open(os.path.join(ordner, "meta.json"), encoding="utf-8") as fh:
-                meta = json.load(fh)
-        except (OSError, ValueError):
-            return False
-        for key, wert in soll.items():
-            ist = meta.get(key)
-            if wert is None or ist is None:
-                if wert is not ist:
-                    return False
-                continue
-            if isinstance(wert, dict):
-                if not all(np.allclose(np.asarray(ist.get(k), float), np.asarray(wert[k], float),
-                                       atol=1e-6) for k in ("M", "v")):
-                    return False
-            elif not np.allclose(np.asarray(ist, float), np.asarray(wert, float), atol=1e-6):
-                return False
-        return True
-
-    @staticmethod
-    def _splat_lauf(py, ordner, cfg, progress_cb, cancel, log_cb, von, bis, alle) -> dict:
-        from core import splat as splat_mod
-        erg = splat_mod.trainieren(
-            py, ordner, progress=lambda f, m: progress_cb(von + (bis - von) * f, m),
-            cancel=lambda: cancel.is_set(), log=log_cb, alle_bilder=alle)
-        p = erg["bericht"].get("posen") or {}
-        if cfg["param"]["posen"] and p:
-            log_cb(f"Splat-Posen nachgeführt: Drehung Median {p['dreh_grad_median']:.3f}° "
-                   f"(max {p['dreh_grad_max']:.3f}°), Weg Median "
-                   f"{p['weg_m_median'] * 100:.1f} cm (max {p['weg_m_max'] * 100:.1f} cm).")
-        if erg["pruefung"]:
-            psnr = np.mean([e["psnr_angepasst"] for e in erg["pruefung"]])
-            log_cb(f"Splat an {len(erg['pruefung'])} Prüfbildern gerendert: "
-                   f"PSNR {psnr:.1f} dB nach Belichtungsangleich.")
-        return erg
-
-    @staticmethod
-    def _splat_gegenprobe(ordner, ak, welt, pf, direkt_w, temp, cancel, log_cb) -> dict:
-        """Splat und direkte Projektion an den Pruefbildern messen."""
-        from core import splat as splat_mod
-        idx = splat_mod.probe(ak)
-        P = welt[idx]
-        nrm = ak["normal"][ak["index"][idx]]
-        if temp:
-            s_w, einheit = pf["temperatur"][idx][:, None], "°C"
-        else:
-            s_w, einheit = pf["rgb"][idx], "(0–255)"
-        werte = {"splat": (s_w, pf["maske"][idx]), "direkt": direkt_w(idx, P, nrm)}
-        stats = splat_mod.vergleich(ordner, ak, P, nrm, werte,
-                                    cancel=lambda: cancel.is_set())
-        log_cb(splat_mod.urteil(stats, "splat", "direkt", einheit))
-        return stats
-
     def _on_splat_maeander(self) -> None:
-        if not self._meander_dir or self._world is None or self._project is None:
-            QMessageBox.information(self, "Gaussian Splat",
-                                    "Erst einen Flug öffnen und einen Mäanderflug wählen.")
+        kontext = self._maeander_kontext(
+            "Gaussian Splat", "Erst einen Flug öffnen und einen Mäanderflug wählen.")
+        if kontext is None:
             return
-        if not self._meander_ask_colmap():
-            return
-        self._meander_apply_manual()
-        pipe = self._meander_pipe
-        args = self._meander_args()
-        bauen, bereit = self._meander_build, self._meander_bereit
-        lauf, gegenprobe = self._splat_lauf, self._splat_gegenprobe
         welt, proj = self._world, self._project
-        th_zuschlag = self._thermal_zuschlag()
-        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
-                           thermal_faktor=self._faktor("thermal"))
         thermal = bool(self._chk_splat_thermal.isChecked())
         cfg = self._splat_cfg(int(self._spin_splat_schritte.value()))
 
         def job(progress_cb, cancel, log_cb):
+            from core import ebenen as ebenen_mod
             from core import meander as meander_mod
-            from core import optik as optik_mod
             from core import sichtbar as sichtbar_mod
             from core import splat as splat_mod
-            from core import temperatur as temperatur_mod
-            py, info = splat_mod.find_splat_python()
-            if splat_mod.hinweis(info):
-                raise RuntimeError(splat_mod.hinweis(info))
-            p, th, opt = bereit(pipe, args, bauen, th_zuschlag, optik_jetzt,
-                                progress_cb, cancel, log_cb, 0.0, 0.05)
-            rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
+            py, _info = splat_mod.interpreter()
+            p, th, opt = meander_mod.bereit_machen(
+                kontext["pipe"], kontext["args"], kontext["th_zuschlag"],
+                kontext["optik_jetzt"], progress_cb, cancel, log_cb, 0.0, 0.05)
             korr = getattr(p, "s360_korrektur", None)
-            yaw = float(np.degrees(p.yaw))
-            A, b = meander_mod.lage_affine(p, yaw, p.t)
-            ak = splat_mod.anker(welt, cfg["raster"], cfg["max_anker"],
-                                 progress=lambda f, m: progress_cb(0.05 + 0.05 * f, m),
-                                 cancel=lambda: cancel.is_set(), log=log_cb)
-            log_cb(f"Splat-Anker: {_fmt_int(len(ak['pos']))} Gaussians, Raster "
-                   f"{ak['voxel'] * 100:.1f} cm.")
+            ak = _splat_anker(welt, cfg, progress_cb, cancel, log_cb, 0.05, 0.1)
+            k = meander_mod.kameras(p, opt, th, thermal=thermal)
             # (Ebene, Kameras, Bildordner, A, b, Temperatur, Lage fuer die meta.json)
-            aufgaben = [("meander_splat", optik_mod.rgb_cams(p, rf),
-                         p._p("images"), A, b, None,
-                         {"yaw_deg": yaw, "t": list(meander_mod.as_t3(p.t)),
-                          "rgb_faktor": rf, "feinausrichtung": korr})]
+            aufgaben = [("meander_splat", k["rgb"], p._p("images"), k["A"], k["b"], None,
+                         {"yaw_deg": k["yaw_deg"], "t": list(meander_mod.as_t3(p.t)),
+                          "rgb_faktor": k["rgb_faktor"], "feinausrichtung": korr})]
             if thermal:
-                th_cams = optik_mod.thermal_cams(p, opt.get("thermal"), tf, rf)
-                tq = temperatur_mod.quelle(p)
-                if th_cams is None or tq is None:
+                if k["thermal"] is None or k["temperatur"] is None:
                     log_cb("Splat Thermal übersprungen: " + (
-                        "keine Thermaloptik." if th_cams is None else
+                        "keine Thermaloptik." if k["thermal"] is None else
                         "die Thermalbilder tragen keine Rohwerte."))
                 else:
-                    yaw_th, t_th = meander_mod.thermal_lage(yaw, p.t, th)
-                    A_th, b_th = meander_mod.lage_affine(p, yaw_th, t_th)
-                    aufgaben.append(("meander_thermal_splat", th_cams,
-                                     p._p("thermal"), A_th, b_th, tq,
-                                     {"yaw_deg": yaw_th, "thermal_faktor": tf,
+                    aufgaben.append(("meander_thermal_splat", k["thermal"],
+                                     p._p("thermal"), k["A_th"], k["b_th"], k["temperatur"],
+                                     {"yaw_deg": k["yaw_th"],
+                                      "thermal_faktor": k["thermal_faktor"],
                                       "feinausrichtung": korr}))
             ergebnis = {"pipe": p, "ebenen": {}}
             spanne = 0.9 / len(aufgaben)
-            for k, (ziel, cams, bilder, A_, b_, tq, soll) in enumerate(aufgaben):
-                von = 0.1 + k * spanne
+            for i, (ziel, cams, bilder, A_, b_, tq, soll) in enumerate(aufgaben):
+                von = 0.1 + i * spanne
                 temp = tq is not None
                 ordner = os.path.join(proj.dir, splat_mod.ORDNER, ziel)
                 splat_mod.datensatz_maeander(
@@ -295,17 +228,15 @@ class SplatMixin:
                     halte_jedes=8 if cfg["pruefen"] else 0, param=cfg["param"],
                     progress=lambda f, m: progress_cb(von + 0.1 * spanne * f, m),
                     cancel=lambda: cancel.is_set(), log=log_cb)
-                stats = None
-                if cfg["pruefen"]:
-                    lauf(py, ordner, cfg, progress_cb, cancel, log_cb,
-                         von + 0.1 * spanne, von + 0.45 * spanne, False)
+
+                def pruefen(_erg, ordner=ordner, cams=cams, bilder=bilder, A_=A_, b_=b_,
+                            tq=tq, temp=temp, von=von):
                     pf = splat_mod.punkt_farben(ordner, len(welt))
                     weg = splat_mod.pruef_namen(ordner)
                     progress_cb(von + 0.45 * spanne, "Gegenprobe: direkte Projektion ohne "
                                                      "die Prüfbilder …")
 
-                    def direkt_w(idx, P, nrm, cams=cams, bilder=bilder, A_=A_, b_=b_,
-                                 tq=tq, temp=temp, weg=weg):
+                    def direkt_w(idx, P, nrm):
                         # Tiefenkarte aus allen Ankern: aus der Probe allein
                         # entstuende keine Oberflaeche, und die direkte
                         # Projektion faerbte auch verdeckte Punkte — die
@@ -318,22 +249,20 @@ class SplatMixin:
                             return e[2][:, None], e[1] & np.isfinite(e[2])
                         return e[0], e[1]
 
-                    stats = gegenprobe(ordner, ak, welt, pf, direkt_w, temp, cancel, log_cb)
-                    lauf(py, ordner, cfg, progress_cb, cancel, log_cb,
-                         von + 0.6 * spanne, von + 0.97 * spanne, True)
-                else:
-                    lauf(py, ordner, cfg, progress_cb, cancel, log_cb,
-                         von + 0.1 * spanne, von + 0.97 * spanne, False)
+                    return splat_mod.gegenprobe(ordner, ak, welt, pf, direkt_w, temp,
+                                                cancel, log_cb)
+
+                erg, stats = splat_mod.trainingsfolge(
+                    py, ordner, cfg, (von + 0.1 * spanne, von + 0.45 * spanne,
+                                      von + 0.6 * spanne, von + 0.97 * spanne),
+                    pruefen, progress_cb, cancel, log_cb)
                 pf = splat_mod.punkt_farben(ordner, len(welt))
                 maske = pf["maske"]
-                with open(os.path.join(ordner, "bericht.json"), encoding="utf-8") as fh:
-                    bericht = json.load(fh)
-                meander_mod.save_layer(
+                ebenen_mod.speichern(
                     proj.layer_dir(ziel), pf["rgb"], maske,
                     dict(soll, quelle=ziel, flug=p.photo_dir, anteil=float(maske.mean()),
                          temperatur=temp, gegenprobe=stats,
-                         splat={"anker": int(len(ak["pos"])), "raster_m": ak["voxel"],
-                                **cfg["param"], "posen": bericht.get("posen")}),
+                         splat=splat_mod.splat_meta(ak, cfg, erg["bericht"].get("posen"))),
                     temperatur=pf.get("temperatur"))
                 ergebnis["ebenen"][ziel] = float(maske.mean())
             progress_cb(1.0, "Splat-Einfärbung fertig")
@@ -346,28 +275,20 @@ class SplatMixin:
         if self._rec is None or self._bag is None or self._project is None \
                 or self._world is None or not self._calib:
             return
-        T = self._extrinsic_from_spins()
+        kontext = self._onboard_kontext()
+        T, teile, masken = kontext["T"], kontext["teile"], kontext["masken"]
         rec, calib, proj, welt = self._rec, self._calib, self._project, self._world
-        teile = list(self._parts) if self._parts else [(self._bag, 0, int(rec.n_scans))]
-        masken = {"bmin": int(self._sld_bmin.value()), "bmax": int(self._sld_bmax.value()),
-                  "sky_grow": int(self._spin_sky.value())}
         frames = int(self._spin_splat_frames.value())
         cfg = self._splat_cfg(int(self._spin_splat_schritte_onboard.value()))
         paar = self._layers.get("onboard")
-        lauf, gegenprobe, passt = self._splat_lauf, self._splat_gegenprobe, self._ebene_passt
 
         def job(progress_cb, cancel, log_cb):
-            from core import meander as meander_mod
+            from core import ebenen as ebenen_mod
             from core import splat as splat_mod
-            py, info = splat_mod.find_splat_python()
-            if splat_mod.hinweis(info):
-                raise RuntimeError(splat_mod.hinweis(info))
-            ak = splat_mod.anker(welt, cfg["raster"], cfg["max_anker"],
-                                 progress=lambda f, m: progress_cb(0.08 * f, m),
-                                 cancel=lambda: cancel.is_set(), log=log_cb)
-            log_cb(f"Splat-Anker: {_fmt_int(len(ak['pos']))} Gaussians, Raster "
-                   f"{ak['voxel'] * 100:.1f} cm.")
-            direkt = paar if paar is not None and passt(proj.colors_dir(), extrinsic=T) else None
+            py, _info = splat_mod.interpreter()
+            ak = _splat_anker(welt, cfg, progress_cb, cancel, log_cb, 0.0, 0.08)
+            direkt = paar if paar is not None and ebenen_mod.passt(
+                proj.layer_dir("onboard"), extrinsic=T) else None
             if direkt is None and cfg["pruefen"]:
                 log_cb("Keine direkte Onboard-Einfärbung mit dieser Extrinsik — ohne "
                        "Gegenprobe.")
@@ -379,77 +300,58 @@ class SplatMixin:
                 cancel=lambda: cancel.is_set(), log=log_cb, **masken)
             log_cb(f"Onboard-Splat-Datensatz: {d['ansichten']} Ansichten aus {d['frames']} "
                    f"Frames, im Mittel {d['abdeckung'] * 100:.0f} % der Pixel brauchbar.")
-            stats = None
-            if cfg["pruefen"]:
-                lauf(py, ordner, cfg, progress_cb, cancel, log_cb, 0.25, 0.55, False)
-                if direkt is not None:
-                    pf = splat_mod.punkt_farben(ordner, len(welt))
-                    stats = gegenprobe(ordner, ak, welt, pf,
-                                       lambda idx, P, nrm: (direkt[0][idx], direkt[1][idx]),
-                                       False, cancel, log_cb)
-                    log_cb("Vorsicht beim Onboard-Vergleich: die direkte Einfärbung hat die "
-                           "Prüfframes gekannt, das Splat nicht — die Probe begünstigt die "
-                           "direkte Projektion.")
-                lauf(py, ordner, cfg, progress_cb, cancel, log_cb, 0.6, 0.97, True)
-            else:
-                lauf(py, ordner, cfg, progress_cb, cancel, log_cb, 0.25, 0.97, False)
+
+            def pruefen(_erg):
+                if direkt is None:
+                    return None
+                pf = splat_mod.punkt_farben(ordner, len(welt))
+                stats = splat_mod.gegenprobe(
+                    ordner, ak, welt, pf,
+                    lambda idx, P, nrm: (direkt[0][idx], direkt[1][idx]),
+                    False, cancel, log_cb)
+                log_cb("Vorsicht beim Onboard-Vergleich: die direkte Einfärbung hat die "
+                       "Prüfframes gekannt, das Splat nicht — die Probe begünstigt die "
+                       "direkte Projektion.")
+                return stats
+
+            erg, stats = splat_mod.trainingsfolge(py, ordner, cfg, (0.25, 0.55, 0.6, 0.97),
+                                                  pruefen, progress_cb, cancel, log_cb)
             pf = splat_mod.punkt_farben(ordner, len(welt))
             maske = pf["maske"]
-            with open(os.path.join(ordner, "bericht.json"), encoding="utf-8") as fh:
-                bericht = json.load(fh)
-            meander_mod.save_layer(
+            ebenen_mod.speichern(
                 proj.layer_dir("onboard_splat"), pf["rgb"], maske,
                 {"quelle": "onboard_splat", "extrinsic": np.asarray(T).tolist(),
                  "calib_json": calib, "anteil": float(maske.mean()), "frames": d["frames"],
                  "ansichten": d["ansichten"], "gegenprobe": stats,
-                 "splat": {"anker": int(len(ak["pos"])), "raster_m": ak["voxel"],
-                           **cfg["param"], "posen": bericht.get("posen")}, **masken})
+                 "splat": splat_mod.splat_meta(ak, cfg, erg["bericht"].get("posen")),
+                 **masken})
             progress_cb(1.0, "Splat-Einfärbung fertig")
             return {"pipe": None, "ebenen": {"onboard_splat": float(maske.mean())}}
 
         self._start_worker("Gaussian Splat der 360°-Kamera läuft …", job, self._on_splat_done)
 
     def _on_splat_gemeinsam(self) -> None:
-        if not self._meander_dir or self._world is None or self._project is None \
-                or self._rec is None or self._bag is None or not self._calib:
-            QMessageBox.information(self, "Gaussian Splat",
-                                    "Erst einen Flug mit Bag öffnen und einen Mäanderflug wählen.")
+        kontext = self._maeander_kontext(
+            "Gaussian Splat", "Erst einen Flug mit Bag öffnen und einen Mäanderflug wählen.",
+            zusatz_ok=self._rec is not None and self._bag is not None and bool(self._calib))
+        if kontext is None:
             return
-        if not self._meander_ask_colmap():
-            return
-        self._meander_apply_manual()
-        pipe = self._meander_pipe
-        args = self._meander_args()
-        bauen, bereit, lauf = self._meander_build, self._meander_bereit, self._splat_lauf
         welt, proj, rec, calib = self._world, self._project, self._rec, self._calib
-        th_zuschlag = self._thermal_zuschlag()
-        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
-                           thermal_faktor=self._faktor("thermal"))
-        T = self._extrinsic_from_spins()
-        teile = list(self._parts) if self._parts else [(self._bag, 0, int(rec.n_scans))]
-        masken = {"bmin": int(self._sld_bmin.value()), "bmax": int(self._sld_bmax.value()),
-                  "sky_grow": int(self._spin_sky.value())}
+        onboard = self._onboard_kontext()
+        T, teile, masken = onboard["T"], onboard["teile"], onboard["masken"]
         frames = int(self._spin_splat_frames.value())
         cfg = self._splat_cfg(int(self._spin_splat_schritte.value())
                               + int(self._spin_splat_schritte_onboard.value()))
 
         def job(progress_cb, cancel, log_cb):
+            from core import ebenen as ebenen_mod
             from core import meander as meander_mod
-            from core import optik as optik_mod
             from core import splat as splat_mod
-            py, info = splat_mod.find_splat_python()
-            if splat_mod.hinweis(info):
-                raise RuntimeError(splat_mod.hinweis(info))
-            p, _th, opt = bereit(pipe, args, bauen, th_zuschlag, optik_jetzt,
-                                 progress_cb, cancel, log_cb, 0.0, 0.05)
-            rf = float(opt["rgb_faktor"])
-            yaw = float(np.degrees(p.yaw))
-            A, b = meander_mod.lage_affine(p, yaw, p.t)
-            ak = splat_mod.anker(welt, cfg["raster"], cfg["max_anker"],
-                                 progress=lambda f, m: progress_cb(0.05 + 0.05 * f, m),
-                                 cancel=lambda: cancel.is_set(), log=log_cb)
-            log_cb(f"Splat-Anker: {_fmt_int(len(ak['pos']))} Gaussians, Raster "
-                   f"{ak['voxel'] * 100:.1f} cm.")
+            py, _info = splat_mod.interpreter()
+            p, th, opt = meander_mod.bereit_machen(
+                kontext["pipe"], kontext["args"], kontext["th_zuschlag"],
+                kontext["optik_jetzt"], progress_cb, cancel, log_cb, 0.0, 0.05)
+            ak = _splat_anker(welt, cfg, progress_cb, cancel, log_cb, 0.05, 0.1)
             # Die Abbildung aus der Fusion ohne Splat ist ein guter Start fuer
             # die Farbmatrix der Onboard-Bilder
             from core import fusion as fusion_mod
@@ -470,11 +372,12 @@ class SplatMixin:
             except (OSError, ValueError, KeyError):
                 log_cb("Keine Fusion ohne Splat vorhanden — die Farbmatrix der "
                        "Onboard-Bilder startet bei der Einheit.")
+            k = meander_mod.kameras(p, opt, th, thermal=False)
             ordner = os.path.join(proj.dir, splat_mod.ORDNER, "fusion_splat")
             d = splat_mod.datensatz_gemeinsam(
                 ordner, ak, welt,
-                maeander={"cams": optik_mod.rgb_cams(p, rf), "bild_ordner": p._p("images"),
-                          "A": A, "b": b, "halte_jedes": 8 if cfg["pruefen"] else 0},
+                maeander={"cams": k["rgb"], "bild_ordner": p._p("images"),
+                          "A": k["A"], "b": k["b"], "halte_jedes": 8 if cfg["pruefen"] else 0},
                 onboard=dict({"rec": rec, "teile": teile, "calib_json": calib,
                               "T_imu_cam0": T, "max_bilder": frames,
                               "halte_jedes": 10 if cfg["pruefen"] else 0}, **masken),
@@ -491,12 +394,8 @@ class SplatMixin:
                     if e:
                         log_cb(f"Prüfbilder {h}: PSNR {np.mean(e):.1f} dB ({len(e)} Bilder).")
 
-            if cfg["pruefen"]:
-                je_herkunft(lauf(py, ordner, cfg, progress_cb, cancel, log_cb,
-                                 0.3, 0.6, False))
-                erg = lauf(py, ordner, cfg, progress_cb, cancel, log_cb, 0.62, 0.97, True)
-            else:
-                erg = lauf(py, ordner, cfg, progress_cb, cancel, log_cb, 0.3, 0.97, False)
+            erg, _ = splat_mod.trainingsfolge(py, ordner, cfg, (0.3, 0.6, 0.62, 0.97),
+                                              je_herkunft, progress_cb, cancel, log_cb)
             bf = erg["bericht"].get("belichtung_frei")
             if bf:
                 log_cb("Gelernte mittlere Farbmatrix Onboard → Mäander: diag "
@@ -505,16 +404,15 @@ class SplatMixin:
                        + " (0–255).")
             pf = splat_mod.punkt_farben(ordner, len(welt))
             maske = pf["maske"]
-            meander_mod.save_layer(
+            ebenen_mod.speichern(
                 proj.layer_dir("fusion_splat"), pf["rgb"], maske,
-                {"quelle": "fusion_splat", "flug": p.photo_dir, "yaw_deg": yaw,
-                 "t": list(meander_mod.as_t3(p.t)), "rgb_faktor": rf,
+                {"quelle": "fusion_splat", "flug": p.photo_dir, "yaw_deg": k["yaw_deg"],
+                 "t": list(meander_mod.as_t3(p.t)), "rgb_faktor": k["rgb_faktor"],
                  "extrinsic": np.asarray(T).tolist(), "calib_json": calib,
                  "anteil": float(maske.mean()), "maeander_bilder": d["maeander"],
                  "onboard_ansichten": d["onboard"], "frames": d["frames"],
                  "startabbildung": d["startabbildung"], "belichtung_onboard": bf,
-                 "splat": {"anker": int(len(ak["pos"])), "raster_m": ak["voxel"],
-                           **cfg["param"], "posen": erg["bericht"].get("posen")},
+                 "splat": splat_mod.splat_meta(ak, cfg, erg["bericht"].get("posen")),
                  **masken})
             progress_cb(1.0, "Gemeinsames Splat fertig")
             return {"pipe": p, "ebenen": {"fusion_splat": float(maske.mean())}}
@@ -524,9 +422,8 @@ class SplatMixin:
 
     def _fusion_quellen(self) -> tuple | None:
         """(Onboard-Ebene, Maeander-Ebene) fuer die Fusion; Splat vor direkt."""
-        onb = next((k for k in ("onboard_splat", "onboard") if k in self._layers), None)
-        mea = next((k for k in ("meander_splat", "meander_rgb") if k in self._layers), None)
-        return (onb, mea) if onb and mea else None
+        from core import fusion as fusion_mod
+        return fusion_mod.quellen(self._layers)
 
     def _on_fusion(self) -> None:
         quellen = self._fusion_quellen()
@@ -537,8 +434,8 @@ class SplatMixin:
         welt, proj = self._world, self._project
 
         def job(progress_cb, cancel, log_cb):
+            from core import ebenen as ebenen_mod
             from core import fusion as fusion_mod
-            from core import meander as meander_mod
             from core import sichtbar as sichtbar_mod
             log_cb(f"Fusion: '{k_onb}' wird an '{k_mea}' angeglichen.")
             normalen = sichtbar_mod.normalen(
@@ -555,7 +452,7 @@ class SplatMixin:
                 log_cb(f"WARNUNG: {b['unplausibel']}. Meist zeigen beide Flüge an vielen "
                        f"Stellen Verschiedenes — umgeparkte Autos, Dächer, die an Bord nur "
                        f"von innen zu sehen sind. Dann hilft keine Farbabbildung.")
-            meander_mod.save_layer(
+            ebenen_mod.speichern(
                 proj.layer_dir("fusion"), erg["rgb"], erg["maske"],
                 {"quelle": "fusion", "onboard": k_onb, "maeander": k_mea,
                  "M": erg["M"].tolist(), "t": erg["t"].tolist(), **b})
@@ -570,13 +467,10 @@ class SplatMixin:
             self._meander_pipe = res["pipe"]
             self._meander_lade_thermal()
             self._meander_lade_optik()
-        for key, anteil in res["ebenen"].items():
-            self._log(f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte eingefärbt. "
-                      f"Ungefärbt bleibt, was kein Trainingsbild sichtbar zeigt.")
+        self._ebenen_melden(res["ebenen"],
+                            zusatz=" Ungefärbt bleibt, was kein Trainingsbild sichtbar zeigt.")
         self._reload_layers()
         erste = next(iter(res["ebenen"]), None)
-        if erste is not None and erste in self._layers:
-            idx = self._combo_layer.findData(erste)
-            if idx >= 0:
-                self._combo_layer.setCurrentIndex(idx)
+        if erste is not None:
+            self._ebene_waehlen(erste)
         self._update_enabled()

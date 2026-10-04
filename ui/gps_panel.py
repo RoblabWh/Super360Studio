@@ -19,8 +19,8 @@ except ImportError:  # direkter Skript-Start (Selbsttest): Paketwurzel nachrüst
 
 _DOT_COLORS = {"rot": "#e53935", "gelb": "#fdd835", "gruen": "#43a047",
                "grau": "#757575"}
-_FIX_TYPE_NAMES = {0: "kein GPS", 1: "kein Fix", 2: "2D", 3: "3D", 4: "DGPS",
-                   5: "RTK Float", 6: "RTK Fixed", 7: "statisch", 8: "PPP"}
+#: Kurznamen der fix_type-Werte für das Histogramm
+_FIX_KURZ = {ft: kurz for ft, (kurz, _lang) in georef.FIX_TYPE_TEXT.items()}
 
 
 class _AlignWorker(QThread):
@@ -160,7 +160,7 @@ class GpsPanel(QWidget):
         self._lbl_good.setText(str(quality.n_good))
         if quality.fix_type_hist:
             self._lbl_hist.setText(", ".join(
-                f"{ft} ({_FIX_TYPE_NAMES.get(ft, '?')}): {n}"
+                f"{ft} ({_FIX_KURZ.get(ft, '?')}): {n}"
                 for ft, n in sorted(quality.fix_type_hist.items())))
         else:
             self._lbl_hist.setText("kein GPSRAW vorhanden")

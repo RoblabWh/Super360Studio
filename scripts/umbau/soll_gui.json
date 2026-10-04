@@ -1,0 +1,2866 @@
+{
+ "abschnitte": [
+  {
+   "schluessel": "aufnahme",
+   "titel": "1 · Aufnahme",
+   "offen": true,
+   "zeilen": [
+    {
+     "attribut": "_btn_open",
+     "text": "Rosbag öffnen …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_open_project",
+     "text": "Projekt öffnen …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_info_table",
+     "text": null,
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "karte",
+   "titel": "2 · Karte (FAST-LIO2)",
+   "offen": true,
+   "zeilen": [
+    {
+     "attribut": "_combo_config",
+     "text": "Konfiguration:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_rate",
+     "text": "Abspielrate:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_fastlio",
+     "text": "Karte berechnen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_fastlio",
+     "text": "Noch keine Karte berechnet.",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "extrinsik",
+   "titel": "3 · Kamera-Kalibrierung",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": "_ext_spins[yaw]",
+     "text": "Gier",
+     "unterblock": null
+    },
+    {
+     "attribut": "_ext_spins[pitch]",
+     "text": "Nick",
+     "unterblock": null
+    },
+    {
+     "attribut": "_ext_spins[roll]",
+     "text": "Roll",
+     "unterblock": null
+    },
+    {
+     "attribut": "_ext_spins[x]",
+     "text": "X",
+     "unterblock": null
+    },
+    {
+     "attribut": "_ext_spins[y]",
+     "text": "Y",
+     "unterblock": null
+    },
+    {
+     "attribut": "_ext_spins[z]",
+     "text": "Z",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_autocal",
+     "text": "Automatisch kalibrieren (grob)",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_overlay",
+     "text": "Überlagerung prüfen",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Extrinsik zurücksetzen",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "zusammen",
+   "titel": "4 · Zusammenführen (optional)",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": "_btn_merge_pick",
+     "text": "Zweiten Flug laden …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_merge",
+     "text": "Kein zweiter Flug geladen.",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_merge[x]",
+     "text": "X",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_merge[y]",
+     "text": "Y",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_merge[z]",
+     "text": "Z",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_merge[yaw]",
+     "text": "Gier",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_merge_auto",
+     "text": "Automatisch ausrichten",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_merge_icp",
+     "text": "Nur fein ausrichten (ICP)",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_merge_apply",
+     "text": "Zusammenführen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_merge_drop",
+     "text": "Zweiten Flug verwerfen",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Zweiten Flug (orange) zeigen",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "einfaerbung",
+   "titel": "5 · Einfärbung (360°-Kamera)",
+   "offen": true,
+   "zeilen": [
+    {
+     "attribut": null,
+     "text": "Helligkeit von:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_sld_bmin",
+     "text": null,
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Helligkeit bis:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_sld_bmax",
+     "text": null,
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_kframes",
+     "text": "Frames je Scan:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_sky",
+     "text": "Himmelssaum:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_lens",
+     "text": "Bessere Linse je Frame",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_edge",
+     "text": "Linsenrand ab:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_blue",
+     "text": "Blaulicht filtern",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Blaulicht",
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Farbton von (°):",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_sld_blue_lo",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Farbton bis (°):",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_sld_blue_hi",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": "_lbl_blue_band",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Blau ab Sättigung (%):",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_sld_blue_sat",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Blau ab Helligkeit:",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_sld_blue_val",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Restblau neutralisieren (%):",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_sld_blue_neutral",
+     "text": null,
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_blue_defaults",
+     "text": "Standardwerte",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_blue_preview",
+     "text": "Blaumaske zeigen",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_colorize",
+     "text": "Einfärben",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "maeander",
+   "titel": "6 · Mäander-Einfärbung",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": "_btn_meander_pick",
+     "text": "Mäanderflug wählen …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_meander",
+     "text": "Kein Mäanderflug geladen.",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_thermal",
+     "text": "Thermalbilder mitrechnen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_auto",
+     "text": "Automatisch: ausrichten bis zur Farbe",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_align",
+     "text": "Ausrichten",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_optik",
+     "text": "Optik einmessen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_fein",
+     "text": "Feinausrichten",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_run",
+     "text": "Einfärben",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_sichtbar",
+     "text": "Beim Einfärben Sichtbarkeit prüfen (Wände)",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_meander_fenster",
+     "text": "Im Fenster justieren …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_meander_lage",
+     "text": "Noch kein Mäanderflug gewählt.",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "▸  Hauptpunkt (wirkt beim nächsten Ausrichten)",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
+     "attribut": "_spin_optik[rgb,u]",
+     "text": "rechts",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
+     "attribut": "_spin_optik[rgb,v]",
+     "text": "unten",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
+     "attribut": "_spin_optik[thermal,u]",
+     "text": "rechts",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
+     "attribut": "_spin_optik[thermal,v]",
+     "text": "unten",
+     "unterblock": "maeander.hauptpunkt"
+    }
+   ]
+  },
+  {
+   "schluessel": "splat",
+   "titel": "7 · Gaussian Splat und Fusion",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": null,
+     "text": "Lernt die Farben aus allen Bildern zugleich — auf Gaussians, die auf der Karte sitzen, mit Belichtung je Bild, Verdeckung und nachgeführten Posen. Die Ergebnisse sind eigene Ebenen neben der direkten Einfärbung. Braucht eine NVIDIA-GPU und einen Interpreter mit torch und gsplat.",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_splat",
+     "text": "GPU noch nicht geprüft.",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_splat_pruefen",
+     "text": "GPU und Interpreter prüfen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_combo_splat_raster",
+     "text": "Ankerraster ab:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_splat_anker",
+     "text": "Anker höchstens:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_combo_splat_sh",
+     "text": "Blickabhängigkeit:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_splat_posen",
+     "text": "Posen je Bild nachführen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_splat_pruefen",
+     "text": "Gegenprobe mit zurückgehaltenen Bildern",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Mäanderflug",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_spin_splat_schritte",
+     "text": "Schritte:",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_chk_splat_thermal",
+     "text": "Temperaturen mitlernen",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_splat_maeander",
+     "text": "Mäanderflug per Splat einfärben",
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "360°-Kamera",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_spin_splat_frames",
+     "text": "Frames:",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_spin_splat_schritte_onboard",
+     "text": "Schritte:",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_splat_onboard",
+     "text": "360°-Kamera per Splat einfärben",
+     "unterblock": ""
+    },
+    {
+     "attribut": null,
+     "text": "Beide gemeinsam",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_fusion",
+     "text": "Fusionieren (ohne Splat)",
+     "unterblock": ""
+    },
+    {
+     "attribut": "_btn_splat_gemeinsam",
+     "text": "Beide in einem Splat einfärben",
+     "unterblock": ""
+    }
+   ]
+  },
+  {
+   "schluessel": "mesh",
+   "titel": "8 · Mesh",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": "_spin_mesh_voxel",
+     "text": "Mesh-Raster:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_mesh_depth",
+     "text": "Detail (Tiefe):",
+     "unterblock": null
+    },
+    {
+     "attribut": "_spin_mesh_trim",
+     "text": "Ränder kürzen:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_mesh_hybrid",
+     "text": "Laub als Punkte (Hybrid)",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_mesh_cc",
+     "text": "Mesh in CloudCompare öffnen",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "export",
+   "titel": "9 · Export",
+   "offen": true,
+   "zeilen": [
+    {
+     "attribut": "_btn_export_plypcd",
+     "text": "PLY/PCD speichern …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_export_las",
+     "text": "LAS speichern …",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_georef",
+     "text": "LAS im lokalen System — Georeferenz im Reiter GPS",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_cloud_cc",
+     "text": "Punktwolke in CloudCompare öffnen",
+     "unterblock": null
+    },
+    {
+     "attribut": null,
+     "text": "Projekt exportieren …",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "anzeige",
+   "titel": "Anzeige",
+   "offen": true,
+   "zeilen": [
+    {
+     "attribut": "_chk_only_colored",
+     "text": "Nur eingefärbte Punkte",
+     "unterblock": null
+    },
+    {
+     "attribut": "_combo_voxel",
+     "text": "Anzeige-Voxel:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_combo_bg",
+     "text": "Hintergrund:",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_edl",
+     "text": "Kantenbetonung (EDL)",
+     "unterblock": null
+    },
+    {
+     "attribut": "_chk_path",
+     "text": "Flugbahn zeigen",
+     "unterblock": null
+    }
+   ]
+  },
+  {
+   "schluessel": "wiedergabe",
+   "titel": "Wiedergabe (RViz)",
+   "offen": false,
+   "zeilen": [
+    {
+     "attribut": null,
+     "text": "Spielt den geöffneten Bag in RViz ab.",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_rviz_start",
+     "text": "Starten",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_rviz_stop",
+     "text": "Beenden",
+     "unterblock": null
+    },
+    {
+     "attribut": "_btn_rviz_replay",
+     "text": "Wiederholen",
+     "unterblock": null
+    },
+    {
+     "attribut": "_lbl_rviz",
+     "text": "Gestoppt",
+     "unterblock": null
+    }
+   ]
+  }
+ ],
+ "leiste": [
+  {
+   "attribut": null,
+   "text": "Farbe",
+   "tiefe": 0,
+   "tooltip": "",
+   "typ": "QLabel"
+  },
+  {
+   "attribut": "_cloud_view._farbe",
+   "eintraege": [],
+   "index": -1,
+   "text": null,
+   "tiefe": 0,
+   "tooltip": "Farbmodus der Wolke",
+   "typ": "QComboBox"
+  },
+  {
+   "attribut": null,
+   "text": "Punkte",
+   "tiefe": 0,
+   "tooltip": "",
+   "typ": "QLabel"
+  },
+  {
+   "attribut": "_cloud_view._groesse",
+   "bereich": [
+    2,
+    40
+   ],
+   "schritt": 1,
+   "seitenschritt": 10,
+   "text": null,
+   "tiefe": 0,
+   "tooltip": "Punktgröße in Pixeln, in Viertelschritten",
+   "typ": "QSlider",
+   "wert": 8
+  },
+  {
+   "attribut": "_cloud_view._groesse_lbl",
+   "text": "2",
+   "tiefe": 0,
+   "tooltip": "",
+   "typ": "QLabel"
+  },
+  {
+   "attribut": "_cloud_view._btn_messen",
+   "haken": false,
+   "schaltbar": true,
+   "text": "Messen",
+   "tiefe": 0,
+   "tooltip": "zwei Punkte anklicken (M) — Esc verwirft",
+   "typ": "QPushButton"
+  },
+  {
+   "attribut": "_cloud_view._chk_temp",
+   "gesperrt": true,
+   "haken": true,
+   "schaltbar": true,
+   "text": "Temperatur anzeigen",
+   "tiefe": 0,
+   "tooltip": "Keine Temperaturen: erst mit dem Mäanderflug und „Thermalbilder mitrechnen“ einfärben.",
+   "typ": "QCheckBox"
+  },
+  {
+   "attribut": "_cloud_view._btn_mesh",
+   "haken": false,
+   "schaltbar": true,
+   "text": "Mesh",
+   "tiefe": 0,
+   "tooltip": "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\neinmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\nProjekt gespeichert; Raster und Detail stehen im Abschnitt Mesh.",
+   "typ": "QPushButton"
+  },
+  {
+   "attribut": null,
+   "text": "Ansicht zurücksetzen",
+   "tiefe": 0,
+   "tooltip": "R",
+   "typ": "QPushButton"
+  },
+  {
+   "attribut": null,
+   "gesperrt": true,
+   "stil": "font-style: italic;",
+   "text": "links: drehen · rechts/Umschalt: verschieben · Rad: zoomen",
+   "tiefe": 0,
+   "tooltip": "",
+   "typ": "QLabel"
+  }
+ ],
+ "menue": [
+  {
+   "pfad": "&Datei",
+   "schluessel": "open",
+   "text": "Rosbag öffnen …",
+   "kuerzel": "Ctrl+O",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "open_project",
+   "text": "Projekt aus dem Cache öffnen …",
+   "kuerzel": "Ctrl+Shift+P",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "project_import",
+   "text": "Exportiertes Projekt öffnen …",
+   "kuerzel": "Ctrl+I",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "merge",
+   "text": "Zweiten Flug laden …",
+   "kuerzel": "Ctrl+Shift+O",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "meander",
+   "text": "Mäanderflug wählen …",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "project_export",
+   "text": "Projekt exportieren …",
+   "kuerzel": "Ctrl+Shift+E",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "export_ply",
+   "text": "Punktwolke als PLY/PCD speichern …",
+   "kuerzel": "Ctrl+E",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "export_las",
+   "text": "Punktwolke als LAS speichern …",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "cloud_cc",
+   "text": "Punktwolke in CloudCompare öffnen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "mesh_cc",
+   "text": "Mesh in CloudCompare öffnen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "screenshot",
+   "text": "3D-Ansicht als Bild speichern …",
+   "kuerzel": "Ctrl+P",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Datei",
+   "schluessel": "quit",
+   "text": "Beenden",
+   "kuerzel": "Ctrl+Q",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": "fastlio",
+   "text": "Karte berechnen (FAST-LIO2)",
+   "kuerzel": "F5",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": null,
+   "text": "Kamera-Kalibrierung",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Kamera-Kalibrierung",
+   "schluessel": "autocal",
+   "text": "Automatisch kalibrieren (grob)",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Kamera-Kalibrierung",
+   "schluessel": "overlay",
+   "text": "Überlagerung prüfen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Kamera-Kalibrierung",
+   "schluessel": "extrinsic_reset",
+   "text": "Extrinsik zurücksetzen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": null,
+   "text": "Zusammenführen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Zusammenführen",
+   "schluessel": "merge_auto",
+   "text": "Automatisch ausrichten",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Zusammenführen",
+   "schluessel": "merge_icp",
+   "text": "Nur fein ausrichten (ICP)",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Zusammenführen",
+   "schluessel": "merge_apply",
+   "text": "Zusammenführen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Zusammenführen",
+   "schluessel": "merge_reset",
+   "text": "Zweiten Flug verwerfen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": null,
+   "text": "Einfärbung (360°-Kamera)",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Einfärbung (360°-Kamera)",
+   "schluessel": "colorize",
+   "text": "Einfärben",
+   "kuerzel": "F6",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Einfärbung (360°-Kamera)",
+   "schluessel": "blaumaske",
+   "text": "Blaumaske zeigen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": null,
+   "text": "Mäander-Einfärbung",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_auto",
+   "text": "Automatisch: ausrichten bis zur Farbe",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_align",
+   "text": "Ausrichten",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_optik",
+   "text": "Optik einmessen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_fein",
+   "text": "Feinausrichten",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_fenster",
+   "text": "Im Fenster justieren …",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Mäander-Einfärbung",
+   "schluessel": "meander_run",
+   "text": "Einfärben",
+   "kuerzel": "F7",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf",
+   "schluessel": null,
+   "text": "Gaussian Splat und Fusion",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Gaussian Splat und Fusion",
+   "schluessel": "splat_pruefen",
+   "text": "GPU und Interpreter prüfen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Gaussian Splat und Fusion",
+   "schluessel": "splat_meander",
+   "text": "Mäanderflug per Splat einfärben",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Gaussian Splat und Fusion",
+   "schluessel": "splat_onboard",
+   "text": "360°-Kamera per Splat einfärben",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Gaussian Splat und Fusion",
+   "schluessel": "fusion",
+   "text": "Fusionieren (ohne Splat)",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "A&blauf > Gaussian Splat und Fusion",
+   "schluessel": "splat_gemeinsam",
+   "text": "Beide in einem Splat einfärben",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "menu_farbquelle",
+   "text": "Farbe",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "menu_hintergrund",
+   "text": "Hintergrund",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "menu_tab",
+   "text": "Bereich",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "edl",
+   "text": "Kantenbetonung (EDL)",
+   "kuerzel": "",
+   "schaltbar": true
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "reset_cam",
+   "text": "Ansicht zurücksetzen",
+   "kuerzel": "R",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "cut_reset",
+   "text": "Höhenschnitt aufheben",
+   "kuerzel": "Ctrl+H",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "preview",
+   "text": "Zweiten Flug (orange) zeigen",
+   "kuerzel": "",
+   "schaltbar": true
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "sidebar",
+   "text": "Seitenleiste",
+   "kuerzel": "Ctrl+B",
+   "schaltbar": true
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "expand_all",
+   "text": "Alle Abschnitte aufklappen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Ansicht",
+   "schluessel": "collapse_all",
+   "text": "Alle Abschnitte zuklappen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge",
+   "schluessel": "measure",
+   "text": "Messen",
+   "kuerzel": "M",
+   "schaltbar": true
+  },
+  {
+   "pfad": "&Werkzeuge",
+   "schluessel": "exploration",
+   "text": "Explorationsgrad neu berechnen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge",
+   "schluessel": null,
+   "text": "RViz-Wiedergabe",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge > RViz-Wiedergabe",
+   "schluessel": "rviz_start",
+   "text": "Starten",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge > RViz-Wiedergabe",
+   "schluessel": "rviz_stop",
+   "text": "Beenden",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge > RViz-Wiedergabe",
+   "schluessel": "rviz_replay",
+   "text": "Wiederholen",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Werkzeuge",
+   "schluessel": "settings_reset",
+   "text": "Einstellungen auf Vorgabe",
+   "kuerzel": "",
+   "schaltbar": false
+  },
+  {
+   "pfad": "&Hilfe",
+   "schluessel": "about",
+   "text": "Über Super360 Studio",
+   "kuerzel": "",
+   "schaltbar": false
+  }
+ ],
+ "befehle": {
+  "open": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": "Einen Flug öffnen; er wird zur Arbeitswolke."
+  },
+  "open_project": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": "Ein Projekt aus dem Cache — der einzige Weg zu zusammengeführten Karten."
+  },
+  "project_import": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": "Ein exportiertes Projekt direkt in seinem Ordner öffnen — ohne Kopie,\nohne Rückfrage. Änderungen werden sofort dort gespeichert."
+  },
+  "merge": {
+   "braucht": [
+    "rec"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen."
+  },
+  "meander": {
+   "braucht": [
+    "rec"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden."
+  },
+  "project_export": {
+   "braucht": [
+    "rec"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Alle berechneten Daten in einen Ordner kopieren, den man weiterreichen kann."
+  },
+  "export_ply": {
+   "braucht": [
+    "world"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Die angezeigte Farbebene mitschreiben."
+  },
+  "export_las": {
+   "braucht": [
+    "world"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Georeferenziert, sofern das GPS brauchbar war."
+  },
+  "cloud_cc": {
+   "braucht": [
+    "world"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "mesh_cc": {
+   "braucht": [
+    "world"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen."
+  },
+  "screenshot": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "quit": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "fastlio": {
+   "braucht": [
+    "bag"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "autocal": {
+   "braucht": [
+    "bag",
+    "rec",
+    "calib"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Sucht die Kamera-Extrinsik über die Foto-Konsistenz."
+  },
+  "overlay": {
+   "braucht": [
+    "bag",
+    "rec",
+    "calib"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Pano mit projizierten Lidar-Punkten zur Sichtprüfung."
+  },
+  "extrinsic_reset": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "merge_auto": {
+   "braucht": [
+    "rec",
+    "zweitflug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Globale Suche (FGR über FPFH) plus ICP von grob nach fein.\nDauert je nach Wolkengröße ein bis mehrere Minuten."
+  },
+  "merge_icp": {
+   "braucht": [
+    "rec",
+    "zweitflug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Verfeinert nur die aktuelle Lage — nach einer Handjustage genug."
+  },
+  "merge_apply": {
+   "braucht": [
+    "rec",
+    "zweitflug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Schreibt eine gemeinsame Aufzeichnung und öffnet sie als Arbeitswolke.\nSie lässt sich danach als Ganzes einfärben und exportieren."
+  },
+  "merge_reset": {
+   "braucht": [
+    "rec",
+    "zweitflug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Den dazugeladenen zweiten Flug wieder entfernen."
+  },
+  "colorize": {
+   "braucht": [
+    "bag",
+    "rec",
+    "calib"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "blaumaske": {
+   "braucht": [
+    "bag"
+   ],
+   "frei_bei_busy": true,
+   "tooltip": "Markiert im aktuellen Kamerabild magenta, was als Blaulicht gilt."
+  },
+  "meander_auto": {
+   "braucht": [
+    "rec",
+    "flug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Alles hintereinander: Ausrichten, Optik einmessen, Feinausrichten,\nEinfärben mit Sichtprüfung. Rund sechs Minuten."
+  },
+  "meander_align": {
+   "braucht": [
+    "rec",
+    "flug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Grob per Kreuzkorrelation über den Gierwinkel, fein über den\nHöhenunterschied zum Rastermodell der Wolke. Kein ICP — das würde\nan Gebäudekanten verkippen und die Lotrechte zerstören."
+  },
+  "meander_optik": {
+   "braucht": [
+    "lage"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Höhe über den Laser-Entfernungsmesser der Drohne, RGB-Brennweite\nüber die Farbkonsistenz der Bilder, Thermalkamera (Brennweite,\nVerzeichnung, Schielwinkel) gegen das RGB-Bild desselben Auslösers.\nRund eine Minute. Läuft nach dem ersten Ausrichten von selbst."
+  },
+  "meander_fein": {
+   "braucht": [
+    "lage"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Fotomodell auf die Karte legen: Neigung und Höhe über die\nOberfläche, Versatz in der Ebene über die Kanten. Gegengeprüft über\ndie Farbkonsistenz — was nicht hilft, wird nicht übernommen."
+  },
+  "meander_fenster": {
+   "braucht": [
+    "lage"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Eigenes Fenster: Karte und Flug übereinander, live verschieben,\nmit Farbvorschau. Das Hauptfenster bleibt unberührt."
+  },
+  "meander_run": {
+   "braucht": [
+    "rec",
+    "flug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Punktwolke aus den Bildern eines Kartierungsfluges einfärben."
+  },
+  "splat_pruefen": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "splat_meander": {
+   "braucht": [
+    "rec",
+    "flug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Farben aus allen Bildern des Mäanderfluges zugleich lernen (GPU)."
+  },
+  "splat_onboard": {
+   "braucht": [
+    "bag",
+    "rec",
+    "calib"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU)."
+  },
+  "fusion": {
+   "braucht": [
+    "world",
+    "fusion"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Onboard-Farben an den Mäander angleichen und nach Flächenlage mischen:\nDächer und Boden aus dem Mäander, Fassaden aus der 360°-Kamera."
+  },
+  "splat_gemeinsam": {
+   "braucht": [
+    "bag",
+    "rec",
+    "calib",
+    "flug"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU)."
+  },
+  "edl": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "reset_cam": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "cut_reset": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": "Die volle Höhe wieder zeigen."
+  },
+  "preview": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": "Die Vorschau des dazugeladenen Fluges. Orange heißt: noch nicht\nübernommen — sie gehört noch nicht zur Karte."
+  },
+  "sidebar": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "expand_all": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "collapse_all": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "measure": {
+   "braucht": [
+    "world"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Zwei Klicks in die Wolke: Abstand in Metern."
+  },
+  "exploration": {
+   "braucht": [
+    "bag"
+   ],
+   "frei_bei_busy": false,
+   "tooltip": "Den Wert oben rechts noch einmal aus dem Bag rechnen, am Cache vorbei."
+  },
+  "rviz_start": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "rviz_stop": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "rviz_replay": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": "Leert die RViz-Anzeige und spielt den Bag von vorn ab."
+  },
+  "settings_reset": {
+   "braucht": [],
+   "frei_bei_busy": false,
+   "tooltip": ""
+  },
+  "about": {
+   "braucht": null,
+   "frei_bei_busy": false,
+   "tooltip": ""
+  }
+ },
+ "freigabe_sonder": {
+  "rviz": {
+   "leer": {
+    "offen": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": false,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "bag": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "bag_ohne_kalibrierung": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "karte": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "karte_ohne_bag": {
+    "offen": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": false,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "karte_flug": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "lage": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "lage_thermal": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "zweitflug": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "fusion": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_bag": {
+    "offen": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": false,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_rec": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_world": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_calib": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_flug": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_lage": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_thermal": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_zweitflug": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "ohne_fusion": {
+    "offen": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": true,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": true,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": true,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "beschaeftigt": {
+    "offen": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": false,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   },
+   "beschaeftigt_fest": {
+    "offen": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "RViz offen — Bag durchgelaufen"
+    },
+    "spielend": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": true,
+     "_btn_rviz_replay": true,
+     "rviz_start": false,
+     "rviz_stop": true,
+     "rviz_replay": true,
+     "_lbl_rviz": "Läuft"
+    },
+    "gestoppt": {
+     "_btn_rviz_start": false,
+     "_btn_rviz_stop": false,
+     "_btn_rviz_replay": false,
+     "rviz_start": false,
+     "rviz_stop": false,
+     "rviz_replay": false,
+     "_lbl_rviz": "Gestoppt"
+    }
+   }
+  },
+  "blaumaske": {
+   "leer": {
+    "filter_an": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "bag": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "bag_ohne_kalibrierung": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "karte": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "karte_ohne_bag": {
+    "filter_an": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "karte_flug": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "lage": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "lage_thermal": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "zweitflug": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "fusion": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_bag": {
+    "filter_an": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": false,
+     "_actions[blaumaske]": false,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_rec": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_world": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_calib": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_flug": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_lage": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_thermal": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_zweitflug": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "ohne_fusion": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "beschaeftigt": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   },
+   "beschaeftigt_fest": {
+    "filter_an": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    },
+    "filter_aus": {
+     "_btn_blue_preview": true,
+     "_actions[blaumaske]": true,
+     "_btn_blue_defaults": true,
+     "_lbl_blue_band": true,
+     "_sld_blue_hi": true,
+     "_sld_blue_lo": true,
+     "_sld_blue_neutral": true,
+     "_sld_blue_sat": true,
+     "_sld_blue_val": true
+    }
+   }
+  },
+  "vorschau": {
+   "leer": {
+    "frei": false,
+    "haken": false
+   },
+   "bag": {
+    "frei": false,
+    "haken": false
+   },
+   "bag_ohne_kalibrierung": {
+    "frei": false,
+    "haken": false
+   },
+   "karte": {
+    "frei": false,
+    "haken": false
+   },
+   "karte_ohne_bag": {
+    "frei": false,
+    "haken": false
+   },
+   "karte_flug": {
+    "frei": false,
+    "haken": false
+   },
+   "lage": {
+    "frei": false,
+    "haken": false
+   },
+   "lage_thermal": {
+    "frei": false,
+    "haken": false
+   },
+   "zweitflug": {
+    "frei": true,
+    "haken": true
+   },
+   "fusion": {
+    "frei": false,
+    "haken": false
+   },
+   "ohne_bag": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_rec": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_world": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_calib": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_flug": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_lage": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_thermal": {
+    "frei": true,
+    "haken": true
+   },
+   "ohne_zweitflug": {
+    "frei": false,
+    "haken": false
+   },
+   "ohne_fusion": {
+    "frei": true,
+    "haken": true
+   },
+   "beschaeftigt": {
+    "frei": true,
+    "haken": true
+   },
+   "beschaeftigt_fest": {
+    "frei": true,
+    "haken": true
+   }
+  },
+  "edl": {
+   "frei": {
+    "frei": true,
+    "haken": false
+   },
+   "frei_mit_haken": {
+    "frei": true,
+    "haken": true
+   },
+   "gesperrt": {
+    "frei": false,
+    "haken": false
+   },
+   "verfuegbar": true
+  },
+  "thermal_haken": {
+   "flug_mit_thermal": {
+    "_lbl_meander": "flug_mit_thermal: 2 RGB-Bilder, 1 Thermalbilder",
+    "dialoge": [
+     "QFileDialog.getExistingDirectory"
+    ],
+    "frei": true,
+    "haken": true
+   },
+   "flug_nur_jpg": {
+    "_lbl_meander": "flug_nur_jpg: 2 RGB-Bilder, keine Thermalbilder",
+    "dialoge": [
+     "QFileDialog.getExistingDirectory"
+    ],
+    "frei": false,
+    "haken": false
+   },
+   "flug_ohne_thermal": {
+    "_lbl_meander": "flug_ohne_thermal: 1 RGB-Bilder, keine Thermalbilder",
+    "dialoge": [
+     "QFileDialog.getExistingDirectory"
+    ],
+    "frei": false,
+    "haken": false
+   }
+  }
+ },
+ "entfallen": [
+  "_pbar_fastlio",
+  "_spin_pointsize",
+  "_combo_colormode",
+  "_combo_layer",
+  "_spin_meander",
+  "_spin_meander_th",
+  "_massstab",
+  "_chk_solo"
+ ],
+ "neu": [
+  "_btn_open_project",
+  "_btn_fusion",
+  "_lbl_georef",
+  {
+   "text": "Extrinsik zurücksetzen"
+  },
+  {
+   "text": "Projekt exportieren …"
+  },
+  {
+   "text": "Zweiten Flug (orange) zeigen"
+  }
+ ],
+ "breite_min": 467,
+ "annahmen": {
+  "entscheidung_1": "Mäander-Handjustage nur im Ausrichtfenster (entschieden 2026-10-03, Nachtrag 1): in der Seitenleiste kein Unterblock Handjustage, keine Justage-Regler, kein Solo-Haken; nach dem Sichtbarkeits-Haken stehen 'Im Fenster justieren …' und der Lagetext _lbl_meander_lage als eigene Zeilen, einziger Unterblock ist maeander.hauptpunkt mit _spin_optik; einen Schlüssel maeander.justage gibt es nicht.",
+  "entscheidung_2": "Farbe und Punktgröße nur in der Leiste über der 3D-Ansicht und unter Ansicht ▸ Farbe; _spin_pointsize, _combo_colormode und _combo_layer entfallen.",
+  "entscheidung_3": "Menü Ändern wird durch Ablauf ersetzt.",
+  "entscheidung_4": "Kamera-Kalibrierung (3) steht vor Zusammenführen (4); Fusion hat ihren Knopf _btn_fusion im Abschnitt Gaussian Splat und Fusion.",
+  "quelle": "menue und befehle sind per Import aus ui.menubar (BEFEHLE, baue) erzeugt; Knopftexte der Aktionsknöpfe sind Befehl.knopf bzw. Befehl.text derselben Tabelle. Seitenleiste nach Plan Abschnitt 2 mit Nachtrag 1 und dem GUI-Entwurf; Entscheidung 1 geht dem Entwurf vor.",
+  "unterblock_ohne_schluessel": "unterblock '' steht für einen nicht einklappbaren Unterblock (bausteine.Unterblock ohne Schlüssel): Blaulicht in der Einfärbung, Mäanderflug, 360°-Kamera und Beide gemeinsam im Splat. Der Schnappschuss liest dort den Schlüssel '' (Widget mit key und is_expanded()); in _collect_settings()['sections'] stehen sie nicht.",
+  "hauptpunkt_kopf": "Die Kopfzeile des Unterblocks maeander.hauptpunkt trägt den Pfeil aus ui.collapsible; '▸  ' heißt: beim Start zugeklappt.",
+  "regler_beschriftung": "Beschriftungen der zusammengesetzten Regler ohne Doppelpunkt wie bisher in Zusammenführen und Mäander (Gier, Nick, Roll, X, Y, Z; rechts, unten).",
+  "schieber": "Schieberzeilen (bausteine.schieber): die Beschriftung gehört zur unbenannten Zeile, der Schieber selbst folgt ohne Text.",
+  "statuszeilen": "Texte von Status- und Lagezeilen sind die beim Start ohne Bag und ohne Projekt (_lbl_georef nach B10, _lbl_meander_lage nach B7).",
+  "leiste": "Leiste über der 3D-Ansicht wie in vorher/gui, nur der Mesh-Tooltip nennt den Abschnitt Mesh.",
+  "rviz": "Starten: Rosbag offen, Bag spielt nicht, kein Schritt läuft. Beenden und Wiederholen: RViz offen oder spielend, auch bei laufendem Schritt. Aktionen und Knöpfe gleich (die Knöpfe folgen der Aktion).",
+  "blaumaske": "Blaumaske zeigen folgt der Aktion blaumaske (braucht bag, frei bei laufendem Schritt), unabhängig vom Haken. Die Blaulicht-Regler werden mit dem Unterblock ein- und ausgeblendet statt gesperrt (B6) und sind darum in beiden Hakenstellungen frei; die Sichtbarkeit prüft Teil c nicht.",
+  "vorschau_edl_thermal": "Vorschau des zweiten Fluges, EDL und Thermal-Haken wie in vorher/gui.",
+  "breite_min": "gemessene Breite der Seitenleiste in vorher/gui.",
+  "entfallen": "die acht Attribute aus dem Paket; die Zustandsattribute der Vorschau (_live_optik, _live_pts, _live_gemeckert, _live_timer, _zuschlag_timer) prüft P7 über --vergleiche."
+ },
+ "tooltips": {
+  "aenderungen": [
+   {
+    "vorher": "Bilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
+    "nachher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mäanderflug)"
+   },
+   {
+    "vorher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.",
+    "nachher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Mäanderflug wählen, vormals 865-867)"
+   },
+   {
+    "vorher": "Zweites Rosbag laden und mit dem offenen zusammenführen.",
+    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Zweiten Flug laden)"
+   },
+   {
+    "vorher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.",
+    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Zweiten Flug laden, vormals 1119-1121)"
+   },
+   {
+    "vorher": "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Export)\nund in CloudCompare öffnen.",
+    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mesh in CloudCompare öffnen); dazu nennt der Satz den neuen Abschnitt Mesh"
+   },
+   {
+    "vorher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.",
+    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Mesh in CloudCompare öffnen, vormals 1331-1333)"
+   },
+   {
+    "vorher": "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
+    "nachher": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü 360°-Kamera per Splat einfärben)"
+   },
+   {
+    "vorher": "Nimmt Extrinsik, Helligkeitsfenster und Himmelssaum aus Abschnitt 3.",
+    "nachher": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf, vormals 1096-1097); dazu nennt der Satz die Abschnitte beim Namen (Kamera-Kalibrierung, Einfärbung (360°-Kamera)) statt 'Abschnitt 3'"
+   },
+   {
+    "vorher": "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
+    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Beide in einem Splat einfärben)"
+   },
+   {
+    "vorher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
+    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Beide in einem Splat einfärben, vormals 1102-1105)"
+   },
+   {
+    "vorher": "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\nFarbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit max'\ndurchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.",
+    "nachher": "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\nFarbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit bis'\ndurchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.",
+    "grund": "Beschriftung 'Helligkeit max:' heißt jetzt 'Helligkeit bis:' (vormals 752, B6)"
+   },
+   {
+    "vorher": "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\neinmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\nProjekt gespeichert; Raster und Detail stehen im Abschnitt Export.",
+    "nachher": "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\neinmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\nProjekt gespeichert; Raster und Detail stehen im Abschnitt Mesh.",
+    "grund": "Mesh-Parameter stehen im eigenen Abschnitt Mesh (ui/cloud_view.py:508, B9)"
+   },
+   {
+    "vorher": "Maßstab = Brennweite gegenüber der Rekonstruktion, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders: die Bilder wirken zueinander\nverzerrt. „Optik einmessen“ findet ihn selbst.",
+    "nachher": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.\n„Optik einmessen“ im Hauptfenster findet ihn selbst.",
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (RGB-Maßstab, vormals 961-967); der Hinweis auf „Optik einmessen“ wandert in den Tooltip des RGB-Maßstabs im Ausrichtfenster (B7)"
+   },
+   {
+    "vorher": "Maßstab der Thermalkamera gegenüber ihrer Einmessung, in Prozent.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (Thermal-Maßstab, vormals 961-967); im Ausrichtfenster bleibt 'Brennweite der Thermalkamera gegenüber ihrer Einmessung, in Prozent.'"
+   },
+   {
+    "vorher": "Blendet die volle Karte aus, solange die Vorschau läuft.\n50.000 Stichprobenpunkte gehen in 24 Millionen sonst unter.\nAbschalten zeigt beides übereinander.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste; mit dem Solo-Haken _chk_solo (vormals 973-976) entfällt die Vorschau in der 3D-Ansicht"
+   },
+   {
+    "vorher": "RGB: Zuschlag auf die gefundene Lage; wirkt sofort in der Wolke.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (in _update_enabled gesetzt, vormals 1388-1392)"
+   },
+   {
+    "vorher": "Erst 'Ausrichten' laufen lassen — vorher gibt es keine Lage, auf die sich die Regler beziehen könnten.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (in _update_enabled gesetzt, vormals 1388-1392)"
+   },
+   {
+    "vorher": "Thermal: Zuschlag auf die RGB-Lage; wirkt sofort und zeigt dabei die Thermalvorschau.\nWird RGB verschoben, zieht Thermal mit. Der Wert bleibt im Projekt gespeichert.",
+    "nachher": "Wird RGB verschoben, zieht Thermal mit. Mit „Lage übernehmen“ bleibt der Wert im Projekt gespeichert.",
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (in _update_enabled gesetzt, vormals 1408-1417); der zweite Satz wird Tooltip der Thermal-Gruppe im Ausrichtfenster, wenn es Thermalbilder gibt (B7)"
+   },
+   {
+    "vorher": "Keine Thermalbilder in diesem Lauf — „Thermalbilder mitrechnen“ anhaken und neu ausrichten.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (in _update_enabled gesetzt, vormals 1408-1417); das Ausrichtfenster behält seinen eigenen Satz ohne Thermalbilder"
+   },
+   {
+    "vorher": "Erst 'Ausrichten' laufen lassen.",
+    "nachher": null,
+    "grund": "Entscheidung 1 (B7): die Regler der Handjustage entfallen in der Seitenleiste (in _update_enabled gesetzt, vormals 1408-1417); der Grund fehlender Lage steht an den Befehlen als 'Erst „Ausrichten“ laufen lassen.' (menubar.GRUENDE)"
+   },
+   {
+    "vorher": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.",
+    "nachher": "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\nZu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\num Meter, in jedem Bild anders. In der Seitenansicht liegen die\nFotopunkte dann über der Karte; stimmt er, liegen sie darauf.\n„Optik einmessen“ im Hauptfenster findet ihn selbst.",
+    "grund": "B7 ergänzt den Tooltip des RGB-Maßstabs im Ausrichtfenster (meander_align_window.py:412-416), weil es die Regler der Seitenleiste nicht mehr gibt"
+   },
+   {
+    "vorher": "Erst einen Mäanderflug wählen.",
+    "nachher": "Grob per Kreuzkorrelation über den Gierwinkel, fein über den\nHöhenunterschied zum Rastermodell der Wolke. Kein ICP — das würde\nan Gebäudekanten verkippen und die Lotrechte zerstören.\n\nErst einen Mäanderflug wählen.",
+    "grund": "B2: der dauerhaft überschriebene Knopf-Tooltip (vormals 1381-1382) entfällt; fehlt der Flug, hängt menubar.schalte den Grund unter den Fachtext (nachher: Ausrichten im Zustand karte)"
+   },
+   {
+    "vorher": "Welche Einfärbung gezeigt wird. Angeboten wird, was berechnet ist.",
+    "nachher": null,
+    "grund": "Entscheidung 2 (B11): die Auswahl _combo_layer der Seitenleiste entfällt; die Farbe wählt man in der Leiste über der 3D-Ansicht und unter Ansicht ▸ Farbe"
+   },
+   {
+    "vorher": "keine Einfärbung",
+    "nachher": null,
+    "grund": "Entscheidung 2 (B11): Platzhalter der entfallenden _combo_layer, den Ansicht ▸ Farbquelle spiegelte; Ansicht ▸ Farbe zeigt die Einträge der Farbtabelle, fehlende grau"
+   },
+   {
+    "vorher": "Farbquelle",
+    "nachher": "Farbe",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Untermenü menu_farbquelle heißt Ansicht ▸ Farbe, Entscheidung 2)"
+   },
+   {
+    "vorher": "Ändern",
+    "nachher": "Ablauf",
+    "grund": "Entscheidung 3 (I2, B2): das Menü Ändern wird durch Ablauf ersetzt"
+   },
+   {
+    "vorher": "Ansicht als Bild speichern …",
+    "nachher": "3D-Ansicht als Bild speichern …",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text"
+   },
+   {
+    "vorher": "Einfärben (360°-Kamera)",
+    "nachher": "Einfärben",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Ablauf ▸ Einfärbung (360°-Kamera) ▸ Einfärben)"
+   },
+   {
+    "vorher": "Eye-Dome-Beleuchtung",
+    "nachher": "Kantenbetonung (EDL)",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Kantenbetonung (EDL))"
+   },
+   {
+    "vorher": "Flüge zusammenführen",
+    "nachher": "Schreibt eine gemeinsame Aufzeichnung und öffnet sie als Arbeitswolke.\nSie lässt sich danach als Ganzes einfärben und exportieren.",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text; der Eintrag heißt Zusammenführen und trägt jetzt den Fachtext des Knopfes"
+   },
+   {
+    "vorher": "Kamera zurücksetzen",
+    "nachher": "Ansicht zurücksetzen",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text"
+   },
+   {
+    "vorher": "RViz-Wiedergabe starten",
+    "nachher": "Starten",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Werkzeuge ▸ RViz-Wiedergabe ▸ Starten, B12)"
+   },
+   {
+    "vorher": "RViz-Wiedergabe beenden",
+    "nachher": "Beenden",
+    "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Werkzeuge ▸ RViz-Wiedergabe ▸ Beenden, B12)"
+   }
+  ]
+ }
+}

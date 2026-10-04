@@ -1,6 +1,6 @@
 """Kamera-Kalibrierung (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _loading_ui, _overlay_dialogs.
+Schreibt am Hauptfenster: _loading_ui.
 """
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from PyQt5.QtWidgets import QMessageBox
-
-from ui.bausteine import _ImageDialog
 
 _AUTOCAL_WEAK_SCORE = 0.30
 
@@ -38,13 +36,19 @@ class KalibrierungMixin:
         finally:
             self._loading_ui = False
 
+    def _speichere_extrinsik(self, T: np.ndarray) -> None:
+        """Extrinsik ins Projekt schreiben; ohne Projekt nichts, Fehler nur ins Log."""
+        if self._project is None:
+            return
+        try:
+            self._project.save_extrinsic(T)
+        except RuntimeError as exc:
+            self._log(f"Extrinsik nicht gespeichert: {exc}")
+
     def _on_extrinsic_changed(self, *_a) -> None:
         if self._loading_ui or self._project is None:
             return
-        try:
-            self._project.save_extrinsic(self._extrinsic_from_spins())
-        except RuntimeError as exc:
-            self._log(f"Extrinsik nicht gespeichert: {exc}")
+        self._speichere_extrinsik(self._extrinsic_from_spins())
 
     def _on_extrinsic_reset(self) -> None:
         self._spins_from_extrinsic(np.eye(4))
@@ -53,14 +57,10 @@ class KalibrierungMixin:
     def _on_overlay_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
-        try:
-            colorizer = self._import_colorizer()
-        except RuntimeError as exc:
-            self._show_error("Overlay-Vorschau", str(exc))
+        colorizer = self._mit_colorizer("Overlay-Vorschau")
+        if colorizer is None:
             return
-        frame_idx = self._pano_view.current_index
-        if frame_idx < 0:
-            frame_idx = max(0, self._n_frames // 2)
+        frame_idx = self._aktueller_frame()
         T = self._extrinsic_from_spins()
         rec, bag, calib = self._rec, self._bag, self._calib
 
@@ -69,10 +69,7 @@ class KalibrierungMixin:
             return colorizer.overlay_preview(rec, bag, calib, T, frame_idx, stride=50)
 
         def on_done(img) -> None:
-            dlg = _ImageDialog(f"Overlay-Vorschau — Frame {frame_idx}", img, self)
-            self._overlay_dialogs = [d for d in self._overlay_dialogs if d.isVisible()]
-            self._overlay_dialogs.append(dlg)
-            dlg.show()
+            self._zeige_bild(f"Overlay-Vorschau — Frame {frame_idx}", img)
 
         # Einzelner Bibliotheksaufruf ohne Cancel-Auswertung — nicht abbrechbar.
         self._start_worker("Erzeuge Overlay-Vorschau …", job, on_done,
@@ -81,10 +78,8 @@ class KalibrierungMixin:
     def _on_autocal_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
-        try:
-            colorizer = self._import_colorizer()
-        except RuntimeError as exc:
-            self._show_error("Auto-Kalibrierung", str(exc))
+        colorizer = self._mit_colorizer("Auto-Kalibrierung")
+        if colorizer is None:
             return
         T_init = self._extrinsic_from_spins()
         rec, bag, calib = self._rec, self._bag, self._calib
@@ -96,10 +91,7 @@ class KalibrierungMixin:
         def on_done(result) -> None:
             T, score = result
             self._spins_from_extrinsic(np.asarray(T))
-            try:
-                self._project.save_extrinsic(np.asarray(T))
-            except RuntimeError as exc:
-                self._log(f"Extrinsik nicht gespeichert: {exc}")
+            self._speichere_extrinsik(np.asarray(T))
             self._log(f"Auto-Kalibrierung fertig — Score {score:.3f}.")
             if score < _AUTOCAL_WEAK_SCORE and not self._autotest_active():
                 QMessageBox.warning(

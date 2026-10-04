@@ -101,21 +101,21 @@ class ExportDialog(QtWidgets.QDialog):
                 if cb.isChecked() and e["da"])
         self._lbl_summe.setText(f"Zusammen etwa <b>{bundle.fmt_size(n)}</b>")
 
+    #: Hinweis je Zustand des Zielordners aus ``bundle.pruefe_ziel``
+    _HINWEISE = {
+        "neu": "Wird angelegt.",
+        "projekt": ("Der Ordner enthält bereits ein Projekt — es wird "
+                    "überschrieben."),
+        "fremd": ("Der Ordner ist nicht leer und enthält kein Projekt. "
+                  "Bitte einen leeren oder neuen wählen."),
+    }
+
     def _pruefen(self) -> None:
         p = self._pfad.text().strip()
-        ok = bool(p)
-        text = ""
-        if p and os.path.isdir(p) and os.listdir(p):
-            if os.path.isfile(os.path.join(p, bundle.MANIFEST)):
-                text = ("Der Ordner enthält bereits ein Projekt — es wird "
-                        "überschrieben.")
-            else:
-                text = ("Der Ordner ist nicht leer und enthält kein Projekt. "
-                        "Bitte einen leeren oder neuen wählen.")
-                ok = False
-        elif p and not os.path.exists(p):
-            text = "Wird angelegt."
-        self._hinweis.setText(text)
+        ok, zustand = bundle.pruefe_ziel(p) if p else (False, "")
+        if zustand == "datei":      # eine Datei als Ziel weist erst der Export ab
+            ok = True
+        self._hinweis.setText(self._HINWEISE.get(zustand, ""))
         self._buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(ok)
 
     # ----------------------------------------------------------------- Ergebnis

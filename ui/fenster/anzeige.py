@@ -12,15 +12,14 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout,
-    QMessageBox, QWidget,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QMessageBox, QWidget,
 )
 
-from core.ebenen import lade_farbdateien as _load_color_files
+from core.ebenen import THERMAL, lade_farbdateien, lade_temperatur, laden
 from core.project import Project
 
 from ui import menubar as menubar_mod
-from ui.bausteine import _compact_combo, _wrappable
+from ui.bausteine import _compact_combo, _wrappable, speicherpfad, still_setzen
 
 #: Farbebenen fuer die Auswahl — Reihenfolge wie in Project.LAYERS
 _LAYER_LABELS = (
@@ -33,9 +32,6 @@ _LAYER_LABELS = (
     ("fusion", "Fusion Onboard + Mäander"),
     ("fusion_splat", "Fusion, gemeinsames Gaussian Splat"),
 )
-#: Ebenen mit Temperatur je Punkt
-_THERMAL_LAYERS = ("meander_thermal", "meander_thermal_splat")
-
 _COLOR_MODE_ITEMS = (("RGB (eingefärbt)", "rgb"), ("Höhe", "hoehe"),
                      ("Intensität", "intensitaet"), ("Einfarbig", "uniform"))
 #: Farbmodi der Leiste ueber der 3D-Ansicht: Farbmodus und Farbquelle in einem
@@ -162,9 +158,7 @@ class AnzeigeMixin:
         self._save_settings()
 
     def _on_leiste_punktgroesse(self, wert: float) -> None:
-        self._spin_pointsize.blockSignals(True)
-        self._spin_pointsize.setValue(float(wert))
-        self._spin_pointsize.blockSignals(False)
+        still_setzen(self._spin_pointsize, float(wert))
         self._save_settings()
 
     def _on_leiste_temperatur(self, an: bool) -> None:
@@ -192,7 +186,6 @@ class AnzeigeMixin:
         if self._project is None or self._rec is None:
             self._refresh_layer_combo()
             return
-        from core import meander as meander_mod
         n = int(self._rec.n_points)
         for key in Project.LAYERS:
             if not self._project.has_layer(key):
@@ -203,7 +196,7 @@ class AnzeigeMixin:
                     fp = rec_fingerprint(self._rec)
                 except Exception:  # noqa: BLE001
                     fp = None
-                colors, valid, err = _load_color_files(
+                colors, valid, err = lade_farbdateien(
                     self._project.layer_dir(key), n, expected_fingerprint=fp,
                     log_cb=self._log)
                 if err:
@@ -211,16 +204,15 @@ class AnzeigeMixin:
                     continue
                 paar = (colors, valid)
             else:
-                paar = meander_mod.load_layer(self._project.layer_dir(key), n)
+                paar = laden(self._project.layer_dir(key), n)
                 if paar is None:
                     self._log(f"Farbebene '{key}' passt nicht zur Wolke — ignoriert.")
                     continue
             self._layers[key] = paar
-        for key in _THERMAL_LAYERS:
+        for key in THERMAL:
             if key not in self._layers:
                 continue
-            t = meander_mod.load_temperatur(
-                os.path.join(self._project.dir, Project.LAYERS[key]), n)
+            t = lade_temperatur(self._project.layer_dir(key), n)
             if t is not None:
                 self._temperaturen[key] = t
                 gut = np.isfinite(t)
@@ -235,6 +227,33 @@ class AnzeigeMixin:
                 self._log("Die Thermal-Ebene hat noch keine Temperaturen — einmal neu "
                           "einfärben, dann zeigt die Maus sie an.")
         self._refresh_layer_combo()       # setzt ueber _apply_layer auch die Temperatur
+
+    def _ebenen_melden(self, ebenen: dict, zusatz: str = "") -> None:
+        """Je neu berechneter Ebene den eingefaerbten Anteil ins Protokoll.
+
+        ``ebenen`` bildet den Ebenenschluessel auf den Anteil (0..1) ab;
+        ``zusatz`` folgt dem Satz nach einem Leerzeichen.
+        """
+        zusatz = zusatz.strip()
+        for key, anteil in ebenen.items():
+            satz = f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte eingefärbt."
+            self._log(f"{satz} {zusatz}" if zusatz else satz)
+
+    def _ebene_waehlen(self, key) -> bool:
+        """Eine geladene Ebene als Farbquelle waehlen, wie von Hand.
+
+        Speichert und protokolliert ueber ``_on_layer_changed``; der Farbmodus
+        bleibt. False, wenn die Ebene nicht geladen ist.
+        """
+        return key in self._layers and self._waehle(self._combo_layer, key)
+
+    def _waehle(self, combo, data) -> bool:
+        """Den Eintrag mit diesen Daten waehlen (mit Signal); False, wenn er fehlt."""
+        idx = combo.findData(data)
+        if idx < 0:
+            return False
+        combo.setCurrentIndex(idx)
+        return True
 
     def _refresh_layer_combo(self) -> None:
         """Auswahlliste auf die vorhandenen Ebenen setzen."""
@@ -269,9 +288,7 @@ class AnzeigeMixin:
             self._on_menu_layer, self._layer_key)
 
     def _on_menu_layer(self, data) -> None:
-        idx = self._combo_layer.findData(data)
-        if idx >= 0:
-            self._combo_layer.setCurrentIndex(idx)
+        self._waehle(self._combo_layer, data)
 
     def _on_layer_changed(self, *_a) -> None:
         if self._loading_ui:
@@ -294,17 +311,16 @@ class AnzeigeMixin:
         # anderen Ebene die der direkten, sonst die des Splats.
         self._temperatur = self._temperaturen.get(self._layer_key)
         if self._temperatur is None:
-            self._temperatur = next((self._temperaturen[k] for k in _THERMAL_LAYERS
+            self._temperatur = next((self._temperaturen[k] for k in THERMAL
                                      if k in self._temperaturen), None)
         self._cloud_view.set_temperatur(self._temperatur)
         if self._world is None:
             return
         if self._colors is None and self._combo_colormode.currentData() == "rgb":
-            idx = self._combo_colormode.findData("hoehe")
-            if idx >= 0:
-                self._loading_ui = True
-                self._combo_colormode.setCurrentIndex(idx)
-                self._loading_ui = False
+            self._loading_ui = True
+            gewaehlt = self._waehle(self._combo_colormode, "hoehe")
+            self._loading_ui = False
+            if gewaehlt:
                 self._log("Für diese Farbquelle gibt es noch keine Einfärbung — "
                           "die Ansicht steht auf Höhe statt auf einfarbigem Grau.")
         # Eine fast leere Ebene plus "Nur eingefaerbte Punkte" ergibt eine leere
@@ -344,8 +360,8 @@ class AnzeigeMixin:
 
     def _sync_menu_state(self) -> None:
         """Haken im Menue an die Seitenleiste angleichen (ohne Rueckkopplung)."""
-        for key, combo, handler in (("menu_farbquelle", self._combo_colormode, None),
-                                    ("menu_hintergrund", self._combo_bg, None)):
+        for key, combo in (("menu_farbquelle", self._combo_colormode),
+                           ("menu_hintergrund", self._combo_bg)):
             menu = self._actions.get(key)
             if menu is None:
                 continue
@@ -353,19 +369,10 @@ class AnzeigeMixin:
                 act.setChecked(act.data() == combo.currentData())
         edl = self._actions.get("edl")
         if edl is not None:
-            edl.blockSignals(True)
-            edl.setChecked(self._chk_edl.isChecked())
-            edl.blockSignals(False)
-
-    def _on_menu_colormode(self, data) -> None:
-        idx = self._combo_colormode.findData(data)
-        if idx >= 0:
-            self._combo_colormode.setCurrentIndex(idx)
+            still_setzen(edl, self._chk_edl.isChecked())
 
     def _on_menu_background(self, data) -> None:
-        idx = self._combo_bg.findData(data)
-        if idx >= 0:
-            self._combo_bg.setCurrentIndex(idx)
+        self._waehle(self._combo_bg, data)
 
     def _on_menu_edl(self, on: bool) -> None:
         if self._chk_edl.isEnabled():
@@ -375,9 +382,7 @@ class AnzeigeMixin:
         self._sidebar_scroll.setVisible(bool(on))
         act = self._actions.get("sidebar") if hasattr(self, "_actions") else None
         if act is not None:
-            act.blockSignals(True)
-            act.setChecked(bool(on))
-            act.blockSignals(False)
+            still_setzen(act, bool(on))
 
     def _on_toggle_sidebar(self) -> None:
         self._set_sidebar_visible(not self._sidebar_scroll.isVisible())
@@ -396,9 +401,7 @@ class AnzeigeMixin:
         self._cloud_view.set_measure(an)
         act = self._actions.get("measure")
         if act is not None:
-            act.blockSignals(True)
-            act.setChecked(an)
-            act.blockSignals(False)
+            still_setzen(act, an)
         self._tabs.setCurrentIndex(0)
         self._status_lbl.setText(
             "Messen: zwei Klicks in die Wolke setzen die Marken (Esc verwirft)."
@@ -435,10 +438,8 @@ class AnzeigeMixin:
         act = self._actions.get("preview") if hasattr(self, "_actions") else None
         if act is None:
             return
-        act.blockSignals(True)
-        act.setChecked(self._cloud_view.preview_visible())
+        still_setzen(act, self._cloud_view.preview_visible())
         act.setEnabled(self._cloud_view.has_preview())
-        act.blockSignals(False)
 
     def _on_reset_camera(self) -> None:
         self._cloud_view.reset_camera()
@@ -449,12 +450,9 @@ class AnzeigeMixin:
     def _on_screenshot(self) -> None:
         start = os.path.join(self._project.dir if self._project else "",
                              "ansicht.png")
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Ansicht speichern", start, "PNG-Datei (*.png)")
+        path = speicherpfad(self, "Ansicht speichern", start, "PNG-Datei (*.png)", ".png")
         if not path:
             return
-        if not path.lower().endswith(".png"):
-            path += ".png"
         try:
             self._cloud_view.screenshot(path)
         except RuntimeError as exc:

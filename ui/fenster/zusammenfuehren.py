@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 from PyQt5.QtWidgets import (
     QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QPushButton,
@@ -21,10 +20,11 @@ from PyQt5.QtWidgets import (
 from core.bag_reader import BagReader
 from core.bag_reader import ThreadLocalBag
 from core.gemeinsam import fmt_int as _fmt_int
+from core.merge import lage_aus_reglern
 from core.project import Project
-from core.recording import Recording
+from core.recording import lade_mit_hinweis
 
-from ui.bausteine import _wrappable
+from ui.bausteine import _wrappable, still_setzen
 
 
 class ZusammenfuehrenMixin:
@@ -58,11 +58,11 @@ class ZusammenfuehrenMixin:
         self._btn_merge_auto.setToolTip(
             "Globale Suche (FGR über FPFH) plus ICP von grob nach fein.\n"
             "Dauert je nach Wolkengröße ein bis mehrere Minuten.")
-        self._btn_merge_auto.clicked.connect(lambda: self._on_merge_align("auto"))
+        self._btn_merge_auto.clicked.connect(self._on_merge_auto)
         self._btn_merge_icp = QPushButton("Nur ICP")
         self._btn_merge_icp.setToolTip(
             "Verfeinert nur die aktuelle Lage — nach einer Handjustage genug.")
-        self._btn_merge_icp.clicked.connect(lambda: self._on_merge_align("icp"))
+        self._btn_merge_icp.clicked.connect(self._on_merge_icp)
         hl.addWidget(self._btn_merge_auto)
         hl.addWidget(self._btn_merge_icp)
         form.addRow(row)
@@ -96,10 +96,7 @@ class ZusammenfuehrenMixin:
         self._cloud_view.set_preview_cloud(None)
         if hasattr(self, "_lbl_merge"):
             self._lbl_merge.setText("Kein zweiter Flug geladen.")
-            for sp in self._spin_merge.values():
-                sp.blockSignals(True)
-                sp.setValue(0.0)
-                sp.blockSignals(False)
+            self._merge_spins_null()
 
     def _merge_T_from_spins(self) -> np.ndarray:
         """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben.
@@ -109,18 +106,15 @@ class ZusammenfuehrenMixin:
         null; galten sie ab Ursprung, fiel die Wolke beim ersten Reglerschritt
         auf ihren Ladeort zurück.
         """
-        basis = self._merge_T_basis
-        mitte = basis[:3, :3] @ self._merge_center + basis[:3, 3]
-        yaw = np.radians(float(self._spin_merge["yaw"].value()))
-        R = np.eye(4)
-        R[:3, :3] = Rotation.from_euler("z", yaw).as_matrix()
-        hin = np.eye(4)
-        hin[:3, 3] = mitte
-        weg = np.eye(4)
-        weg[:3, 3] = -mitte
-        D = hin @ R @ weg
-        D[:3, 3] += [float(self._spin_merge[k].value()) for k in ("x", "y", "z")]
-        return D @ basis
+        return lage_aus_reglern(
+            self._spin_merge["yaw"].value(),
+            [self._spin_merge[k].value() for k in ("x", "y", "z")],
+            self._merge_center, basis=self._merge_T_basis)
+
+    def _merge_spins_null(self) -> None:
+        """Regler der Handjustage auf null, ohne die Vorschau neu zu rechnen."""
+        for sp in self._spin_merge.values():
+            still_setzen(sp, 0.0)
 
     def _merge_refresh_preview(self) -> None:
         if self._merge_cloud is None:
@@ -179,15 +173,7 @@ class ZusammenfuehrenMixin:
 
     def _merge_run_fastlio(self, path: str, project_b) -> None:
         """FAST-LIO fuer den zweiten Flug, danach direkt weiter im Merge-Ablauf."""
-        config = self._combo_config.currentData()
-        rate = float(self._spin_rate.value())
-        out_dir = project_b.recording_dir()
-
-        def job(progress_cb, cancel, log_cb):
-            from core.fastlio_runner import FastLioRunner
-            runner = FastLioRunner()
-            return runner.run(path, out_dir, config=config, rate=rate,
-                              progress_cb=progress_cb, cancel=cancel, log_cb=log_cb)
+        job, _config, _rate = self._fastlio_job(path, project_b.recording_dir())
 
         def fertig(result) -> None:
             self._log(f"Karte für den zweiten Flug fertig: {result.n_scans} Scans, "
@@ -207,10 +193,7 @@ class ZusammenfuehrenMixin:
         def job(progress_cb, cancel, log_cb):
             from core import merge as merge_mod
             progress_cb(0.1, "Lade zweite Aufzeichnung …")
-            rec_b = Recording.load(rec_dir, bag_path=path)
-            note = rec_b.level_note()
-            if note:
-                log_cb(f"Zweiter Flug — {note}")
+            rec_b = lade_mit_hinweis(rec_dir, path, log_cb, praefix="Zweiter Flug — ")
             # Gleich lotrecht stellen wie den offenen Flug. Recording.load
             # schafft das nur mit Ruhefenster am Bag-Anfang; startete die
             # Aufnahme in der Luft, bliebe B um die Einbaulage gekippt und keine
@@ -249,10 +232,7 @@ class ZusammenfuehrenMixin:
         self._merge_T_basis = np.eye(4)
         self._merge_T_kipp = np.asarray(res["T_kipp"], dtype=np.float64)
         self._merge_kipp_grad = res["kipp"]
-        for sp in self._spin_merge.values():
-            sp.blockSignals(True)
-            sp.setValue(0.0)
-            sp.blockSignals(False)
+        self._merge_spins_null()
         self._merge_refresh_preview()
         name = os.path.basename(res["path"])
         self._lbl_merge.setText(
@@ -264,6 +244,12 @@ class ZusammenfuehrenMixin:
                   f"gehört erst nach 'Übernehmen' zur Karte. Ausblenden über "
                   f"Ansicht → Zweiten Flug anzeigen.")
         self._sync_preview_action()
+
+    def _on_merge_auto(self) -> None:
+        self._on_merge_align("auto")
+
+    def _on_merge_icp(self) -> None:
+        self._on_merge_align("icp")
 
     def _on_merge_align(self, mode: str) -> None:
         if self._merge_rec is None or self._rec is None:
@@ -293,10 +279,7 @@ class ZusammenfuehrenMixin:
         # relativ zu dieser Lage (s. _merge_T_from_spins).
         self._merge_T_basis = self._merge_T.copy()
         self._merge_refresh_preview()
-        for sp in self._spin_merge.values():
-            sp.blockSignals(True)
-            sp.setValue(0.0)
-            sp.blockSignals(False)
+        self._merge_spins_null()
         fit, rmse = res["fitness"], res["rmse"]
         self._lbl_merge.setText(
             f"Ausgerichtet über '{res['kandidat']}': Trefferquote {fit:.2f}, "

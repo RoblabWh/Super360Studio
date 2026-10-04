@@ -2,9 +2,8 @@
 
 Schreibt am Hauptfenster: _bag, _bag_info, _btn_fastlio, _btn_open, _colors,
 _combo_config, _exploration, _fixes, _georef, _info_table, _layers,
-_lbl_fastlio, _loading_ui, _meander_pipe, _n_frames, _pano_failed, _pano_src,
-_parts, _pbar_fastlio, _project, _quality, _rec, _settings, _spin_rate, _valid,
-_world.
+_lbl_fastlio, _meander_pipe, _n_frames, _pano_failed, _pano_src, _parts,
+_pbar_fastlio, _project, _quality, _rec, _settings, _spin_rate, _valid, _world.
 """
 from __future__ import annotations
 
@@ -24,13 +23,13 @@ from PyQt5.QtWidgets import (
 
 from core import exploration, georef
 from core.bag_reader import ThreadLocalBag
-from core.ebenen import lade_farbdateien as _load_color_files
 from core.exploration import (
     holen as _exploration_holen, rechnen_und_ablegen as _exploration_rechnen,
 )
 from core.gemeinsam import fmt_int as _fmt_int
+from core.kalibrierung import REPO_WURZEL
 from core.project import Project
-from core.recording import Recording
+from core.recording import lade_mit_hinweis
 
 from ui.bausteine import _compact_combo, _wrappable
 from ui.fenster.einstellungen import _DEFAULT_SETTINGS
@@ -38,6 +37,12 @@ from ui.pano_view import StitchingPanoSource
 
 _CONFIG_ITEMS = (("Maximal dicht (whs_dense.yaml)", "whs_dense.yaml"),
                  ("Schnell (mid360.yaml)", "mid360.yaml"))
+
+
+def _karten_zeile(n_scans, erwartet, n_points, drops) -> str:
+    """Statuszeile unter "Karte berechnen"."""
+    return (f"Scans: {n_scans}/{erwartet} · "
+            f"Punkte: {_fmt_int(n_points)} · Drops: {drops}")
 
 
 class ProjektMixin:
@@ -87,24 +92,31 @@ class ProjektMixin:
 
     # ============================================================ Bag öffnen
 
-    def _on_open_clicked(self) -> None:
-        if self._busy:
+    def _beschaeftigt_melden(self, lang: bool) -> bool:
+        """Läuft noch ein Arbeitsschritt, das sagen und True liefern."""
+        if not self._busy:
+            return False
+        if lang:
             QMessageBox.information(
                 self, "Beschäftigt",
                 "Es läuft noch ein Arbeitsschritt — bitte warten oder abbrechen.")
+        else:
+            QMessageBox.information(self, "Beschäftigt",
+                                    "Es läuft noch ein Arbeitsschritt.")
+        return True
+
+    def _on_open_clicked(self) -> None:
+        if self._beschaeftigt_melden(True):
             return
         path = QFileDialog.getExistingDirectory(
-            self, "Rosbag-Ordner öffnen", os.path.dirname(os.path.abspath(__file__)))
+            self, "Rosbag-Ordner öffnen", os.path.join(REPO_WURZEL, "ui"))
         if path:
             self._open_bag(path)
 
     def _open_bag(self, path: str, projekt=None) -> None:
         """Bag oeffnen; ``projekt`` statt des Cache-Projekts zum Bag (Ordner
         eines geoeffneten Exports)."""
-        if self._busy:
-            QMessageBox.information(
-                self, "Beschäftigt",
-                "Es läuft noch ein Arbeitsschritt — bitte warten oder abbrechen.")
+        if self._beschaeftigt_melden(True):
             return
         self._clear_bag_state()
         self._grad_anzeige.rechnet()
@@ -182,20 +194,7 @@ class ProjektMixin:
         self._exploration = res.get("exploration")
         self._zeige_exploration(res.get("exploration_hinweis") or "")
         self.setWindowTitle(f"Super360 Studio — {self._project.bag_name}")
-
-        self._settings = dict(_DEFAULT_SETTINGS)
-        try:
-            self._settings.update(self._project.load_settings())
-        except RuntimeError as exc:
-            self._log(str(exc))
-        self._apply_settings_to_widgets()
-
-        T = None
-        try:
-            T = self._project.load_extrinsic()
-        except RuntimeError as exc:
-            self._log(str(exc))
-        self._spins_from_extrinsic(T if T is not None else np.eye(4))
+        self._projekt_aktivieren(self._project)
 
         self._populate_info_table()
         self._gps_panel.set_quality(self._quality, self._fixes, None)
@@ -211,6 +210,22 @@ class ProjektMixin:
             self._start_pano_job()
         elif self._project.has_recording():
             self._start_recording_load()
+
+    def _projekt_aktivieren(self, project) -> None:
+        """Einstellungen und Extrinsik des Projekts in die Regler laden."""
+        self._settings = dict(_DEFAULT_SETTINGS)
+        try:
+            self._settings.update(project.load_settings())
+        except RuntimeError as exc:
+            self._log(str(exc))
+        self._apply_settings_to_widgets()
+
+        T = None
+        try:
+            T = project.load_extrinsic()
+        except RuntimeError as exc:
+            self._log(str(exc))
+        self._spins_from_extrinsic(T if T is not None else np.eye(4))
 
     # ======================================================= Explorationsgrad
 
@@ -340,27 +355,10 @@ class ProjektMixin:
 
         def job(progress_cb, cancel, log_cb):
             progress_cb(0.02, "Lade FAST-LIO-Aufzeichnung …")
-            rec = Recording.load(rec_dir, bag_path=project.bag_path)
-            note = rec.level_note()
-            if note:
-                log_cb(note)
+            rec = lade_mit_hinweis(rec_dir, project.bag_path, log_cb)
             world = rec.world_points(
                 progress_cb=lambda f, m: progress_cb(0.05 + 0.85 * f, m), cancel=cancel)
-            colors = valid = None
-            if project.has_colors():
-                progress_cb(0.95, "Lade Farben …")
-                try:
-                    from core.colorizer import rec_fingerprint
-                    fingerprint = rec_fingerprint(rec)
-                except Exception as exc:  # noqa: BLE001 — Kompat: ohne Prüfung laden
-                    fingerprint = None
-                    log_cb(f"Aufzeichnungs-Fingerprint nicht verfügbar: {exc}")
-                colors, valid, err = _load_color_files(
-                    project.colors_dir(), rec.n_points,
-                    expected_fingerprint=fingerprint, log_cb=log_cb)
-                if err:
-                    log_cb(err)
-            return {"rec": rec, "world": world, "colors": colors, "valid": valid}
+            return {"rec": rec, "world": world}
 
         self._start_worker("Lade Punktwolke …", job, self._on_recording_loaded)
 
@@ -400,22 +398,12 @@ class ProjektMixin:
     def _on_recording_loaded(self, res: dict) -> None:
         self._rec = res["rec"]
         self._world = res["world"]
-        self._colors = res["colors"]
-        self._valid = res["valid"]
         # Immer aus der Aufzeichnung ableiten, nicht aus dem Sitzungsgedaechtnis
         self._parts = self._parts_from_meta(self._rec.meta)
         if self._parts:
             self._bag = self._parts[0][0]
+        # liest die Farbebenen und zeigt die gewaehlte samt Wolke an
         self._reload_layers()
-        if self._colors is None and self._combo_colormode.currentData() == "rgb":
-            # ohne Farben wäre "rgb" einfarbig — Höhe ist die aussagekräftige Ansicht
-            idx = self._combo_colormode.findData("hoehe")
-            self._loading_ui = True
-            self._combo_colormode.setCurrentIndex(idx)
-            self._loading_ui = False
-        self._cloud_view.set_cloud(self._world, self._colors,
-                                   self._rec.intensity, self._valid)
-        self._push_display_settings()
         # neue Punktwolke, neues Mesh: das alte gehoerte zu einer anderen
         self._mesh_vergessen()
         self._mesh_sicherstellen()
@@ -425,8 +413,7 @@ class ProjektMixin:
         expected = int(meta.get("expected_scans", self._rec.n_scans))
         drops = max(0, expected - self._rec.n_scans)
         self._lbl_fastlio.setText(
-            f"Scans: {self._rec.n_scans}/{expected} · "
-            f"Punkte: {_fmt_int(self._rec.n_points)} · Drops: {drops}")
+            _karten_zeile(self._rec.n_scans, expected, self._rec.n_points, drops))
         n_col = int(self._valid.sum()) if self._valid is not None else 0
         col_txt = (f", {_fmt_int(n_col)} eingefärbt" if self._colors is not None else "")
         self._log(f"Punktwolke geladen: {self._rec.n_scans} Scans, "
@@ -435,13 +422,28 @@ class ProjektMixin:
 
     # ================================================================ FAST-LIO
 
+    def _fastlio_job(self, bag_path: str, out_dir: str):
+        """FAST-LIO-Job mit Konfiguration und Rate der Regler: (job, config, rate).
+
+        Die Regler werden hier im GUI-Thread gelesen; der Job selbst fasst das
+        Fenster nicht an.
+        """
+        config = self._combo_config.currentData()
+        rate = float(self._spin_rate.value())
+
+        def job(progress_cb, cancel, log_cb):
+            from core.fastlio_runner import FastLioRunner
+            runner = FastLioRunner()
+            return runner.run(bag_path, out_dir, config=config, rate=rate,
+                              progress_cb=progress_cb, cancel=cancel, log_cb=log_cb)
+
+        return job, config, rate
+
     def _on_fastlio_clicked(self) -> None:
         if self._bag is None or self._project is None:
             return
-        bag_path = self._bag.bag_path
-        out_dir = self._project.recording_dir()
-        config = self._combo_config.currentData()
-        rate = float(self._spin_rate.value())
+        job, config, rate = self._fastlio_job(self._bag.bag_path,
+                                              self._project.recording_dir())
         # Alte Aufzeichnung VOR dem Start vollständig loslassen: die neue
         # Aufzeichnung ersetzt recording/ — offene np.memmaps auf den alten
         # Dateien würden sonst als veraltete Anzeige weiterleben (bzw. bei
@@ -460,12 +462,6 @@ class ProjektMixin:
         self._pbar_fastlio.setRange(0, 1000)
         self._pbar_fastlio.setValue(0)
 
-        def job(progress_cb, cancel, log_cb):
-            from core.fastlio_runner import FastLioRunner
-            runner = FastLioRunner()
-            return runner.run(bag_path, out_dir, config=config, rate=rate,
-                              progress_cb=progress_cb, cancel=cancel, log_cb=log_cb)
-
         def extra(frac: float, _msg: str) -> None:
             self._pbar_fastlio.setValue(int(max(0.0, min(1.0, frac)) * 1000))
 
@@ -475,8 +471,8 @@ class ProjektMixin:
     def _on_fastlio_done(self, result) -> None:
         self._pbar_fastlio.setValue(1000)
         self._lbl_fastlio.setText(
-            f"Scans: {result.n_scans}/{result.expected_scans} · "
-            f"Punkte: {_fmt_int(result.n_points)} · Drops: {result.dropped_scans}")
+            _karten_zeile(result.n_scans, result.expected_scans, result.n_points,
+                          result.dropped_scans))
         self._log(f"FAST-LIO2 fertig in {result.duration_s:.1f} s: "
                   f"{result.n_scans} Scans, {_fmt_int(result.n_points)} Punkte, "
                   f"{result.dropped_scans} Drops.")
@@ -537,9 +533,7 @@ class ProjektMixin:
 
     def _on_open_project(self) -> None:
         """Projekt aus dem Cache oeffnen — auch zusammengefuehrte."""
-        if self._busy:
-            QMessageBox.information(self, "Beschäftigt",
-                                    "Es läuft noch ein Arbeitsschritt.")
+        if self._beschaeftigt_melden(False):
             return
         from ui.bundle_dialog import ProjectOpenDialog
         projekte = Project.list_projects()
@@ -560,14 +554,8 @@ class ProjektMixin:
         except RuntimeError as exc:
             self._show_error("Projekt öffnen", str(exc))
             return
-        # Einzelne Fluege gehen den normalen Weg — dann stehen auch das
-        # 360-Video und die GPS-Pruefung zur Verfuegung. Zusammengefuehrte
-        # haben keinen einzelnen Bagpfad und werden aus dem Cache geoeffnet.
-        if eintrag and not eintrag["zusammengefuehrt"] and \
-                project.bag_path and os.path.exists(project.bag_path):
-            self._open_bag(project.bag_path)
-            return
-        self._open_project_only(project)
+        self._oeffne_projekt(project, project.bag_path,
+                             not eintrag or eintrag["zusammengefuehrt"])
 
     def _on_import_project(self) -> None:
         """Exportierten Projektordner direkt oeffnen (s. core.bundle.oeffnen).
@@ -576,9 +564,7 @@ class ProjektMixin:
         Projekt ersetzt werden soll: gearbeitet wird im Ordner selbst, und jede
         Aenderung wird dort sofort gespeichert.
         """
-        if self._busy:
-            QMessageBox.information(self, "Beschäftigt",
-                                    "Es läuft noch ein Arbeitsschritt.")
+        if self._beschaeftigt_melden(False):
             return
         src = QFileDialog.getExistingDirectory(
             self, "Ordner eines exportierten Projekts", os.path.expanduser("~"))
@@ -598,38 +584,33 @@ class ProjektMixin:
             self._log(f"Rosbag nicht am Ort: {b} — 360°-Video und Einfärben aus "
                       f"der Bordkamera fallen für diesen Abschnitt aus.")
         vorhanden = [b for b in res["bags"] if b and os.path.exists(b)]
-        if not res["zusammengefuehrt"] and vorhanden:
-            self._open_bag(vorhanden[0], projekt=res["project"])
+        self._oeffne_projekt(res["project"], vorhanden[0] if vorhanden else None,
+                             res["zusammengefuehrt"], projekt=res["project"])
+
+    def _oeffne_projekt(self, project, bag_path, zusammengefuehrt,
+                        projekt=None) -> None:
+        """Einzelne Fluege mit Bag am Ort gehen den normalen Weg — dann stehen
+        auch das 360-Video und die GPS-Pruefung zur Verfuegung. Zusammengefuehrte
+        haben keinen einzelnen Bagpfad und werden ohne Bag geoeffnet, ebenso ein
+        Flug, dessen Bag fehlt. ``projekt`` geht an :meth:`_open_bag`."""
+        if not zusammengefuehrt and bag_path and os.path.exists(bag_path):
+            self._open_bag(bag_path, projekt=projekt)
         else:
-            self._open_project_only(res["project"])
+            self._open_project_only(project)
 
     def _open_project_only(self, project) -> None:
         """Projekt ohne Bag oeffnen — nur, was aus dem Cache lebt."""
         self._clear_bag_state()
         self._project = project
-        self._bag = None
-        self._bag_info = None
-        self._settings = dict(_DEFAULT_SETTINGS)
-        try:
-            self._settings.update(project.load_settings())
-        except RuntimeError as exc:
-            self._log(str(exc))
-        self._apply_settings_to_widgets()
-        T = None
-        try:
-            T = project.load_extrinsic()
-        except RuntimeError as exc:
-            self._log(str(exc))
-        self._spins_from_extrinsic(T if T is not None else np.eye(4))
+        self._projekt_aktivieren(project)
         # Der Explorationsgrad gehoert zum Projekt. Ohne Bag laesst er sich nicht
         # neu rechnen, der gespeicherte Stand gilt aber weiter.
-        gespeichert = project.load_exploration() or {}
-        hinweis = str(gespeichert.get("keine_daten") or "")
-        if gespeichert and not hinweis:
-            try:
-                self._exploration = exploration.Explorationsgrad.aus_dict(gespeichert)
-            except (TypeError, ValueError) as exc:
-                self._log(f"Gespeicherter Explorationsgrad unbrauchbar: {exc}")
+        gespeichert = project.load_exploration()
+        try:
+            self._exploration, hinweis = exploration.aus_cache(gespeichert)
+        except (TypeError, ValueError) as exc:
+            hinweis = ""
+            self._log(f"Gespeicherter Explorationsgrad unbrauchbar: {exc}")
         self._zeige_exploration(hinweis)
         self.setWindowTitle(f"Super360 Studio — {project.bag_name} (ohne Bag)")
         self._update_enabled()

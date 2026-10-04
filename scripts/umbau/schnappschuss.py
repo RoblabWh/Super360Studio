@@ -1153,10 +1153,26 @@ def teil_i(fenster) -> dict:
 
 # ------------------------------------------------------------------ Erfassen
 
+def _timer_einmal(app, fenster) -> None:
+    """Laufende periodische QTimer des Fensters anhalten und einmal auslösen.
+
+    Sonst hängt, was ein solcher Timer setzt (etwa die Sperre der RViz-Knöpfe
+    700 ms nach dem Bau), an der Rechnerlast: Ein Schnappschuss unter Last sah
+    ihn schon, einer ohne Last noch nicht.
+    """
+    from PyQt5.QtCore import QTimer
+    for timer in fenster.findChildren(QTimer):
+        if timer.isActive() and not timer.isSingleShot():
+            timer.stop()
+            timer.timeout.emit()
+    app.processEvents()
+
+
 def erfasse() -> tuple:
     """Alle Teile am frisch gebauten Fenster: (teile, beispiel, zusammenfassung)."""
     fehler = basis.module_laden()
     app, fenster = basis.fenster_bauen()
+    _timer_einmal(app, fenster)
     try:
         teile: dict = {}
         teile["i"] = teil_i(fenster)

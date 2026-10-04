@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from PyQt5 import QtCore, QtWidgets
 
+from core.gemeinsam import de
+
 #: Schwellen der Ampel in Prozent und die zugehoerigen Farben. Bewusst kraeftig
 #: gewaehlt, damit sie auf dunklem wie hellem Grund tragen.
 _GUT = 85.0
@@ -45,10 +47,6 @@ def _farbe(prozent: float) -> str:
     if prozent >= _MITTEL:
         return _FARBE_MITTEL
     return _FARBE_SCHWACH
-
-
-def _de(x: float, n: int = 1) -> str:
-    return f"{x:.{n}f}".replace(".", ",")
 
 
 class ExplorationsgradAnzeige(QtWidgets.QFrame):
@@ -107,8 +105,8 @@ class ExplorationsgradAnzeige(QtWidgets.QFrame):
         """Ergebnis anzeigen (``core.exploration.Explorationsgrad``)."""
         bezug = grad.bezug
         if grad.hat_phase:
-            bezug += f" · {_de(grad.dauer_s)} s"
-        self._setze(f"{_de(grad.wert)} %", bezug, _farbe(grad.wert),
+            bezug += f" · {de(grad.dauer_s)} s"
+        self._setze(f"{de(grad.wert)} %", bezug, _farbe(grad.wert),
                     grad.text() + "\n\n(Klicken für den vollen Bericht)", True)
 
     # ----------------------------------------------------------------- intern

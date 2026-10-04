@@ -20,7 +20,7 @@ from typing import Optional
 import cv2
 import numpy as np
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QImage, QKeySequence, QPainter, QPixmap
+from PyQt5.QtGui import QColor, QKeySequence, QPainter
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -37,6 +37,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from ui.bausteine import bgr_zu_pixmap
 
 
 # --------------------------------------------------------------------------- #
@@ -574,10 +576,6 @@ class PanoView(QWidget):
                     self._pending_idx = None
                     self._paint(idx, pano)
 
-    def set_rotate180(self, on: bool) -> None:
-        """Anzeige um 180° drehen (Standard an — Kamera kopfüber montiert)."""
-        self._rot_chk.setChecked(bool(on))
-
     def _on_rotate_toggled(self) -> None:
         if self._cur_idx >= 0 and self._current_pano is not None:
             self._paint(self._cur_idx, self._current_pano)
@@ -586,10 +584,8 @@ class PanoView(QWidget):
         if self._playing and self._cur_idx >= 0 and idx > self._cur_idx + 1:
             self.dropped_frames += idx - self._cur_idx - 1
         disp = cv2.flip(pano, -1) if self._rot_chk.isChecked() else pano
-        rgb = np.ascontiguousarray(disp[:, :, ::-1])
-        h, w = rgb.shape[:2]
-        img = QImage(rgb.data, w, h, 3 * w, QImage.Format_RGB888)
-        pm = QPixmap.fromImage(img)  # kopiert die Pixel → rgb darf danach weg
+        h, w = disp.shape[:2]
+        pm = bgr_zu_pixmap(disp)
         size_changed = self._item.pixmap().size() != pm.size()
         self._item.setPixmap(pm)
         if size_changed:

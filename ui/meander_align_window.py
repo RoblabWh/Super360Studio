@@ -42,6 +42,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from core import meander as meander_mod
 from core import optik as optik_mod
+from ui.bausteine import still_setzen
 from ui.feinregler import regler_grad, regler_meter, regler_prozent
 
 _KARTE_PUNKTE = 300_000      # so viel Karte liegt als Untergrund darunter
@@ -103,7 +104,6 @@ class Ansicht(QtWidgets.QWidget):
         self._schmutzig = True
         self._maus = None
         self._modus_maus = None
-        self.render_ms = 0.0
 
     # --------------------------------------------------------------- Inhalt
 
@@ -231,13 +231,11 @@ class Ansicht(QtWidgets.QWidget):
         W, H = max(self.width(), 1), max(self.height(), 1)
         if self._schmutzig or self._bild is None or \
                 (self._bild.width(), self._bild.height()) != (W, H):
-            t0 = time.perf_counter()
             arr = np.ascontiguousarray(self.rendern(W, H))
             self._puffer = arr
             self._bild = QtGui.QImage(arr.data, W, H, 3 * W,
                                       QtGui.QImage.Format_RGB888)
             self._schmutzig = False
-            self.render_ms = (time.perf_counter() - t0) * 1000.0
         p = QtGui.QPainter(self)
         p.drawImage(0, 0, self._bild)
         self._zeichne_massstab(p, W, H)
@@ -516,9 +514,7 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         werte += [(self._massstab_rgb, (self._start["rgb_faktor"] - 1.0) * 100.0),
                   (self._massstab_th, (self._start["thermal_faktor"] - 1.0) * 100.0)]
         for regler, wert in werte:
-            regler.blockSignals(True)
-            regler.setValue(wert)
-            regler.blockSignals(False)
+            still_setzen(regler, wert)
         self._neu()
 
     def _punktgroesse(self, wert: int) -> None:

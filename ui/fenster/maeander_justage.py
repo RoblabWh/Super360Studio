@@ -5,8 +5,6 @@ _live_th, _meander_fenster, _meander_pipe, _optik, _optik_neu_messen.
 """
 from __future__ import annotations
 
-import json
-import os
 import time
 import traceback
 from typing import Optional
@@ -17,6 +15,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 
 from core.gemeinsam import fmt_int as _fmt_int
+from ui.bausteine import still_setzen
 
 #: So viele Punkte gehen in die Live-Vorschau der Handjustage. Bei 50.000
 #: dauert ein Durchlauf rund 80 ms — schnell genug, um dem Regler zu folgen.
@@ -98,7 +97,7 @@ class MaeanderJustageMixin:
         if not self._meander_dir:
             return "Noch kein Mäanderflug gewählt."
         pipe = self._meander_pipe
-        if pipe is None or getattr(pipe, "yaw", None) is None:
+        if not self._hat_lage:
             return ("Noch nicht ausgerichtet — die Regler brauchen eine Lage, "
                     "auf die sie sich beziehen. Erst „Ausrichten“.")
         if self._live is None:
@@ -151,10 +150,8 @@ class MaeanderJustageMixin:
         if self._meander_pipe is not None:
             self._meander_pipe.s360_korrektur = d.get("korrektur")
         for optik in ("rgb", "thermal"):
-            m = self._massstab[optik]
-            m.blockSignals(True)
-            m.setValue((float(d.get(f"{optik}_faktor", 1.0)) - 1.0) * 100.0)
-            m.blockSignals(False)
+            still_setzen(self._massstab[optik],
+                         (float(d.get(f"{optik}_faktor", 1.0)) - 1.0) * 100.0)
 
     def _meander_lade_optik(self) -> None:
         if self._project is None:
@@ -192,6 +189,12 @@ class MaeanderJustageMixin:
         from core import meander as meander_mod
         return meander_mod.thermal_lage(*self._meander_lage(), self._thermal_zuschlag())
 
+    @property
+    def _hat_lage(self) -> bool:
+        """Gibt es eine ausgerichtete Lage, auf die sich die Justage bezieht?"""
+        pipe = self._meander_pipe
+        return pipe is not None and getattr(pipe, "yaw", None) is not None
+
     def _hat_thermal(self) -> bool:
         pipe = self._meander_pipe
         if pipe is None:
@@ -204,10 +207,7 @@ class MaeanderJustageMixin:
     def _meander_setze_thermal(self, zuschlag) -> None:
         """Thermal-Regler setzen, ohne eine Vorschau auszuloesen."""
         for key, wert in zip(("yaw", "x", "y"), zuschlag):
-            sp = self._spin_meander_th[key]
-            sp.blockSignals(True)
-            sp.setValue(float(wert))
-            sp.blockSignals(False)
+            still_setzen(self._spin_meander_th[key], float(wert))
 
     def _meander_lade_thermal(self) -> None:
         """Gespeicherten Thermal-Zuschlag des Projekts in die Regler holen."""
@@ -220,36 +220,27 @@ class MaeanderJustageMixin:
             self._log(f"Thermal-Lage aus dem Projekt: {z[0]:+.2f}°, "
                       f"{z[1]:+.2f}/{z[2]:+.2f} m auf die RGB-Lage.")
 
-    _ZUSCHLAG = "rgb_zuschlag.json"
-
     def _meander_speichere_zuschlag(self) -> None:
         """RGB-Handzuschlag sofort ins Projekt — nichts geht beim Schliessen verloren."""
         if self._project is None or self._meander_pipe is None:
             return
-        pfad = os.path.join(self._project.meander_work_dir(), self._ZUSCHLAG)
+        from core import meander as meander_mod
         d = {k: float(self._spin_meander[k].value()) for k in ("yaw", "x", "y", "z")}
         try:
-            with open(pfad + ".tmp", "w", encoding="utf-8") as fh:
-                json.dump(d, fh)
-            os.replace(pfad + ".tmp", pfad)
+            meander_mod.save_rgb_zuschlag(self._project.meander_work_dir(), d)
         except OSError as exc:
             self._log(f"Handzuschlag nicht gespeichert: {exc}")
 
     def _meander_lade_zuschlag(self) -> None:
         if self._project is None:
             return
-        pfad = os.path.join(self._project.meander_work_dir(), self._ZUSCHLAG)
-        try:
-            with open(pfad, encoding="utf-8") as fh:
-                d = json.load(fh)
-        except (OSError, ValueError):
-            return
+        from core import meander as meander_mod
+        d = meander_mod.load_rgb_zuschlag(self._project.meander_work_dir())
+        if d is None:
+            return      # Datei fehlt oder unlesbar: Regler bleiben, wie sie sind
         if any(float(d.get(k, 0.0)) for k in ("yaw", "x", "y", "z")):
             for k in ("yaw", "x", "y", "z"):
-                sp = self._spin_meander[k]
-                sp.blockSignals(True)
-                sp.setValue(float(d.get(k, 0.0)))
-                sp.blockSignals(False)
+                still_setzen(self._spin_meander[k], float(d.get(k, 0.0)))
             self._log(f"Handzuschlag von zuletzt: Gier {d.get('yaw', 0):+.3f}°, "
                       f"X {d.get('x', 0):+.2f}, Y {d.get('y', 0):+.2f}, "
                       f"Z {d.get('z', 0):+.2f} m.")
@@ -267,7 +258,7 @@ class MaeanderJustageMixin:
     def _on_meander_fenster(self) -> None:
         """Ausrichtfenster oeffnen: Karte und Flug uebereinander, live justierbar."""
         pipe = self._meander_pipe
-        if pipe is None or getattr(pipe, "yaw", None) is None:
+        if not self._hat_lage:
             QMessageBox.information(
                 self, "Überlagern",
                 "Erst „Ausrichten“ laufen lassen — das Fenster zeigt die "
@@ -301,9 +292,7 @@ class MaeanderJustageMixin:
         yaw_deg, t, th_zuschlag = float(e["yaw"]), e["t"], e["thermal"]
         meander_mod.set_manual(self._meander_pipe, yaw_deg, t)
         for sp in self._spin_meander.values():
-            sp.blockSignals(True)
-            sp.setValue(0.0)
-            sp.blockSignals(False)
+            still_setzen(sp, 0.0)
         self._meander_setze_thermal(th_zuschlag)
         self._meander_speichere_thermal()
         self._meander_setze_optik(dict(self._optik, rgb_faktor=e["rgb_faktor"],
@@ -423,15 +412,13 @@ class MaeanderJustageMixin:
     def _meander_apply_manual(self) -> None:
         """Handjustage endgueltig in die Pipeline schreiben (vor dem Einfaerben)."""
         pipe = self._meander_pipe
-        if pipe is None or pipe.yaw is None:
+        if not self._hat_lage:
             return
         from core import meander as meander_mod
         yaw, t = self._meander_lage()
         meander_mod.set_manual(pipe, yaw, t)
         for sp in self._spin_meander.values():   # Zuschlag ist verrechnet
-            sp.blockSignals(True)
-            sp.setValue(0.0)
-            sp.blockSignals(False)
+            still_setzen(sp, 0.0)
         self._meander_speichere_zuschlag()
         # Thermal bleibt ein Zuschlag auf RGB und damit in seinen Reglern
         self._meander_speichere_thermal()

@@ -79,14 +79,10 @@ class EinfaerbungMixin:
     def _on_blue_preview_clicked(self) -> None:
         if self._bag is None:
             return
-        try:
-            colorizer = self._import_colorizer()
-        except RuntimeError as exc:
-            self._show_error("Blaumaske", str(exc))
+        colorizer = self._mit_colorizer("Blaumaske")
+        if colorizer is None:
             return
-        frame_idx = self._pano_view.current_index
-        if frame_idx < 0:
-            frame_idx = max(0, self._n_frames // 2)
+        frame_idx = self._aktueller_frame()
         a = self._blue_args()
         try:
             img = self._bag.read_camera(frame_idx)
@@ -95,11 +91,8 @@ class EinfaerbungMixin:
             return
         bild, anteil = colorizer.blue_preview(
             img, a["blue_hue_lo"], a["blue_hue_hi"], a["blue_sat"], a["blue_val"])
-        dlg = _ImageDialog(f"Blaumaske — Frame {frame_idx}: {100.0 * anteil:.1f} % "
-                           f"der Pixel gelten als Blaulicht", bild, self)
-        self._overlay_dialogs = [d for d in self._overlay_dialogs if d.isVisible()]
-        self._overlay_dialogs.append(dlg)
-        dlg.show()
+        self._zeige_bild(f"Blaumaske — Frame {frame_idx}: {100.0 * anteil:.1f} % "
+                         f"der Pixel gelten als Blaulicht", bild)
 
     def _group_colorize(self) -> QWidget:
         box = QWidget()
@@ -240,13 +233,45 @@ class EinfaerbungMixin:
         except ImportError as exc:
             raise RuntimeError(f"Modul 'colorizer' ist nicht verfügbar: {exc}") from exc
 
+    def _mit_colorizer(self, titel: str):
+        """Das Einfärbe-Modul; fehlt es, ein Fehlerdialog unter ``titel`` und None."""
+        try:
+            return self._import_colorizer()
+        except RuntimeError as exc:
+            self._show_error(titel, str(exc))
+            return None
+
+    def _aktueller_frame(self) -> int:
+        """Frame der Rundumansicht; ist keiner angezeigt, die Mitte des Bags."""
+        frame_idx = self._pano_view.current_index
+        if frame_idx < 0:
+            frame_idx = max(0, self._n_frames // 2)
+        return frame_idx
+
+    def _zeige_bild(self, titel: str, bgr: np.ndarray) -> None:
+        """BGR-Bild in einem eigenen Fenster; geschlossene fallen aus der Liste."""
+        dlg = _ImageDialog(titel, bgr, self)
+        self._overlay_dialogs = [d for d in self._overlay_dialogs if d.isVisible()]
+        self._overlay_dialogs.append(dlg)
+        dlg.show()
+
+    def _onboard_kontext(self) -> dict:
+        """Extrinsik, Abschnitte und Maskenwerte für einen Lauf mit den Onboard-Bildern.
+
+        Ohne zusammengeführte Karte ist der ganze Flug ein Abschnitt.
+        """
+        rec = self._rec
+        T = self._extrinsic_from_spins()
+        teile = list(self._parts) if self._parts else [(self._bag, 0, int(rec.n_scans))]
+        masken = {"bmin": int(self._sld_bmin.value()), "bmax": int(self._sld_bmax.value()),
+                  "sky_grow": int(self._spin_sky.value())}
+        return {"T": T, "teile": teile, "masken": masken}
+
     def _on_colorize_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
-        try:
-            colorizer = self._import_colorizer()
-        except RuntimeError as exc:
-            self._show_error("Einfärben", str(exc))
+        colorizer = self._mit_colorizer("Einfärben")
+        if colorizer is None:
             return
         if self._merge_rec is not None:
             weiter = QMessageBox.question(
@@ -276,7 +301,7 @@ class EinfaerbungMixin:
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
         parts = self._parts
-        out_dir = self._project.colors_dir()
+        out_dir = self._project.layer_dir("onboard")
 
         def job(progress_cb, cancel, log_cb):
             # Kurzer Test vor dem langen Lauf: sitzt die Extrinsik auf einem
@@ -329,25 +354,20 @@ class EinfaerbungMixin:
         # Bei einer zusammengefuehrten Karte je Abschnitt ausweisen: sonst
         # sieht man nur eine Gesamtquote und merkt nicht, dass ein ganzer Flug
         # leer geblieben ist.
-        colors, valid, err = _load_color_files(self._project.colors_dir(),
+        colors, valid, err = _load_color_files(self._project.layer_dir("onboard"),
                                                self._rec.n_points)
         if err:
             self._show_error("Einfärben", err)
             return
-        if self._parts and valid is not None:
-            for teil, (proxy, von, bis) in enumerate(self._parts, start=1):
-                a = int(self._rec.offsets[von])
-                b = int(self._rec.offsets[min(bis, self._rec.n_scans)])
-                if b <= a:
-                    continue
-                anteil = float(valid[a:b].mean())
-                self._log(f"   Abschnitt {teil} "
-                          f"({os.path.basename(proxy.bag_path)}): "
-                          f"{100.0 * anteil:.1f} % von {_fmt_int(b - a)} Punkten.")
-                if anteil < 0.02:
-                    self._log(f"   WARNUNG: Abschnitt {teil} ist praktisch leer "
-                              f"geblieben — vermutlich fehlt für dieses Bag die "
-                              f"Kamera oder es liegt nicht mehr an seinem Ort.")
+        from core.colorizer import abschnittsquote
+        for teil, proxy, a, b, anteil in abschnittsquote(self._rec, valid, self._parts):
+            self._log(f"   Abschnitt {teil} "
+                      f"({os.path.basename(proxy.bag_path)}): "
+                      f"{100.0 * anteil:.1f} % von {_fmt_int(b - a)} Punkten.")
+            if anteil < 0.02:
+                self._log(f"   WARNUNG: Abschnitt {teil} ist praktisch leer "
+                          f"geblieben — vermutlich fehlt für dieses Bag die "
+                          f"Kamera oder es liegt nicht mehr an seinem Ort.")
         self._colors, self._valid = colors, valid
         # Eine leere Anzeige ist der schlechteste Ausgang: bei "Nur eingefärbte
         # Punkte" verschwindet die ganze Wolke, und uebrig bleibt nur, was sonst

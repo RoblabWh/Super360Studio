@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QWidget,
 )
 
-from ui.bausteine import _wrappable
+from ui.bausteine import _wrappable, still_setzen
 
 
 class MaeanderMixin:
@@ -181,9 +181,8 @@ class MaeanderMixin:
         n_v = len([f for f in os.listdir(path) if f.upper().endswith("_V.JPG")])
         n_t = len([f for f in os.listdir(path) if f.upper().endswith("_T.JPG")])
         if n_v == 0:
-            n_v = len([f for f in os.listdir(path)
-                       if f.upper().endswith((".JPG", ".JPEG"))
-                       and not f.upper().endswith("_T.JPG")])
+            from core import meander as meander_mod
+            n_v = meander_mod.zaehle_rgb_jpeg(path)
         if n_v == 0:
             self._show_error("Mäander-Einfärbung",
                              f"In '{os.path.basename(path)}' liegen keine JPEGs.")
@@ -221,61 +220,50 @@ class MaeanderMixin:
     def _meander_build(args: dict, log_cb):
         """Pipeline aufsetzen; die Arbeitswolke geht als cloud.npy hinein."""
         from core import meander as meander_mod
-        return meander_mod.build_pipeline(
-            args["points"], args["photo_dir"], args["work_dir"],
-            thermal=args["thermal"], rgb_versatz=args["rgb_versatz"],
-            thermal_versatz=args["thermal_versatz"], log=log_cb)
+        return meander_mod.bauen(args, log_cb)
 
     @staticmethod
     def _meander_bereit(pipe, args: dict, bauen, th_zuschlag, optik_jetzt, progress_cb,
                         cancel, log_cb, von: float, bis: float) -> tuple:
         """Pipeline mit Lage fuer einen Arbeitsthread: (pipe, thermal_zuschlag, optik).
 
-        Mit Pipeline gelten die Regler, wie sie im GUI-Thread eingesammelt
-        wurden. Ohne — Projekt frisch geoeffnet, nie ausgerichtet — gab es
-        keine Regler; dann gilt, was im Projekt steht, und die Ausrichtung kommt
-        aus dem Arbeitsordner.
+        Siehe ``core.meander.bereit_machen``; ``bauen`` wird nicht mehr
+        gebraucht, die Pipeline baut ``core.meander.bauen``.
         """
         from core import meander as meander_mod
-        from core import optik as optik_mod
-        p, th, opt = pipe, th_zuschlag, optik_jetzt
-        spanne = bis - von
-        if p is None:
-            th = meander_mod.load_thermal_zuschlag(args["work_dir"])
-            opt = optik_mod.laden(args["work_dir"])
-            p = bauen(args, log_cb)
-            p._cancel = lambda: cancel.is_set()
-            meander_mod.prepare(
-                p, progress=lambda f, m: progress_cb(von + 0.8 * spanne * f, m))
-            k = meander_mod.align(
-                p, progress=lambda f, m: progress_cb(von + spanne * (0.8 + 0.2 * f), m))
-            # Lieber hier abbrechen als Minuten in eine falsche Lage
-            # stecken: die Trefferquote beim Einfaerben merkt den
-            # Fehlgriff nicht, sie liegt auch dann nahe 100 %.
-            schlecht = meander_mod.pruefe_ausrichtung(k)
-            eingemessen = (opt.get("rgb") or {}).get("auf_flaeche_nachher")
-            if schlecht and eingemessen is not None and \
-                    eingemessen >= meander_mod.MIN_AUF_FLAECHE:
-                # Die Kennzahl der Ausrichtung ist von vor dem Einmessen;
-                # mit der eingemessenen Optik liegen die Fotopunkte auf.
-                log_cb(f"Ausrichtung mit eingemessener Optik: "
-                       f"{eingemessen * 100:.1f} % der Fotopunkte auf der "
-                       f"Oberfläche.")
-            elif schlecht:
-                raise RuntimeError(schlecht)
-        p._cancel = lambda: cancel.is_set()
-        if pipe is None:
-            p.s360_korrektur = opt.get("korrektur")
-        return p, th, opt
+        return meander_mod.bereit_machen(pipe, args, th_zuschlag, optik_jetzt, progress_cb,
+                                         cancel, log_cb, von, bis)
+
+    def _maeander_kontext(self, titel: str, text: str, zusatz_ok: bool = True) -> dict | None:
+        """Vorspann der Mäander-Jobs im GUI-Thread: Flug, Lage und Optik.
+
+        Ohne Mäanderflug, Karte oder Projekt — oder wenn der Aufrufer mit
+        ``zusatz_ok`` eine eigene Bedingung verneint — kommt ``text`` als
+        Hinweis und None zurück, ebenso, wenn die Rekonstruktion abgelehnt
+        wird. Sonst ist die Handjustage in die Pipeline geschrieben und das
+        dict traegt pipe, args, th_zuschlag und optik_jetzt.
+        """
+        if not self._meander_dir or self._world is None or self._project is None \
+                or not zusatz_ok:
+            QMessageBox.information(self, titel, text)
+            return None
+        if not self._meander_ask_colmap():
+            return None
+        self._meander_apply_manual()
+        pipe = self._meander_pipe
+        args = self._meander_args()
+        th_zuschlag = self._thermal_zuschlag()
+        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
+                           thermal_faktor=self._faktor("thermal"))
+        return {"pipe": pipe, "args": args, "th_zuschlag": th_zuschlag,
+                "optik_jetzt": optik_jetzt}
 
     def _meander_ask_colmap(self) -> bool:
         """Vor einer Rekonstruktion fragen — die dauert eine halbe Stunde."""
-        work = self._project.meander_work_dir()
-        if os.path.exists(os.path.join(work, "cameras.npz")):
-            return True
-        if os.path.exists(os.path.join(work, "sparse", "0", "cameras.bin")):
-            return True
         from core import meander as meander_mod
+        work = self._project.meander_work_dir()
+        if meander_mod.hat_modell(work):
+            return True
         if meander_mod.find_colmap_python() is None:
             self._show_error(
                 "Mäander-Einfärbung",
@@ -284,9 +272,7 @@ class MaeanderMixin:
                 "installieren oder ein fertiges COLMAP-Modell als sparse/0 in "
                 f"'{work}' ablegen.")
             return False
-        n = len([f for f in os.listdir(self._meander_dir)
-                 if f.upper().endswith((".JPG", ".JPEG"))
-                 and not f.upper().endswith("_T.JPG")])
+        n = meander_mod.zaehle_rgb_jpeg(self._meander_dir)
         return QMessageBox.question(
             self, "Rekonstruktion nötig",
             f"Für diesen Flug gibt es noch kein COLMAP-Modell.\n\n"
@@ -303,11 +289,10 @@ class MaeanderMixin:
         if not self._meander_ask_colmap():
             return
         args = self._meander_args()
-        bauen = self._meander_build
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
-            pipe = bauen(args, log_cb)
+            pipe = meander_mod.bauen(args, log_cb)
             pipe._cancel = lambda: cancel.is_set()
             vor = meander_mod.prepare(
                 pipe, progress=lambda f, m: progress_cb(0.05 + 0.7 * f, m))
@@ -339,10 +324,7 @@ class MaeanderMixin:
                 f"Ausrichtung fraglich: {k['yaw_deg']:.2f}°, nur "
                 f"{anteil * 100:.1f} % auf der Oberfläche.")
         for key in ("yaw", "x", "y", "z"):
-            sp = self._spin_meander[key]
-            sp.blockSignals(True)
-            sp.setValue(0.0)
-            sp.blockSignals(False)
+            still_setzen(self._spin_meander[key], 0.0)
         if k.get("aus_cache", True):
             self._meander_lade_zuschlag()     # Handzuschlag von zuletzt
         self._meander_lade_thermal()
@@ -364,7 +346,7 @@ class MaeanderMixin:
     def _on_meander_einmessen(self) -> None:
         """Hoehe, RGB-Brennweite und Thermaloptik einmessen (s. core.optik)."""
         pipe = self._meander_pipe
-        if pipe is None or getattr(pipe, "yaw", None) is None or self._world is None:
+        if not self._hat_lage or self._world is None:
             QMessageBox.information(self, "Optik einmessen",
                                     "Erst „Ausrichten“ laufen lassen.")
             return
@@ -414,7 +396,7 @@ class MaeanderMixin:
     def _on_meander_fein(self) -> None:
         """Fotomodell fein auf die Karte legen (s. core.optik.feinausrichten)."""
         pipe = self._meander_pipe
-        if pipe is None or getattr(pipe, "yaw", None) is None or self._world is None:
+        if not self._hat_lage or self._world is None:
             QMessageBox.information(self, "Feinausrichten",
                                     "Erst „Ausrichten“ laufen lassen.")
             return
@@ -462,8 +444,7 @@ class MaeanderMixin:
         self._auto_kette = True
         self._log("Automatik: ausrichten → Optik einmessen → feinausrichten → "
                   "einfärben mit Sichtprüfung.")
-        pipe = self._meander_pipe
-        if pipe is None or getattr(pipe, "yaw", None) is None or self._live is None:
+        if not self._hat_lage or self._live is None:
             self._on_meander_align()      # weiter ueber die Vorschaubilder
         else:
             self._auto_weiter("einmessen")
@@ -482,35 +463,23 @@ class MaeanderMixin:
             self._log("Automatik fertig.")
 
     def _on_meander_run(self) -> None:
-        if not self._meander_dir or self._world is None or self._project is None:
-            QMessageBox.information(self, "Mäander-Einfärbung",
-                                    "Erst einen Mäanderflug wählen.")
+        ktx = self._maeander_kontext("Mäander-Einfärbung", "Erst einen Mäanderflug wählen.")
+        if ktx is None:
             return
-        if not self._meander_ask_colmap():
-            return
-        self._meander_apply_manual()
-        pipe = self._meander_pipe
-        args = self._meander_args()
-        bauen = self._meander_build
+        pipe, args = ktx["pipe"], ktx["args"]
+        th_zuschlag, optik_jetzt = ktx["th_zuschlag"], ktx["optik_jetzt"]
         welt = self._world
         thermal = bool(self._chk_thermal.isChecked())
         proj = self._project
-        th_zuschlag = self._thermal_zuschlag()
-        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
-                           thermal_faktor=self._faktor("thermal"))
         sichtbar = bool(self._chk_sichtbar.isChecked())
-
-        bereit = self._meander_bereit
 
         def job(progress_cb, cancel, log_cb):
             from core import meander as meander_mod
             from core import optik as optik_mod
-            p, th, opt = bereit(pipe, args, bauen, th_zuschlag, optik_jetzt,
-                                progress_cb, cancel, log_cb, 0.02, 0.50)
-            # lage_affine statt p.affine(): nimmt die Feinausrichtung mit
-            A, b = meander_mod.lage_affine(p, float(np.degrees(p.yaw)), p.t)
+            p, th, opt = meander_mod.bereit_machen(pipe, args, th_zuschlag, optik_jetzt,
+                                                   progress_cb, cancel, log_cb, 0.02, 0.50)
             ergebnis = {"pipe": p, "ebenen": {}, "sichtbar": sichtbar}
-            rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
+            rf = float(opt["rgb_faktor"])
             if rf != 1.0:
                 log_cb(f"RGB mit Maßstab {rf:.4f} (Brennweite).")
             if getattr(p, "s360_korrektur", None):
@@ -536,12 +505,14 @@ class MaeanderMixin:
                     cancel=lambda: cancel.is_set(), temperatur=temperatur)
 
             progress_cb(0.52, "Färbe die volle Wolke aus den RGB-Bildern …")
-            rgb, maske = faerben(optik_mod.rgb_cams(p, rf), p._p("images"), A, b,
+            # Thermal folgt unten, erst nach dem RGB-Färben
+            kam = meander_mod.kameras(p, opt, th, thermal=False)
+            rgb, maske = faerben(kam["rgb"], p._p("images"), kam["A"], kam["b"],
                                  0.52, 0.80)
             meander_mod.save_layer(
                 proj.layer_dir("meander_rgb"), rgb, maske,
                 {"quelle": "meander_rgb", "flug": p.photo_dir,
-                 "yaw_deg": float(np.degrees(p.yaw)),
+                 "yaw_deg": kam["yaw_deg"],
                  "t": [float(x) for x in meander_mod.as_t3(p.t)],
                  "rgb_faktor": rf,
                  "anteil": float(maske.mean()),
@@ -549,12 +520,12 @@ class MaeanderMixin:
                  "sichtpruefung": sichtbar,
                  "feinausrichtung": getattr(p, "s360_korrektur", None)})
             ergebnis["ebenen"]["meander_rgb"] = float(maske.mean())
+            tf = kam["thermal_faktor"]
             th_cams = optik_mod.thermal_cams(p, opt.get("thermal"), tf, rf) \
                 if thermal else None
             if th_cams is not None:
                 progress_cb(0.82, "Färbe aus den Thermalbildern …")
-                yaw_th, t_th = meander_mod.thermal_lage(
-                    float(np.degrees(p.yaw)), p.t, th)
+                yaw_th, t_th = meander_mod.thermal_lage(kam["yaw_deg"], p.t, th)
                 A_th, b_th = meander_mod.lage_affine(p, yaw_th, t_th)
                 if any(th):
                     log_cb(f"Thermal mit eigener Lage: {th[0]:+.3f}°, "
@@ -602,9 +573,7 @@ class MaeanderMixin:
         self._meander_pipe = res["pipe"]
         self._meander_lade_thermal()     # Lief ohne Pipeline: Wert aus dem Projekt
         self._meander_lade_optik()
-        for key, anteil in res["ebenen"].items():
-            self._log(f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte "
-                      f"eingefärbt.")
+        self._ebenen_melden(res["ebenen"])
         if res.get("sichtbar"):
             self._log("Ungefärbt ist, was keine Kamera sieht — mit „Nur eingefärbte "
                       "Punkte“ ausgeblendet, von oben fehlt dadurch nichts.")
@@ -615,10 +584,7 @@ class MaeanderMixin:
         self._reload_layers()
         if self._live is None and self._meander_pipe is not None:
             self._start_live_preview()   # Nachjustieren soll sofort wirken
-        if "meander_rgb" in self._layers:
-            idx = self._combo_layer.findData("meander_rgb")
-            if idx >= 0:
-                self._combo_layer.setCurrentIndex(idx)
+        self._ebene_waehlen("meander_rgb")
         self._update_enabled()
         if self._auto_kette:
             self._auto_weiter("fertig")

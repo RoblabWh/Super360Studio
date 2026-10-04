@@ -8,8 +8,6 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-import numpy as np
-
 from core.gemeinsam import fmt_int as _fmt_int
 
 
@@ -83,29 +81,10 @@ class MeshMixin:
         vox, tiefe, trim, hybrid = self._mesh_param()
 
         def job(progress_cb, cancel, log_cb):
-            geom = mesh_mod.load_geometry(ziel)
-            if geom is not None:
-                progress_cb(0.5, "Lade gespeichertes Mesh …")
-                log_cb(f"Mesh aus dem Projekt: {_fmt_int(geom['stats']['dreiecke'])} "
-                       f"Dreiecke.")
-            else:
-                geom = mesh_mod.build_geometry(
-                    world, rec.path_positions(), voxel=vox, depth=tiefe, trim=trim,
-                    hybrid=hybrid, progress=lambda f, m: progress_cb(0.9 * f, m),
-                    cancel=lambda: cancel.is_set(), log=log_cb)
-                progress_cb(0.9, "Speichere Mesh …")
-                mesh_mod.save_geometry(geom, ziel)
-                geom = mesh_mod.load_geometry(ziel) or geom
-            # Intensitaet je Ecke einmal rechnen und ablegen (liest alle Punkte)
-            ipfad = os.path.join(ziel, "vertex_intensity.npy")
-            if os.path.isfile(ipfad):
-                geom["intensity"] = np.load(ipfad)
-            elif rec is not None and getattr(rec, "intensity", None) is not None:
-                progress_cb(0.95, "Mesh: Intensität je Ecke …")
-                geom["intensity"] = mesh_mod.vertex_scalar(geom, rec.intensity)
-                np.save(ipfad, geom["intensity"])
-            geom["rest_punkte"] = mesh_mod.rest_maske(geom)
-            return geom
+            return mesh_mod.geometrie_holen(
+                ziel, world, rec.path_positions(), vox, tiefe, trim, hybrid,
+                intensity=getattr(rec, "intensity", None), fuer_ansicht=True,
+                progress=progress_cb, cancel=cancel, log=log_cb)
 
         def on_done(geom) -> None:
             self._mesh_laeuft = False
@@ -131,8 +110,7 @@ class MeshMixin:
             self._cloud_view.set_mesh_schalter(False)
             self._settings["mesh_an"] = False
             self._save_settings()
-            if msg != "Abgebrochen":
-                self._show_error("Mesh", msg)
+            self._show_error("Mesh", msg)
 
         self._cloud_view.set_mesh_schalter(True, "Mesh …")
         self._mesh_laeuft = True
@@ -171,14 +149,10 @@ class MeshMixin:
                             f"mesh_{self._spin_mesh_voxel.value()}cm_t{tiefe}.ply")
 
         def job(progress_cb, cancel, log_cb):
-            geom = vorhanden or mesh_mod.load_geometry(ziel)
-            if geom is None:
-                geom = mesh_mod.build_geometry(
-                    world, rec.path_positions() if rec is not None else None,
-                    voxel=vox, depth=tiefe, trim=trim, hybrid=hybrid,
-                    progress=lambda f, m: progress_cb(0.9 * f, m),
-                    cancel=lambda: cancel.is_set(), log=log_cb)
-                mesh_mod.save_geometry(geom, ziel)
+            geom = mesh_mod.geometrie_holen(
+                ziel, world, rec.path_positions() if rec is not None else None,
+                vox, tiefe, trim, hybrid, vorhanden=vorhanden, fuer_ansicht=False,
+                progress=progress_cb, cancel=cancel, log=log_cb)
             rgb = None
             if farben is not None:
                 progress_cb(0.92, "Mesh: Farben der Ebene …")
