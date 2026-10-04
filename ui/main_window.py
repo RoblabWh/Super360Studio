@@ -1,18 +1,23 @@
 """MainWindow von Super360 Studio.
 
-Sidebar (Pipeline + Einstellungen) links, zentrale Tabs (3D-Karte / 360°-Video /
-GPS / Protokoll), Statusleiste mit Fortschritt und Abbrechen-Knopf. Alle langen
-Operationen laufen in einem generischen :class:`Worker` (QThread); Qt-Widgets
-werden ausschließlich im GUI-Thread berührt (Signale).
+Arbeitsfläche links mit den Reitern 3D-Karte / 360°-Video / GPS / Protokoll,
+rechts die Seitenleiste mit den Abschnitten in Ablauffolge (frei in der Breite
+ziehbar), oben das Menü aus ``ui.menubar.BEFEHLE``, unten die Statusleiste mit
+Fortschritt und Abbrechen-Knopf. Die Methoden liegen als Mixins unter
+``ui/fenster``. Lange Operationen laufen in einem :class:`ui.jobs.Worker`
+(QThread); Qt-Widgets werden ausschließlich im GUI-Thread berührt (Signale).
+Gestartet wird über ``app.py``.
 
 Autotest-Haken: Ist die Umgebungsvariable ``SUPER360_AUTOTEST=<bagpfad>``
 gesetzt, öffnet das Fenster beim Start automatisch dieses Bag, wartet auf die
 Cache-Artefakte, schaltet durch alle Tabs, legt Screenshots unter
-``SUPER360_AUTOTEST_OUT`` ab und beendet die Anwendung mit Exit-Code 0.
-Ohne die Variable ist der Haken ein No-Op.
+``SUPER360_AUTOTEST_OUT`` ab und beendet die Anwendung mit Exit-Code 0; 2 bei
+einem Fehler im Arbeitsschritt oder fehlenden Screenshots, 3 nach sieben Minuten
+ohne Ergebnis. Ohne die Variable ist der Haken ein No-Op.
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -27,19 +32,13 @@ from PyQt5.QtWidgets import (
     QApplication,
 )
 
-try:
-    from core.bag_reader import BagInfo, ThreadLocalBag
-    from core.kalibrierung import default_calib as _default_calib
-    from core.project import Project
-    from core.recording import Recording
-    from core.rviz_player import RvizPlayer
-except ImportError:  # direkter Skript-Start: Paketwurzel nachrüsten
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from core.bag_reader import BagInfo, ThreadLocalBag
-    from core.kalibrierung import default_calib as _default_calib
-    from core.project import Project
-    from core.recording import Recording
-    from core.rviz_player import RvizPlayer
+from core.bag_reader import BagInfo, ThreadLocalBag
+from core.gemeinsam import write_json_atomic
+from core.kalibrierung import default_calib as _default_calib
+from core import project as project_mod
+from core.project import Project
+from core.recording import Recording
+from core.rviz_player import RvizPlayer
 
 from ui.bausteine import _ImageDialog, einmal_timer
 from ui.cloud_view import CloudView
@@ -264,8 +263,31 @@ class MainWindow(GrundgeruestMixin,
         need = max(need, kopf + feld + rand)
         need += self._sidebar_scroll.verticalScrollBar().sizeHint().width() + 26
         self._sidebar_breite = max(400, min(720, need))
-        self._sidebar_scroll.setMinimumWidth(300)
-        self._sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # Hinweiszeilen (über die volle Breite) brechen um, statt die Leiste
+        # breit zu halten; Beschriftungen von Formzeilen rücken dafür über ihr Feld.
+        for lbl in sidebar.findChildren(QLabel):
+            lay = lbl.parentWidget().layout()
+            if isinstance(lay, QFormLayout):
+                zeile, rolle = lay.getWidgetPosition(lbl)
+                ganz = zeile >= 0 and rolle == QFormLayout.SpanningRole
+            else:
+                ganz = isinstance(lay, QVBoxLayout) and lay.indexOf(lbl) >= 0
+            if ganz and lbl.text():
+                lbl.setWordWrap(True)
+        # Schmaler ziehen geht bis dahin, wo der breiteste Abschnittskopf noch
+        # ganz zu lesen ist. Darunter brechen die Formzeilen um (Beschriftung
+        # über dem Feld); was auch dann nicht passt, erreicht die waagerechte
+        # Scrollleiste, statt abgeschnitten zu werden.
+        self._sidebar_scroll.setMinimumWidth(
+            self._sections.kopfbreite() + 2 * self._sidebar_scroll.frameWidth()
+            + self._sidebar_scroll.verticalScrollBar().sizeHint().width())
+        self._sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # Die gezogene Breite gilt app-weit und über einen Neustart; ohne
+        # gespeicherten Wert die gemessene.
+        self._leiste_breite = max(self._leiste_lesen() or self._sidebar_breite,
+                                  self._sidebar_scroll.minimumWidth())
+        self._leiste_gezogen = False
+        self._leiste_timer = einmal_timer(self, 1000, self._leiste_speichern)
         # Arbeitsfläche links, Bedienung rechts — der Splitter lässt die
         # Seitenleiste in der Breite ziehen, Ctrl+B blendet sie ganz aus.
         self._splitter = QSplitter(Qt.Horizontal, self)
@@ -274,9 +296,19 @@ class MainWindow(GrundgeruestMixin,
         self._splitter.setStretchFactor(0, 1)
         self._splitter.setStretchFactor(1, 0)
         self._splitter.setCollapsible(0, False)
-        self._splitter.setSizes([1200, self._sidebar_breite])
+        self._splitter.setSizes([1200, self._leiste_breite])
+        self._splitter.splitterMoved.connect(self._leiste_gezogen_melden)
         root.addWidget(self._splitter, 1)
         self.setCentralWidget(central)
+        # Die Arbeitsfläche hat eine Mindestbreite (der breiteste Reiter).
+        # Passt eine breit gezogene Seitenleiste daneben nicht ins Fenster,
+        # das Fenster aufweiten, höchstens auf die Breite des Bildschirms.
+        r = root.contentsMargins()
+        noetig = (self._tabs.minimumSizeHint().width() + self._splitter.handleWidth()
+                  + self._leiste_breite + r.left() + r.right())
+        schirm = QApplication.desktop().availableGeometry(self).width()
+        if self.width() < noetig:
+            self.resize(min(noetig, schirm), self.height())
         # Die Fokuskette folgt der Bauordnung, darin stehen die Reiter vorn;
         # den Tastaturfokus beim Start bekommt trotzdem die Seitenleiste.
         self._sidebar_scroll.setFocus()
@@ -300,7 +332,7 @@ class MainWindow(GrundgeruestMixin,
         # Menue mit der Seitenleiste gleichziehen; der Haken unter
         # Ansicht ▸ Bereich folgt dem gezeigten Reiter.
         self._fill_view_menus()
-        self._refresh_layer_combo()   # ohne Projekt: 'keine Einfärbung'
+        self._refresh_layer_combo()   # ohne Projekt: keine Ebene, RGB-Einträge grau
         self._sync_preview_action()
         self._tabs.currentChanged.connect(self._sync_tab_menu)
         self._cloud_view.measured.connect(self._on_measured)
@@ -334,6 +366,41 @@ class MainWindow(GrundgeruestMixin,
         ("anzeige", "Anzeige", "_abschnitt_anzeige", True),
         ("wiedergabe", "Wiedergabe (RViz)", "_abschnitt_wiedergabe", False),
     )
+
+    def _leiste_datei(self) -> str:
+        return os.path.join(project_mod.DEFAULT_CACHE_ROOT, "seitenleiste.json")
+
+    def _leiste_lesen(self) -> Optional[int]:
+        """Gespeicherte Breite der Seitenleiste; None, wenn keine brauchbare da ist."""
+        try:
+            with open(self._leiste_datei(), encoding="utf-8") as fh:
+                breite = json.load(fh)["breite"]
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        if isinstance(breite, bool) or not isinstance(breite, int) \
+                or not 0 < breite <= 100_000:
+            return None
+        return breite
+
+    def _leiste_gezogen_melden(self, _pos: int, _index: int) -> None:
+        # Zugeklappt (0) zählt nicht: dann bleibt die Breite davor.
+        breite = self._splitter.sizes()[1]
+        if breite > 0:
+            self._leiste_breite = breite
+            self._leiste_gezogen = True
+            self._leiste_timer.start()
+
+    def _leiste_speichern(self) -> None:
+        """Gezogene Breite ablegen; nur, wenn die Nutzerin den Splitter bewegt hat."""
+        self._leiste_timer.stop()
+        if not self._leiste_gezogen:
+            return
+        self._leiste_gezogen = False
+        try:
+            os.makedirs(project_mod.DEFAULT_CACHE_ROOT, exist_ok=True)
+            write_json_atomic(self._leiste_datei(), {"breite": int(self._leiste_breite)})
+        except OSError as exc:
+            print(f"Breite der Seitenleiste nicht gespeichert: {exc}", file=sys.stderr)
 
     def _build_sidebar(self) -> QWidget:
         self._sections = SectionStack()
@@ -371,17 +438,6 @@ class MainWindow(GrundgeruestMixin,
             print(f"RViz-Aufräumen: {exc}", file=sys.stderr)
         self._gps_panel.shutdown()
         self._save_settings()
+        self._leiste_speichern()
         super().closeEvent(event)
 
-
-if __name__ == "__main__":
-    os.environ.setdefault("DISPLAY", ":0")
-    app = QApplication(sys.argv)
-    try:
-        import qdarktheme
-        qdarktheme.setup_theme("dark", custom_colors={"primary": "#4FC3F7"})
-    except Exception as exc:  # Theme ist Kosmetik — ohne weiterlaufen
-        print(f"qdarktheme nicht aktiv: {exc}", file=sys.stderr)
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec_())

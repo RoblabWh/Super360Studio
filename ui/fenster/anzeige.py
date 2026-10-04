@@ -48,12 +48,12 @@ _BG_ITEMS = (("Dunkel", "dunkel"), ("Hell", "hell"))
 
 
 def _punktgroesse(wert) -> float:
-    """Punktgroesse wie im frueheren Regler der Seitenleiste: auf 0,01 px
-    gerundet (Qt rundet halbe Hundertstel auf) und auf 0,5 bis 10 px begrenzt."""
+    """Punktgroesse auf 0,01 px gerundet (halbe Hundertstel nach oben, wie Qt
+    rundet) und auf 0,5 bis 10 px begrenzt."""
     v = float(QLocale.c().toString(float(wert), "f", 2))
     if v < 0.5:
         return 0.5
-    return v if v <= 10.0 else 10.0         # NaN wird wie dort zu 10
+    return v if v <= 10.0 else 10.0         # NaN wird zu 10
 
 
 def _farbmodus(wert) -> str:

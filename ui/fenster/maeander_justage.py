@@ -140,11 +140,6 @@ class MaeanderJustageMixin:
         """Thermal-Zuschlag (Gier Grad, X m, Y m) auf die RGB-Lage."""
         return self._th_zuschlag
 
-    def _meander_lage_thermal(self) -> tuple:
-        """Lage der Thermalbilder: RGB-Lage plus Thermal-Zuschlag."""
-        from core import meander as meander_mod
-        return meander_mod.thermal_lage(*self._meander_lage(), self._thermal_zuschlag())
-
     @property
     def _hat_lage(self) -> bool:
         """Gibt es eine ausgerichtete Lage, auf die sich die Justage bezieht?"""

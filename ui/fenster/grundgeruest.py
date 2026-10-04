@@ -62,7 +62,7 @@ class GrundgeruestMixin:
         }
         # Die Knöpfe der Seitenleiste folgen ihren Aktionen.
         menubar_mod.schalte(self._actions, zustand, busy)
-        # Was kein Befehl ist: die Handregler des Mäanders und der Abbrechen-Knopf
+        # Was kein Befehl ist: der Lagetext des Mäanders und der Abbrechen-Knopf
         self._freigabe_maeander(zustand, busy)
         can_cancel = busy and (self._worker is None or self._worker.cancellable)
         self._btn_cancel.setEnabled(can_cancel)
@@ -93,7 +93,6 @@ class GrundgeruestMixin:
 
     def _start_worker(self, text: str, job: Callable,
                       on_done: Callable[[object], None],
-                      extra_progress: Callable[[float, str], None] | None = None,
                       on_failed: Callable[[str], None] | None = None,
                       cancellable: bool = True) -> None:
         if self._closing:
@@ -113,8 +112,6 @@ class GrundgeruestMixin:
         worker = Worker(job, self, cancellable=cancellable)
         self._worker = worker
         worker.progress.connect(self._on_progress)
-        if extra_progress is not None:
-            worker.progress.connect(extra_progress)
         worker.log.connect(self._log)
         worker.finished.connect(lambda res, w=worker, cb=on_done: self._worker_done(w, cb, res))
         worker.failed.connect(lambda msg, w=worker, t=text, cb=on_failed:

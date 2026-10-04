@@ -1,7 +1,7 @@
 """Export (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _btn_cloud_cc, _btn_export_las, _btn_export_plypcd,
-_georef, _lbl_georef, _valid.
+_georef, _lbl_georef.
 """
 from __future__ import annotations
 

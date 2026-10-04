@@ -7,8 +7,6 @@ _parts, _project, _quality, _rec, _settings, _spin_rate, _valid, _world.
 """
 from __future__ import annotations
 
-import dataclasses
-import json
 import os
 from typing import Optional
 
@@ -37,6 +35,8 @@ from ui.pano_view import StitchingPanoSource
 
 _CONFIG_ITEMS = (("Maximal dicht (whs_dense.yaml)", "whs_dense.yaml"),
                  ("Schnell (mid360.yaml)", "mid360.yaml"))
+#: Breite der gestitchten Panoramen in px
+_PANO_BREITE = 1920
 
 
 def _karten_zeile(n_scans, erwartet, n_points, drops) -> str:
@@ -123,11 +123,6 @@ class ProjektMixin:
             fixes = proxy.read_gps()
             quality = georef.assess(fixes)
             project = projekt if projekt is not None else Project(path)
-            try:
-                with open(project.gps_json(), "w", encoding="utf-8") as fh:
-                    json.dump([dataclasses.asdict(f) for f in fixes], fh)
-            except OSError as exc:
-                log_cb(f"gps.json nicht geschrieben: {exc}")
             progress_cb(0.75, "Explorationsgrad …")
             grad, grad_hinweis = _exploration_holen(path, project, log_cb,
                                                     progress_cb, cancel,
@@ -295,7 +290,7 @@ class ProjektMixin:
 
     def _start_pano_job(self) -> None:
         bag, project = self._bag, self._project
-        width = int(self._settings.get("pano_width", 1920))
+        width = _PANO_BREITE
         pano_dir = project.pano_dir(width)
         calib = self._calib
         self._pano_failed = False
@@ -326,7 +321,7 @@ class ProjektMixin:
         self._pano_src = src
         self._pano_view.set_source(src)
         self._log(f"360°-Video bereit: {src.count} Frames, {src.fps:.1f} fps, "
-                  f"Breite {self._settings.get('pano_width', 1920)} px.")
+                  f"Breite {_PANO_BREITE} px.")
         if self._project is not None and self._project.has_recording():
             self._start_recording_load()
 

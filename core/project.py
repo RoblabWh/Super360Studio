@@ -3,15 +3,14 @@
 Der Cache-Schluessel enthaelt neben dem Verzeichnisnamen einen kurzen Hash des
 absoluten Bag-Pfads, damit zwei verschiedene Bags mit gleichem Ordnernamen
 (z. B. /data/siteA/rosbag2_x und /data/siteB/rosbag2_x) sich nicht denselben
-Cache teilen bzw. gegenseitig ueberschreiben. Ein Alt-Verzeichnis mit reinem
-Basename wird beim ersten Zugriff automatisch migriert (umbenannt).
+Cache teilen bzw. gegenseitig ueberschreiben.
 
 Layout (s. ARCHITECTURE.md; <key> = <bag_dir_name>-<md5(abspath)[:8]>):
     cache/<key>/
       recording/          FAST-LIO-Aufzeichnung (recording.py)
       colors/             colors.bin / valid.bin / meta.json
       pano_<W>/           index.json + %06d.jpg
-      gps.json            Fix-Liste inkl. GPSRAW-Merge
+      gps.json            Fix-Liste inkl. GPSRAW-Merge (nur aeltere Projekte)
       extrinsic.json      {"T_imu_cam0": [[4x4]]}
       settings.json       zuletzt genutzte Einstellungen
       exploration.json    Explorationsgrad des Bags (exploration.Explorationsgrad)
@@ -66,14 +65,6 @@ class Project:
         # namensgleiche Bags an verschiedenen Orten getrennte Caches bekommen.
         digest = hashlib.md5(abs_path.encode("utf-8")).hexdigest()[:8]
         self.dir = os.path.join(self.cache_root, f"{self.bag_name}-{digest}")
-        # Migration: Alt-Verzeichnis (reiner Basename) auf den neuen
-        # gehashten Namen umbenennen, sofern das Ziel noch nicht existiert.
-        legacy = os.path.join(self.cache_root, self.bag_name)
-        if legacy != self.dir and os.path.isdir(legacy) and not os.path.exists(self.dir):
-            try:
-                os.rename(legacy, self.dir)
-            except OSError:
-                pass  # z. B. Rennen mit zweiter Instanz — dann frisches Verzeichnis
         try:
             os.makedirs(self.dir, exist_ok=True)
         except OSError as exc:
@@ -177,10 +168,6 @@ class Project:
         return all(os.path.isfile(os.path.join(d, f))
                    for f in ("colors.bin", "valid.bin", "meta.json"))
 
-    def available_layers(self) -> list:
-        """Vorhandene Farbebenen in fester Reihenfolge."""
-        return [k for k in self.LAYERS if self.has_layer(k)]
-
     def meander_work_dir(self) -> str:
         """Arbeitsordner der Maeander-Pipeline (COLMAP-Modell, Bilder, Lage)."""
         return self._subdir("meander")
@@ -208,15 +195,6 @@ class Project:
 
     def has_colors(self) -> bool:
         return self.has_layer("onboard")
-
-    def has_pano(self, width: int) -> bool:
-        return os.path.isfile(os.path.join(self.dir, f"pano_{int(width)}", "index.json"))
-
-    def has_gps(self) -> bool:
-        return os.path.isfile(self.gps_json())
-
-    def has_extrinsic(self) -> bool:
-        return os.path.isfile(self.extrinsic_json())
 
     def has_exploration(self) -> bool:
         return os.path.isfile(self.exploration_json())
@@ -320,8 +298,7 @@ if __name__ == "__main__":
     print("dir layout helpers OK")
 
     # has_* vor/nach Anlegen
-    assert not prj.has_recording() and not prj.has_colors() and not prj.has_pano(1920)
-    assert not prj.has_gps() and not prj.has_extrinsic()
+    assert not prj.has_recording() and not prj.has_colors()
     for f in _RECORDING_FILES:
         open(os.path.join(prj.recording_dir(), f), "wb").close()
     assert prj.has_recording()
@@ -331,7 +308,7 @@ if __name__ == "__main__":
     for f in ("colors.bin", "valid.bin", "meta.json"):
         open(os.path.join(prj.colors_dir(), f), "wb").close()
     assert prj.colors_dir() == prj.layer_dir("onboard")
-    assert prj.has_colors() and prj.available_layers() == ["onboard"]
+    assert prj.has_colors()
     print("has_colors = has_layer('onboard') OK")
 
     # meta.json: lies_aufzeichnungs_meta wirft, from_dir und list_projects schlucken
@@ -395,24 +372,6 @@ if __name__ == "__main__":
     assert prj_other.bag_name == prj.bag_name
     assert prj_other.dir != prj.dir, "Namenskollision: gleicher Cache fuer verschiedene Bags"
     print(f"kollisionsfrei: {os.path.basename(prj.dir)} != {os.path.basename(prj_other.dir)}")
-
-    # Migration: Alt-Verzeichnis (reiner Basename) wird auf den Hash-Namen umbenannt
-    root2 = os.path.join(OUT, "cache_root_migration")
-    if os.path.isdir(root2):
-        _sh.rmtree(root2)
-    legacy = os.path.join(root2, prj.bag_name)
-    os.makedirs(os.path.join(legacy, "recording"))
-    with open(os.path.join(legacy, "recording", "meta.json"), "w", encoding="utf-8") as fh:
-        fh.write("{}")
-    prj_mig = Project(BAG, cache_root=root2)
-    assert not os.path.exists(legacy), "Alt-Verzeichnis nicht migriert"
-    assert os.path.isfile(os.path.join(prj_mig.dir, "recording", "meta.json"))
-    print(f"migration OK: {legacy} -> {prj_mig.dir}")
-    # existiert das Ziel bereits, bleibt ein (neu angelegtes) Alt-Verzeichnis stehen
-    os.makedirs(legacy)
-    prj_mig2 = Project(BAG, cache_root=root2)
-    assert os.path.isdir(legacy) and prj_mig2.dir == prj_mig.dir
-    print("migration idempotent OK")
 
     # Default-Root nur als Pfad geprueft (kein Anlegen erzwingen noetig — s. fixtests)
     prj_default = Project(BAG)

@@ -281,6 +281,164 @@ class CutBar(QtWidgets.QWidget):
         event.accept()
 
 
+class _Hinweis(QtWidgets.QLabel):
+    """Einzeiliger Hinweis, der bei Platzmangel mit „…“ gekürzt wird.
+
+    ``text()`` bleibt der volle Text; er steht auch im Tooltip. Die
+    Mindestbreite ist null, der Hinweis hält die Leiste also nie breit.
+    """
+
+    def minimumSizeHint(self) -> QtCore.QSize:  # noqa: N802 (Qt)
+        return QtCore.QSize(0, super().minimumSizeHint().height())
+
+    def _textfeld(self) -> QtCore.QRect:
+        """Fläche für den Text wie bei QLabel: ohne margin und Einzug (mit Rahmen
+        rückt QLabel um eine halbe x-Breite ein)."""
+        m = self.margin()
+        rect = self.contentsRect().adjusted(m, m, -m, -m)
+        einzug = self.indent()
+        if einzug < 0 and self.frameWidth():
+            einzug = self.fontMetrics().horizontalAdvance("x") // 2 - m
+        if einzug > 0:
+            if self.alignment() & QtCore.Qt.AlignLeft:
+                rect.setLeft(rect.left() + einzug)
+            elif self.alignment() & QtCore.Qt.AlignRight:
+                rect.setRight(rect.right() - einzug)
+        return rect
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt)
+        rect = self._textfeld()
+        if self.fontMetrics().horizontalAdvance(self.text()) <= rect.width():
+            super().paintEvent(event)          # passt: genau wie ein QLabel
+            return
+        text = self.fontMetrics().elidedText(self.text(), QtCore.Qt.ElideRight, rect.width())
+        p = QtGui.QPainter(self)
+        self.drawFrame(p)
+        self.style().drawItemText(p, rect, int(self.alignment()), self.palette(),
+                                  self.isEnabled(), text, self.foregroundRole())
+
+
+class _Leistenfluss(QtWidgets.QLayout):
+    """Layout der Leiste: Gruppen von links nach rechts, bei Platzmangel in
+    weiteren Reihen; der Hinweis steht rechts im Rest der letzten Reihe.
+
+    In voller Breite ist das eine Reihe mit dem Hinweis rechts. Reicht der
+    Rest nicht für den ganzen Hinweis, wird er gekürzt; unter
+    ``_HINWEIS_MIN`` Pixeln bleibt er weg, statt eine Reihe anzufangen.
+    """
+
+    _HINWEIS_MIN = 60
+    _REIHENABSTAND = 4
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self._gruppen: list = []
+        self._hinweis = None
+        self._reihen = 1
+
+    def addLayout(self, lay: QtWidgets.QLayout) -> None:  # noqa: N802 (Qt-Name)
+        self.addChildLayout(lay)
+        self._gruppen.append(lay)
+        self.invalidate()
+
+    def setze_hinweis(self, w: QtWidgets.QWidget) -> None:
+        self.addChildWidget(w)
+        self._hinweis = QtWidgets.QWidgetItem(w)
+        self.invalidate()
+
+    def _items(self) -> list:
+        return self._gruppen + ([self._hinweis] if self._hinweis is not None else [])
+
+    def addItem(self, item) -> None:  # noqa: N802 (Qt-Name)
+        self._gruppen.append(item)
+
+    def count(self) -> int:
+        return len(self._items())
+
+    def itemAt(self, i: int):  # noqa: N802 (Qt-Name)
+        items = self._items()
+        return items[i] if 0 <= i < len(items) else None
+
+    def takeAt(self, i: int):  # noqa: N802 (Qt-Name)
+        if 0 <= i < len(self._gruppen):
+            return self._gruppen.pop(i)
+        if self._hinweis is not None and i == len(self._gruppen):
+            item, self._hinweis = self._hinweis, None
+            return item
+        return None
+
+    def expandingDirections(self):  # noqa: N802 (Qt-Name)
+        return QtCore.Qt.Orientations(QtCore.Qt.Horizontal)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt-Name)
+        return True
+
+    def heightForWidth(self, breite: int) -> int:  # noqa: N802 (Qt-Name)
+        return self._anordnen(QtCore.QRect(0, 0, breite, 0), setzen=False)
+
+    def sizeHint(self) -> QtCore.QSize:  # noqa: N802 (Qt-Name)
+        m = self.contentsMargins()
+        items = [it for it in self._items() if not it.isEmpty()]
+        b = sum(it.sizeHint().width() for it in items) + self.spacing() * max(0, len(items) - 1)
+        h = max((it.sizeHint().height() for it in items), default=0)
+        return QtCore.QSize(b + m.left() + m.right(), h + m.top() + m.bottom())
+
+    def minimumSize(self) -> QtCore.QSize:  # noqa: N802 (Qt-Name)
+        m = self.contentsMargins()
+        b = max((g.minimumSize().width() for g in self._gruppen if not g.isEmpty()), default=0)
+        h = max((it.minimumSize().height() for it in self._items() if not it.isEmpty()),
+                default=0)
+        return QtCore.QSize(b + m.left() + m.right(), h + m.top() + m.bottom())
+
+    def setGeometry(self, rect: QtCore.QRect) -> None:  # noqa: N802 (Qt-Name)
+        super().setGeometry(rect)
+        self._anordnen(rect, setzen=True)
+
+    def reihen(self) -> int:
+        """Zahl der Reihen bei der letzten Anordnung."""
+        return self._reihen
+
+    def _anordnen(self, rect: QtCore.QRect, setzen: bool) -> int:
+        """Ordnet Gruppen und Hinweis in ``rect`` an; gibt die nötige Höhe zurück."""
+        m = self.contentsMargins()
+        links, rechts = rect.x() + m.left(), rect.right() - m.right()
+        breite = rechts - links + 1
+        ab = self.spacing()
+        gruppen = [g for g in self._gruppen if not g.isEmpty()]
+        reihen: list = [[]]
+        x = 0
+        for g in gruppen:
+            w = min(g.sizeHint().width(), breite)
+            if reihen[-1] and x + ab + w > breite:
+                reihen.append([])
+                x = 0
+            x += (ab if reihen[-1] else 0) + w
+            reihen[-1].append((g, max(w, g.minimumSize().width())))
+        hoehe = [max((g.sizeHint().height() for g, _ in r), default=0) for r in reihen]
+        hinweis = self._hinweis
+        if hinweis is not None and not hinweis.isEmpty():
+            hoehe[-1] = max(hoehe[-1], hinweis.sizeHint().height())
+        y = rect.y() + m.top()
+        for i, r in enumerate(reihen):
+            x = links
+            for g, w in r:
+                if setzen:
+                    g.setGeometry(QtCore.QRect(x, y, w, hoehe[i]))
+                x += w + ab
+            if i < len(reihen) - 1:
+                y += hoehe[i] + self._REIHENABSTAND
+        if hinweis is not None and not hinweis.isEmpty() and setzen:
+            rest = rechts - x + 1
+            if rest >= self._HINWEIS_MIN:
+                w = min(rest, hinweis.sizeHint().width())
+                hinweis.setGeometry(QtCore.QRect(rechts - w + 1, y, w, hoehe[-1]))
+            else:
+                hinweis.setGeometry(QtCore.QRect(links, y, 0, hoehe[-1]))
+        if setzen:
+            self._reihen = len(reihen)
+        return y + hoehe[-1] - rect.y() + m.bottom()
+
+
 class CloudView(QtWidgets.QWidget):
     """VTK-Punktwolken-Viewer (Trackball-Kamera, EDL optional)."""
 
@@ -379,18 +537,6 @@ class CloudView(QtWidgets.QWidget):
         self._prev_actor.GetProperty().SetOpacity(0.55)
         self._prev_actor.SetVisibility(False)
         self._prev_wanted = False   # vom Anwender gewuenscht (Ansicht-Menue)
-        # Zweite, eingefaerbte Vorschau: die Stichprobe der Maeander-
-        # Handjustage. Eigener Actor, damit sie sich mit der orangen
-        # Merge-Vorschau nicht ins Gehege kommt. Groessere Punkte als die
-        # Karte, damit sie darauf sichtbar bleibt.
-        self._cprev_mapper = vtk.vtkPolyDataMapper()
-        self._cprev_mapper.SetColorModeToDirectScalars()
-        self._cprev_actor = vtk.vtkActor()
-        self._cprev_actor.SetMapper(self._cprev_mapper)
-        self._cprev_actor.GetProperty().SetPointSize(5)
-        self._cprev_actor.SetVisibility(False)
-        self._renderer.AddActor(self._cprev_actor)
-        self._cprev_refs: list = []
         self._renderer.AddActor(self._prev_actor)
         self._prev_refs: list = []
         # Mesh: eigener Actor mit Beleuchtung, damit die Form lesbar ist
@@ -459,7 +605,9 @@ class CloudView(QtWidgets.QWidget):
         # Farben aus der Palette, nicht fest: helle Schrift waere ohne das
         # dunkle Theme auf hellem Grund unsichtbar
         leiste.setStyleSheet("#wolkenleiste { border-bottom: 1px solid rgba(128,128,128,90); }")
-        lay = QtWidgets.QHBoxLayout(leiste)
+        # Gruppen in Reihen: ist die Arbeitsflaeche schmal, bricht die Leiste
+        # um, statt sie breit zu halten
+        lay = _Leistenfluss(leiste)
         lay.setContentsMargins(10, 4, 10, 4)
         lay.setSpacing(14)
 
@@ -515,11 +663,11 @@ class CloudView(QtWidgets.QWidget):
         knopf.setToolTip("R")
         knopf.clicked.connect(self.reset_camera)
         gruppe(knopf)
-        lay.addStretch(1)
-        hinweis = QtWidgets.QLabel("links: drehen · rechts/Umschalt: verschieben · Rad: zoomen")
+        hinweis = _Hinweis("links: drehen · rechts/Umschalt: verschieben · Rad: zoomen")
+        hinweis.setToolTip(hinweis.text())
         hinweis.setStyleSheet("font-style: italic;")
         hinweis.setEnabled(False)          # gedaempft, in jedem Theme lesbar
-        lay.addWidget(hinweis)
+        lay.setze_hinweis(hinweis)
         return leiste
 
     def set_farbmodi(self, eintraege: list, aktuell: str) -> None:
@@ -734,13 +882,11 @@ class CloudView(QtWidgets.QWidget):
         self._plane_lo.SetOrigin(0.0, 0.0, lo)
         self._plane_hi.SetOrigin(0.0, 0.0, hi)
         if aktiv and not self._cut_active:
-            for m in (self._mapper, self._prev_mapper, self._cprev_mapper,
-                      self._mesh_mapper):
+            for m in (self._mapper, self._prev_mapper, self._mesh_mapper):
                 m.AddClippingPlane(self._plane_lo)
                 m.AddClippingPlane(self._plane_hi)
         elif not aktiv and self._cut_active:
-            for m in (self._mapper, self._prev_mapper, self._cprev_mapper,
-                      self._mesh_mapper):
+            for m in (self._mapper, self._prev_mapper, self._mesh_mapper):
                 m.RemoveClippingPlane(self._plane_lo)
                 m.RemoveClippingPlane(self._plane_hi)
         self._cut_active = aktiv
@@ -1052,82 +1198,13 @@ class CloudView(QtWidgets.QWidget):
         poly = vtk.vtkPolyData()
         poly.SetPoints(vtk_pts)
         verts = vtk.vtkCellArray()
-        refs: list = [pts]
-        try:
-            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
-            conn = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
-                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
-            refs += [offsets, conn]
-        except (AttributeError, TypeError):  # pre-9.0 fallback
-            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
-            legacy[0::2] = 1
-            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
-            refs.append(legacy)
+        offsets = np.arange(n + 1, dtype=_ID_DTYPE)
+        conn = np.arange(n, dtype=_ID_DTYPE)
+        verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
+                      _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
+        refs: list = [pts, offsets, conn]
         poly.SetVerts(verts)
         return poly, refs
-
-    def set_color_preview(self, points: np.ndarray | None,
-                          rgb: np.ndarray | None = None,
-                          solo: bool = True) -> None:
-        """Eingefaerbte Stichprobe zeigen (Maeander-Handjustage).
-
-        Damit folgt die Wolke dem Regler: die Stichprobe wird bei jeder
-        Aenderung neu eingefaerbt und hier ersetzt. ``None`` raeumt sie weg.
-
-        ``solo`` blendet die Karte waehrenddessen aus, und das ist der
-        Normalfall. Eine Stichprobe von 50.000 Punkten sind bei einer Karte
-        aus 24 Millionen zwei Promille — als Staub darueber gestreut sieht
-        man von einer Farbaenderung nichts. Allein gezeigt ist sie die
-        ganze Ansicht, und jeder Reglerzug ist sofort zu sehen.
-        """
-        if points is None or len(points) == 0:
-            self._cprev_actor.SetVisibility(False)
-            self._cprev_mapper.SetInputData(vtk.vtkPolyData())
-            self._cprev_refs = []
-            self._mesh_sichtbarkeit()           # Punkte oder Mesh, wie gewaehlt
-            return
-        pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
-        poly, refs = self._point_poly(pts)
-        if rgb is not None:
-            farben = np.ascontiguousarray(np.asarray(rgb).reshape(-1, 3), dtype=np.uint8)
-            if len(farben) != len(pts):
-                raise ValueError("Farben passen nicht zur Punktanzahl.")
-            arr = _strip_numpy_ref(numpy_to_vtk(farben, deep=False,
-                                                array_type=vtk.VTK_UNSIGNED_CHAR))
-            arr.SetName("vorschau")
-            poly.GetPointData().SetScalars(arr)
-            refs.append(farben)
-            self._cprev_mapper.ScalarVisibilityOn()
-        else:
-            self._cprev_mapper.ScalarVisibilityOff()
-        self._cprev_refs = refs
-        self._cprev_mapper.SetInputData(poly)
-        self._cprev_actor.SetVisibility(True)
-        self._mesh_sichtbarkeit()
-        if solo:
-            self._actor.SetVisibility(False)
-            self._mesh_actor.SetVisibility(False)
-        if self._cut_active:
-            self._cprev_mapper.RemoveAllClippingPlanes()
-            self._cprev_mapper.AddClippingPlane(self._plane_lo)
-            self._cprev_mapper.AddClippingPlane(self._plane_hi)
-        self._render()
-
-    def has_color_preview(self) -> bool:
-        return bool(self._cprev_actor.GetVisibility())
-
-    def set_preview_solo(self, on: bool) -> None:
-        """Karte waehrend der Vorschau aus- oder wieder einblenden."""
-        self._mesh_sichtbarkeit()
-        if self.has_color_preview() and on:
-            self._actor.SetVisibility(False)
-            self._mesh_actor.SetVisibility(False)
-        self._render()
-
-    def map_visible(self) -> bool:
-        return bool(self._actor.GetVisibility())
 
     def set_preview_cloud(self, points: np.ndarray | None,
                           color: tuple[float, float, float] = (1.0, 0.55, 0.20)) -> None:
@@ -1212,11 +1289,6 @@ class CloudView(QtWidgets.QWidget):
         self._intensity, self._valid = intensity, valid
         if self._temperatur is not None and len(self._temperatur) != n:
             self.set_temperatur(None)      # gehoerte zu einer anderen Wolke
-        # Eine neue Wolke raeumt eine alte Farbvorschau weg und wird immer
-        # gezeigt. Die Vorschau gehoert zu einer laufenden Justage; sobald
-        # sich die Wolke darunter aendert, passt sie nicht mehr — und eine
-        # Solo-Vorschau wuerde die neue Wolke sonst weiter verdecken.
-        self.set_color_preview(None)
         self._refresh_cut_range()
         self._rebuild_geometry()
         self._mesh_sichtbarkeit()
@@ -1545,6 +1617,23 @@ if __name__ == "__main__":
     cam = view._renderer.GetActiveCamera()
     cam.Azimuth(30.0)
     timed("9M Interaktions-Render (Rotation)", view._render)
+
+    # ---- Leiste: in voller Breite eine Reihe, schmal mehrere --------------
+    leiste = view.findChild(QtWidgets.QFrame, "wolkenleiste")
+    fluss = leiste.layout()
+    hinweis = leiste.findChild(_Hinweis)
+    view.resize(fluss.sizeHint().width() + 40, 800)
+    app.processEvents()
+    assert fluss.reihen() == 1 and hinweis.width() == hinweis.sizeHint().width(), \
+        (fluss.reihen(), hinweis.width())
+    view.resize(fluss.minimumSize().width() + _CUT_W, 800)
+    app.processEvents()
+    assert fluss.reihen() > 1 and leiste.height() == fluss.heightForWidth(leiste.width())
+    assert hinweis.text() == hinweis.toolTip() and hinweis.width() < hinweis.sizeHint().width()
+    for w in leiste.findChildren(QtWidgets.QWidget, options=QtCore.Qt.FindDirectChildrenOnly):
+        assert w.geometry().right() < leiste.width(), w
+    report.append(f"Leiste: schmal {fluss.reihen()} Reihen, mindestens "
+                  f"{leiste.minimumSizeHint().width()} px breit")
 
     view.close()
     QtCore.QTimer.singleShot(150, app.quit)

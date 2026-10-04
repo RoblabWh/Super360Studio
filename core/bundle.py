@@ -8,7 +8,7 @@ Einstellungen. Der Cache liegt ausserhalb des Repos und traegt einen Namen aus
 einem Pfad-Hash — von aussen ist er nicht zu finden und nicht mitzunehmen.
 
 :func:`export_project` legt daraus einen Ordner an, den man weiterreichen kann,
-:func:`import_project` macht daraus wieder ein Projekt. Das Bag bleibt dabei
+:func:`oeffnen` arbeitet darin wieder als Projekt. Das Bag bleibt dabei
 optional: es ist der Eingang, nicht das Ergebnis, und mit 24 GB der grosse
 Brocken. Ohne Bag bleiben die 3D-Karte, die Farben, Messen, Hoehenschnitt und
 der Export erhalten; das 360-Video und ein erneutes Einfaerben brauchen es.
@@ -330,48 +330,6 @@ def oeffnen(src: str) -> dict:
             "zusammengefuehrt": len(meta.get("sources") or []) >= 2}
 
 
-def import_project(src: str, project, progress=None, cancel=None) -> dict:
-    """Ordner ``src`` in ``project`` einspielen und die Bagpfade nachziehen.
-
-    ``project`` ist ein :class:`core.project.Project` fuer den Zielort; sein
-    Verzeichnis wird angelegt und ueberschrieben.
-    """
-    src = os.path.abspath(src)
-    manifest = read_manifest(src)
-    quelle = os.path.join(src, "projekt")
-    soll = _dir_size(quelle)
-    zaehler = {"ist": 0, "soll": max(soll, 1)}
-    os.makedirs(project.dir, exist_ok=True)
-    _copy_tree(quelle, project.dir, zaehler, progress, cancel)
-
-    # Bagpfade in der meta.json auf den Ort zeigen lassen, an dem sie jetzt
-    # wirklich liegen — sonst zeigt der Import ins Leere des fremden Rechners.
-    neue = bag_paths_after_import(src, manifest)
-    meta_p = os.path.join(project.dir, "recording", "meta.json")
-    try:
-        with open(meta_p, encoding="utf-8") as fh:
-            meta = json.load(fh)
-        alte = [q.get("bag") for q in (manifest.get("quellen") or [])]
-        zuordnung = {a: n for a, n in zip(alte, neue) if a and n}
-        if meta.get("bag") in zuordnung:
-            meta["bag"] = zuordnung[meta["bag"]]
-        for s in meta.get("sources") or []:
-            if s.get("bag") in zuordnung:
-                s["bag"] = zuordnung[s["bag"]]
-        tmp = meta_p + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(meta, fh, indent=2)
-        os.replace(tmp, meta_p)
-    except (OSError, ValueError) as exc:
-        raise RuntimeError(f"meta.json der Aufzeichnung nicht anpassbar: {exc}") from exc
-
-    fehlend = [b for b in neue if b and not os.path.exists(b)]
-    if progress is not None:
-        progress(1.0, f"Import fertig: {fmt_size(zaehler['ist'])}")
-    return {"manifest": manifest, "bags": neue, "fehlende_bags": fehlend,
-            "bytes": zaehler["ist"], "project": project}
-
-
 if __name__ == "__main__":
     import tempfile
     import sys
@@ -456,31 +414,12 @@ if __name__ == "__main__":
         raise AssertionError("Datei als Ziel wurde nicht abgelehnt")
     assert open(datei).read() == "nicht loeschen"
 
-    print("== Test 4: Import in einen anderen Cache ==")
-    cache2 = os.path.join(wurzel, "cache2")
-    proj2 = Project(bag_a, cache_root=cache2)
-    res = import_project(ziel, proj2, progress=lambda f, s: None)
-    assert proj2.has_recording() and proj2.has_layer("onboard")
-    assert proj2.available_layers() == ["onboard", "meander_rgb"]
-    meta = json.load(open(os.path.join(proj2.recording_dir(), "meta.json")))
-    print(f"  {fmt_size(res['bytes'])}, Bag zeigt auf {meta['bag']}")
-    assert meta["bag"] == bag_a, meta["bag"]
-    assert not res["fehlende_bags"]
-
-    print("== Test 5: Export MIT Bag, Pfad zeigt danach in den Ordner ==")
+    print("== Test 5: Export MIT Bag ==")
     ziel2 = os.path.join(wurzel, "export2")
     export_project(proj, ziel2, {"colors": True, "bags": True},
                    bag_paths=[bag_a], progress=lambda f, s: None)
     assert os.path.isfile(os.path.join(ziel2, "bags",
                                        os.path.basename(bag_a), "daten_0.db3"))
-    cache3 = os.path.join(wurzel, "cache3")
-    proj3 = Project(os.path.join(ziel2, "bags", os.path.basename(bag_a)),
-                    cache_root=cache3)
-    res3 = import_project(ziel2, proj3, progress=lambda f, s: None)
-    meta3 = json.load(open(os.path.join(proj3.recording_dir(), "meta.json")))
-    print(f"  Bag zeigt danach auf {os.path.relpath(meta3['bag'], wurzel)}")
-    assert meta3["bag"].startswith(ziel2), meta3["bag"]
-    assert os.path.exists(meta3["bag"]) and not res3["fehlende_bags"]
 
     print("== Test 5b: Exportordner an Ort und Stelle oeffnen ==")
     auf = oeffnen(ziel2)

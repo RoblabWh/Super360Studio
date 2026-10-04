@@ -128,8 +128,7 @@ _TABELLE = (
            braucht=("rec",), trenner=True),
     Befehl("meander", "Mäanderflug wählen …", "_on_meander_pick", _M_DATEI, "",
            "Ordner mit den Bildern eines DJI-Kartierungsfluges.\n"
-           "Gesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\n"
-           "Bilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
+           "Gesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.",
            braucht=("rec",)),
     Befehl("project_export", "Projekt exportieren …", "_on_export_project", _M_DATEI,
            "Ctrl+Shift+E",
@@ -233,8 +232,7 @@ _TABELLE = (
            _M_SPLAT, "",
            "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\n"
            "bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\n"
-           "Liegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\n"
-           "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
+           "Liegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
            braucht=_KARTE + ("flug",)),
 
     Menue(_M_ANSICHT),

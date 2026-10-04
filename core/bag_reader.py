@@ -293,17 +293,6 @@ class BagReader:
             cache.popitem(last=False)
         return img
 
-    def iter_camera(self, start: int = 0, stop: int | None = None):
-        """Generator ueber (idx, stamp, bgr) fuer idx in [start, stop)."""
-        stamps = self.camera_stamps()
-        n = len(stamps)
-        if stop is None:
-            stop = n
-        start = max(0, int(start))
-        stop = min(n, int(stop))
-        for idx in range(start, stop):
-            yield idx, float(stamps[idx]), self.read_camera(idx)
-
     # ------------------------------------------------------------------- imu
 
     def read_imu_accel(self, t_from: float | None = None,
@@ -523,12 +512,6 @@ class ThreadLocalBag:
     def read_gps(self):
         return self._bag().read_gps()
 
-    def close(self) -> None:
-        bag = getattr(self._local, "bag", None)
-        if bag is not None:
-            bag.close()
-            self._local.bag = None
-
 
 if __name__ == "__main__":
     import os
@@ -574,9 +557,6 @@ if __name__ == "__main__":
     jpeg = reader.read_camera_jpeg(0)
     assert jpeg[:2] == b"\xff\xd8", "kein JPEG-Header"
     print(f"frame 0 jpeg bytes = {len(jpeg)}")
-
-    n_iter = sum(1 for _ in reader.iter_camera(940, 944))
-    assert n_iter == 4
 
     cv2.imwrite(os.path.join(OUT, "frame_000000.png"), reader.read_camera(0))
     print(f"Beweis-PNG: {OUT}/frame_000000.png")

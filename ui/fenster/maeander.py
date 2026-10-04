@@ -74,10 +74,10 @@ class MaeanderMixin:
                                 schluessel="maeander.hauptpunkt")
         self._spin_optik = {}
         for optik, titel, tip in (
-                ("rgb", "RGB-Optik", "Versatz des Bildhauptpunkts in Pixeln des RGB-Bildes."),
-                ("thermal", "Thermal-Optik", "Dasselbe für die Thermaloptik — eigener Wert, "
-                                             "es ist ein zweites Objektiv.")):
-            hauptpunkt.form.addRow(QLabel(f"<b>{titel} — Hauptpunkt</b>"))
+                ("rgb", "RGB", "Versatz des Bildhauptpunkts in Pixeln des RGB-Bildes."),
+                ("thermal", "Thermal", "Dasselbe für die Thermaloptik — eigener Wert, "
+                                       "es ist ein zweites Objektiv.")):
+            hauptpunkt.form.addRow(QLabel(f"<b>{titel}</b>"))
             for achse, label in (("u", "rechts"), ("v", "unten")):
                 sp = regler_pixel()
                 sp.setToolTip(tip)
@@ -142,24 +142,6 @@ class MaeanderMixin:
             "rgb_versatz": self._meander_versatz("rgb"),
             "thermal_versatz": self._meander_versatz("thermal"),
         }
-
-    @staticmethod
-    def _meander_build(args: dict, log_cb):
-        """Pipeline aufsetzen; die Arbeitswolke geht als cloud.npy hinein."""
-        from core import meander as meander_mod
-        return meander_mod.bauen(args, log_cb)
-
-    @staticmethod
-    def _meander_bereit(pipe, args: dict, bauen, th_zuschlag, optik_jetzt, progress_cb,
-                        cancel, log_cb, von: float, bis: float) -> tuple:
-        """Pipeline mit Lage fuer einen Arbeitsthread: (pipe, thermal_zuschlag, optik).
-
-        Siehe ``core.meander.bereit_machen``; ``bauen`` wird nicht mehr
-        gebraucht, die Pipeline baut ``core.meander.bauen``.
-        """
-        from core import meander as meander_mod
-        return meander_mod.bereit_machen(pipe, args, th_zuschlag, optik_jetzt, progress_cb,
-                                         cancel, log_cb, von, bis)
 
     def _maeander_kontext(self, titel: str, text: str, zusatz_ok: bool = True) -> dict | None:
         """Vorspann der Mäander-Jobs im GUI-Thread: Flug, Lage und Optik.

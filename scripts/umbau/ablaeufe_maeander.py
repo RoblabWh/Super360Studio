@@ -534,7 +534,9 @@ def _zustand(s) -> None:
         "optik": hole(lambda: f._optik),
         "automatik": hole(lambda: [f._auto_kette, f._optik_neu_messen]),
         "vorschaubilder": hole(lambda: [f._live, f._live_th]),
-        "vorschau_sichtbar": hole(lambda: f._cloud_view.has_color_preview()),
+        # die Farbvorschau in der 3D-Ansicht gibt es seit dem Umbau nicht mehr
+        "vorschau_sichtbar": hole(lambda: getattr(f._cloud_view, "has_color_preview",
+                                                  lambda: False)()),
         "thermal_zuschlag": hole(lambda: [float(v) for v in f._thermal_zuschlag()]),
         "massstaebe": hole(lambda: [f._faktor("rgb"), f._faktor("thermal")]),
         "thermal_haken": hole(lambda: [f._chk_thermal.isEnabled(),

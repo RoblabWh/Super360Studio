@@ -130,6 +130,12 @@ class SectionStack(QtWidgets.QWidget):
             alle += list(self._unterbloecke.values())
         return alle
 
+    def kopfbreite(self) -> int:
+        """Breite, in der jeder Abschnittskopf ganz zu lesen ist, samt Rand des Stapels."""
+        m = self._lay.contentsMargins()
+        kopf = max((s._head.sizeHint().width() for s in self.sections()), default=0)
+        return kopf + m.left() + m.right()
+
     def states(self) -> dict:
         return {s.key: s.is_expanded() for s in self.sections(mit_unterbloecken=True)}
 
@@ -182,6 +188,7 @@ if __name__ == "__main__":
     stack.set_all(False)
     assert not any(stack.states().values())
     assert stack.sections() == [stack.section(k) for k in "abc"]
+    assert stack.kopfbreite() == 8 + max(s._head.sizeHint().width() for s in stack.sections())
     assert stack.sections(mit_unterbloecken=True)[-1] is unter     # auch zugeklappt
     for falsch in (unter, Section("a", "gleich", QtWidgets.QWidget()),
                    Section("", "ohne", QtWidgets.QWidget())):

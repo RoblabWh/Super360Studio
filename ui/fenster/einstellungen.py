@@ -32,6 +32,7 @@ class _Einstellung(NamedTuple):
 
 # In der Reihenfolge, in der die Einstellungen angewandt werden.
 _EINSTELLUNGEN: tuple = (
+    # ohne Wirkung (die Breite ist fest), wird nur gelesen und weiter gespeichert
     _Einstellung("pano_width", 1920, "_settings", "durchreichen"),
     _Einstellung("config", "whs_dense.yaml", "_combo_config", "daten"),
     _Einstellung("rate", 1.0, "_spin_rate", "komma"),
@@ -50,8 +51,7 @@ _EINSTELLUNGEN: tuple = (
     _Einstellung("mesh_voxel_cm", 4, "_spin_mesh_voxel", "zahl"),
     _Einstellung("mesh_depth", 12, "_spin_mesh_depth", "zahl"),
     _Einstellung("mesh_trim", 0, "_spin_mesh_trim", "zahl"),
-    # Marke, ab der mesh_trim bewusst gesetzt ist (nicht in den
-    # Standardwerten, sonst griffe die Uebernahme in _mesh_altwerte nie)
+    # ohne Wirkung, wird immer mit der Vorgabe gespeichert
     _Einstellung("mesh_stand", 3, "", "", "fest"),
     _Einstellung("mesh_hybrid", True, "_chk_mesh_hybrid", "haken"),
     _Einstellung("mesh_an", False, "_cloud_view", "mesh_schalter"),
@@ -176,34 +176,11 @@ _LESEN: dict = {
 }
 
 
-def _blaulicht_altwerte(werte: dict) -> None:
-    d = _DEFAULT_SETTINGS
-    keys = ("blue_hue_lo", "blue_hue_hi", "blue_sat", "blue_val")
-    if [werte.get(k, d[k]) for k in keys] in ([200, 240, 40, 60], [170, 250, 25, 40]):
-        # unveraenderte fruehere Standardwerte: liessen cyanblaues und
-        # blassblaues Blaulicht durch, daher auf die neuen
-        werte.update({k: d[k] for k in keys})
-
-
-def _mesh_altwerte(werte: dict) -> None:
-    d = _DEFAULT_SETTINGS
-    stand = int(werte.get("mesh_stand", 0) or 0)
-    if int(werte.get("mesh_trim", d["mesh_trim"])) == 5 and stand < 2:
-        werte["mesh_trim"] = 0      # frueherer Standard, stanzte kleine Loecher
-    if stand < 3 and (int(werte.get("mesh_voxel_cm", d["mesh_voxel_cm"])),
-                      int(werte.get("mesh_depth", d["mesh_depth"]))) == (5, 11):
-        # fruehere Standardwerte: zu grob (Poisson-Zelle ~12 cm)
-        werte["mesh_voxel_cm"] = int(d["mesh_voxel_cm"])
-        werte["mesh_depth"] = int(d["mesh_depth"])
-
-
 class EinstellungenMixin:
     # ========================================================== Einstellungen
 
     def _apply_settings_to_widgets(self) -> None:
         werte = dict(self._settings)
-        _blaulicht_altwerte(werte)
-        _mesh_altwerte(werte)
         self._loading_ui = True
         try:
             for e in _EINSTELLUNGEN:

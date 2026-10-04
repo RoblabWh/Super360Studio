@@ -182,20 +182,13 @@ class EinfaerbungMixin:
 
     # ============================================================== Einfärbung
 
-    @staticmethod
-    def _import_colorizer():
+    def _mit_colorizer(self, titel: str):
+        """Das Einfärbe-Modul; fehlt es, ein Fehlerdialog unter ``titel`` und None."""
         try:
             from core import colorizer
             return colorizer
         except ImportError as exc:
-            raise RuntimeError(f"Modul 'colorizer' ist nicht verfügbar: {exc}") from exc
-
-    def _mit_colorizer(self, titel: str):
-        """Das Einfärbe-Modul; fehlt es, ein Fehlerdialog unter ``titel`` und None."""
-        try:
-            return self._import_colorizer()
-        except RuntimeError as exc:
-            self._show_error(titel, str(exc))
+            self._show_error(titel, f"Modul 'colorizer' ist nicht verfügbar: {exc}")
             return None
 
     def _aktueller_frame(self) -> int:

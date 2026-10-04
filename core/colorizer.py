@@ -39,10 +39,7 @@ from scipy.spatial.transform import Rotation
 from core.gemeinsam import pruefe_abbruch as _check_cancel
 from core.gemeinsam import write_json_atomic
 
-try:  # Paket-Import (App) vs. Direktstart des Selbsttests
-    from .stitcher import SPLIT_X, DoubleSphereCamera, EquirectStitcher
-except ImportError:  # pragma: no cover - nur "python3 core/colorizer.py"
-    from stitcher import SPLIT_X, DoubleSphereCamera, EquirectStitcher  # type: ignore
+from core.stitcher import SPLIT_X, DoubleSphereCamera, EquirectStitcher
 
 # Fisheye-Bildkreis-Pruefung (ARCHITECTURE: Radius <= 740 px um Zentrum 760/760)
 _CIRCLE_C = 760.0
@@ -81,7 +78,7 @@ def _check_camera_resolution(bag) -> None:
     raise RuntimeError(
         f"Unerwartete Kamera-Aufloesung {got} — erwartet 3040x1520 "
         "(Dual-Fisheye). Dieses Bag passt nicht zur hinterlegten "
-        "Kalibrierung; Einfaerbung/Vorschau/Auto-Kalibrierung sind "
+        "Kalibrierung; Einfaerbung/Vorschau/Kamera-Kalibrierung sind "
         "nicht moeglich.")
 
 
@@ -788,96 +785,7 @@ def overlay_preview(rec, bag, calib_json: str, T_imu_cam0: np.ndarray,
 
 # =========================================================== auto_calibrate
 
-_AC_WIDTH = 640                 # Equirect-Aufloesung fuer den Kantenscore
-_AC_PTS_PER_FRAME = 30000       # Zielpunktzahl je Bewertungs-Frame
-_AC_TIME_WINDOW = 4.0           # s; nur Scans nahe am Frame (weniger Verdeckung)
 _AC_MAX_RANGE = 40.0            # m
-
-
-class _EdgeScoreContext:
-    """Kantenkorrelations-Score (wie in ARCHITECTURE.md beschrieben).
-
-    Je Frame: Gradientenbild des Panos (640x320, grau) und Lidar-Punkte
-    (Scans im Zeitfenster) im IMU-Frame des Frame-Zeitpunkts. score(R) misst
-    die Pearson-Korrelation der Gradientenbilder von Pano und projizierter
-    inverser-Tiefe-Dichte.
-
-    HINWEIS: Auf den seg0-Referenzdaten ist diese Metrik flach und mehrdeutig
-    (siehe Abschlussbericht); auto_calibrate nutzt daher primaer den
-    Foto-Konsistenz-Score (:class:`_PhotoScoreContext`). Diese Klasse bleibt
-    fuer Vergleich/Diagnose erhalten.
-    """
-
-    def __init__(self, rec, bag, calib_json: str, frame_indices: Sequence[int],
-                 cancel=None):
-        st = _get_stitcher(str(calib_json), _AC_WIDTH)
-        self.W, self.H = st.width, st.height
-        cam_stamps = bag.camera_stamps()
-        self.frames: list[dict] = []
-        for fidx in frame_indices:
-            _check_cancel(cancel)
-            t_f = float(cam_stamps[int(fidx)])
-            T_wi = rec.interpolate_pose(t_f)
-            if T_wi is None:
-                continue
-            pano = st.stitch(bag.read_camera(int(fidx)))
-            gray = cv2.cvtColor(pano, cv2.COLOR_BGR2GRAY).astype(np.float32)
-            gray = cv2.GaussianBlur(gray, (0, 0), 1.0)
-            gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0)
-            gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1)
-            grad = cv2.magnitude(gx, gy)
-
-            a = int(np.searchsorted(rec.stamps, t_f - _AC_TIME_WINDOW))
-            b = int(np.searchsorted(rec.stamps, t_f + _AC_TIME_WINDOW))
-            b = max(b, a + 1)
-            n_total = int(rec.offsets[b] - rec.offsets[a])
-            stride = max(1, n_total // _AC_PTS_PER_FRAME)
-            pw, _ = _strided_world_points(rec, stride, a, b)
-            Mi = _inv_rigid(T_wi).astype(np.float32)
-            p_imu = pw @ Mi[:3, :3].T + Mi[:3, 3]
-            d = np.linalg.norm(p_imu, axis=1)
-            keep = (d > 0.5) & (d < _AC_MAX_RANGE)
-            p_imu, d = p_imu[keep], d[keep]
-            self.frames.append({
-                "idx": int(fidx),
-                "grad_pano": grad,
-                "p_imu": np.ascontiguousarray(p_imu, dtype=np.float32),
-                "d": d.astype(np.float32),
-                "w": (1.0 / d).astype(np.float64),
-            })
-        if not self.frames:
-            raise RuntimeError(
-                "Auto-Kalibrierung: keine Frames mit gueltiger LIO-Pose gefunden.")
-
-    def score(self, R_imu_cam0: np.ndarray) -> float:
-        """Mittlere Pearson-Korrelation der Gradientenbilder ueber alle Frames."""
-        W, H = self.W, self.H
-        R = np.ascontiguousarray(R_imu_cam0, dtype=np.float32)
-        total = 0.0
-        for fr in self.frames:
-            pc0 = fr["p_imu"] @ R                 # == R^T @ p (zeilenweise)
-            u, v = _equirect_uv(pc0, fr["d"], W, H)
-            flat = v.astype(np.int32) * W + u.astype(np.int32)
-            img = np.bincount(flat, weights=fr["w"], minlength=H * W)
-            img = img.reshape(H, W).astype(np.float32)
-            nz = img > 0.0
-            if nz.any():
-                img = np.log1p(img / float(img[nz].mean()))
-            img = cv2.GaussianBlur(img, (0, 0), 1.5)
-            gx = cv2.Sobel(img, cv2.CV_32F, 1, 0)
-            gy = cv2.Sobel(img, cv2.CV_32F, 0, 1)
-            grad = cv2.magnitude(gx, gy)
-            total += _pearson(grad, fr["grad_pano"])
-        return total / len(self.frames)
-
-
-def _pearson(a: np.ndarray, b: np.ndarray) -> float:
-    x = a.ravel().astype(np.float64)
-    y = b.ravel().astype(np.float64)
-    x -= x.mean()
-    y -= y.mean()
-    den = np.sqrt((x * x).sum() * (y * y).sum())
-    return float((x * y).sum() / den) if den > 0.0 else 0.0
 
 
 def _rot_distance_deg(Ra: Rotation, Rb: Rotation) -> float:
@@ -989,7 +897,7 @@ class _PhotoScoreContext:
             self.pair_frames.append((int(fa), fb))
         if len(self.pairs) < 3:
             raise RuntimeError(
-                "Auto-Kalibrierung: zu wenige Frame-Paare mit gueltiger LIO-Pose.")
+                "Kamera-Kalibrierung: zu wenige Frame-Paare mit gueltiger LIO-Pose.")
 
     @staticmethod
     def _bilinear(g: np.ndarray, u: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -1141,7 +1049,7 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
     if frames is None:
         frames = _default_score_frames(rec, bag, 10)
     if progress_cb is not None:
-        progress_cb(0.0, "Auto-Kalibrierung: bereite Frame-Paare vor")
+        progress_cb(0.0, "Kamera-Kalibrierung: bereite Frame-Paare vor")
     ctx = _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
     # Validierungs-Anker: zeitliche Zwischenpunkte der Optimierungs-Anker
     fr = sorted(int(f) for f in frames)
@@ -1162,7 +1070,7 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
                 _check_cancel(cancel)
                 if progress_cb is not None:
                     progress_cb(frac0 + (frac1 - frac0) * i / max(n, 1),
-                                f"Auto-Kalibrierung: {stage} ({i + 1}/{n})")
+                                f"Kamera-Kalibrierung: {stage} ({i + 1}/{n})")
             scored.append((ctx.score(rot.as_matrix()), rot))
         return scored
 
@@ -1185,7 +1093,7 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
             raise RuntimeError(f"T_init muss 4x4 sein, erhalten {Ti.shape}.")
         grid.append(Rotation.from_matrix(Ti[:3, :3]))
 
-    scored = evaluate(grid, "Grobsuche 30 deg", 0.02, 0.5)
+    scored = evaluate(grid, "Grobsuche 30°", 0.02, 0.5)
     top = _top_distinct(scored, 5, 20.0)
 
     # ---- Stufe 2-4: Koordinaten-Hillclimb (10/3/1 deg) um die Top-5 ----------
@@ -1197,15 +1105,15 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
         def schritt(step_i: int, step: float, ci: int = ci) -> None:
             if progress_cb is not None:
                 frac = 0.5 + 0.45 * (ci * 3 + step_i) / (n_top * 3)
-                progress_cb(frac, (f"Auto-Kalibrierung: Verfeinerung "
-                                   f"Kandidat {ci + 1}/{n_top}, {step:.0f} deg"))
+                progress_cb(frac, (f"Kamera-Kalibrierung: Verfeinerung "
+                                   f"Kandidat {ci + 1}/{n_top}, {step:.0f}°"))
 
         # 40 Runden je Schrittweite als Sicherheitslimit
         finalists.append(_hillclimb(ctx, rot, sc, 40, cancel, schritt_cb=schritt))
 
     # ---- Auswahl auf unabhaengigen Validierungs-Paaren (gegen Overfitting) ---
     if progress_cb is not None:
-        progress_cb(0.96, "Auto-Kalibrierung: Validierung der Finalisten")
+        progress_cb(0.96, "Kamera-Kalibrierung: Validierung der Finalisten")
     best_sc = -np.inf
     best_rot = finalists[0][1]
     for opt_sc, rot in finalists:
@@ -1218,8 +1126,8 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
     T[:3, :3] = best_rot.as_matrix()
     if progress_cb is not None:
         ypr = best_rot.as_euler("ZYX", degrees=True)
-        progress_cb(1.0, (f"Auto-Kalibrierung fertig: Yaw={ypr[0]:.1f} "
-                          f"Pitch={ypr[1]:.1f} Roll={ypr[2]:.1f} deg, "
+        progress_cb(1.0, (f"Kamera-Kalibrierung fertig: Gier {ypr[0]:.1f}°, "
+                          f"Nick {ypr[1]:.1f}°, Roll {ypr[2]:.1f}°, "
                           f"Score={best_sc:.3f}"))
     return T, float(best_sc)
 
@@ -1332,7 +1240,7 @@ if __name__ == "__main__":
           f"score={score:.4f}  runtime={rt_calib:.1f} s")
     print(f"  T_imu_cam0=\n{np.array_str(T_found, precision=4, suppress_small=True)}")
 
-    # Vergleichs-Scores: Foto-Konsistenz (primaer) + Kantenscore (ARCHITECTURE)
+    # Vergleichs-Scores der Foto-Konsistenz
     frames6 = _default_score_frames(rec, bag, 6)
     pctx = _PhotoScoreContext(rec, bag, CALIB, frames6)
     s_id = pctx.score(np.eye(3))
@@ -1341,9 +1249,6 @@ if __name__ == "__main__":
     print(f"  Foto-ZNCC: identity={s_id:.4f}  roll180={s_roll180:.4f}  "
           f"found={s_found:.4f}")
     frames5 = _default_score_frames(rec, bag, 5)
-    ectx = _EdgeScoreContext(rec, bag, CALIB, frames5)
-    print(f"  Kantenscore (ARCHITECTURE-Metrik): identity={ectx.score(np.eye(3)):.4f}  "
-          f"found={ectx.score(T_found[:3, :3]):.4f}")
 
     # Overlays: 3 Frames, gefundene Extrinsik vs. Identitaet
     ov_frames = [frames5[0], frames5[len(frames5) // 2], frames5[-1]]

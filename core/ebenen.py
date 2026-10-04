@@ -108,10 +108,8 @@ def meta_lesen(ordner: str) -> dict | None:
 
 def passt(ordner: str, **soll) -> bool:
     """Gehoert eine gespeicherte Ebene zu dieser Lage? Vergleicht Werte der meta.json."""
-    try:
-        with open(os.path.join(ordner, "meta.json"), encoding="utf-8") as fh:
-            meta = json.load(fh)
-    except (OSError, ValueError):
+    meta = meta_lesen(ordner)
+    if meta is None:
         return False
     for key, wert in soll.items():
         ist = meta.get(key)

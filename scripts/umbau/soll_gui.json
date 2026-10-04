@@ -361,6 +361,11 @@
      "unterblock": "maeander.hauptpunkt"
     },
     {
+     "attribut": null,
+     "text": "<b>RGB</b>",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
      "attribut": "_spin_optik[rgb,u]",
      "text": "rechts",
      "unterblock": "maeander.hauptpunkt"
@@ -368,6 +373,11 @@
     {
      "attribut": "_spin_optik[rgb,v]",
      "text": "unten",
+     "unterblock": "maeander.hauptpunkt"
+    },
+    {
+     "attribut": null,
+     "text": "<b>Thermal</b>",
      "unterblock": "maeander.hauptpunkt"
     },
     {
@@ -699,8 +709,8 @@
    "stil": "font-style: italic;",
    "text": "links: drehen · rechts/Umschalt: verschieben · Rad: zoomen",
    "tiefe": 0,
-   "tooltip": "",
-   "typ": "QLabel"
+   "tooltip": "links: drehen · rechts/Umschalt: verschieben · Rad: zoomen",
+   "typ": "_Hinweis"
   }
  ],
  "menue": [
@@ -1125,7 +1135,7 @@
     "rec"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden."
+   "tooltip": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder."
   },
   "project_export": {
    "braucht": [
@@ -1333,7 +1343,7 @@
     "flug"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU)."
+   "tooltip": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort."
   },
   "edl": {
    "braucht": null,
@@ -2692,24 +2702,21 @@
   "regler_beschriftung": "Beschriftungen der zusammengesetzten Regler ohne Doppelpunkt wie bisher in Zusammenführen und Mäander (Gier, Nick, Roll, X, Y, Z; rechts, unten).",
   "schieber": "Schieberzeilen (bausteine.schieber): die Beschriftung gehört zur unbenannten Zeile, der Schieber selbst folgt ohne Text.",
   "statuszeilen": "Texte von Status- und Lagezeilen sind die beim Start ohne Bag und ohne Projekt (_lbl_georef nach B10, _lbl_meander_lage nach B7).",
-  "leiste": "Leiste über der 3D-Ansicht wie in vorher/gui, nur der Mesh-Tooltip nennt den Abschnitt Mesh.",
+  "leiste": "Leiste über der 3D-Ansicht wie in vorher/gui, nur der Mesh-Tooltip nennt den Abschnitt Mesh. B14: die Gruppen stehen in einem umbrechenden Layout (ui.cloud_view._Leistenfluss) und brechen bei schmaler Arbeitsfläche in weitere Reihen um; der Hinweis ist ein _Hinweis (QLabel, das bei Platzmangel mit „…“ kürzt, unter 60 px Rest wegbleibt und den vollen Text als Tooltip trägt). In voller Breite eine Reihe mit dem Hinweis rechts wie vorher.",
   "rviz": "Starten: Rosbag offen, Bag spielt nicht, kein Schritt läuft. Beenden und Wiederholen: RViz offen oder spielend, auch bei laufendem Schritt. Aktionen und Knöpfe gleich (die Knöpfe folgen der Aktion).",
   "blaumaske": "Blaumaske zeigen folgt der Aktion blaumaske (braucht bag, frei bei laufendem Schritt), unabhängig vom Haken. Die Blaulicht-Regler werden mit dem Unterblock ein- und ausgeblendet statt gesperrt (B6) und sind darum in beiden Hakenstellungen frei; die Sichtbarkeit prüft Teil c nicht.",
   "vorschau_edl_thermal": "Vorschau des zweiten Fluges, EDL und Thermal-Haken wie in vorher/gui.",
-  "breite_min": "gemessene Breite der Seitenleiste in vorher/gui.",
-  "entfallen": "die acht Attribute aus dem Paket; die Zustandsattribute der Vorschau (_live_optik, _live_pts, _live_gemeckert, _live_timer, _zuschlag_timer) prüft P7 über --vergleiche."
+  "breite_min": "gemessene Startbreite der Seitenleiste (_sidebar_breite) wie in vorher/gui; sie gilt, solange keine gezogene Breite gespeichert ist (B14).",
+  "entfallen": "die acht Attribute aus dem Paket; die Zustandsattribute der Vorschau (_live_optik, _live_pts, _live_gemeckert, _live_timer, _zuschlag_timer) prüft P7 über --vergleiche.",
+  "seitenleiste_flexibel": "B14 (Lena 2026-10-04: „mach sie total flexibel“): die Leiste lässt sich frei ziehen. Untergrenze (_sidebar_scroll.minimumWidth()) = breitester Abschnittskopf samt Rand des Stapels, Rahmen und senkrechter Scrollleiste (SectionStack.kopfbreite(); unter xvfb 276 px), Obergrenze nur die Mindestbreite der Arbeitsfläche. Felder wachsen mit (keine Höchstbreite mehr an Auswahlen), Formzeilen brechen um, Hinweiszeilen umbrechen, Knopfzeilen stapeln sich; was dann nicht passt, erreicht die waagerechte Scrollleiste. Die gezogene Breite steht app-weit in <Cache-Wurzel>/seitenleiste.json als {\"breite\": <px>}, geschrieben nur nach einer Splitterbewegung. Der Schnappschuss prüft davon nur die Startbreite (breite_min); den Rest belegt die Laufzeitprobe des Pakets.",
+  "hauptpunkt_titel": "Die Zwischenüberschriften im Unterblock Hauptpunkt heißen „RGB“ und „Thermal“ (vorher „RGB-Optik — Hauptpunkt“, „Thermal-Optik — Hauptpunkt“; B14)."
  },
  "tooltips": {
   "aenderungen": [
    {
     "vorher": "Bilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
-    "nachher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mäanderflug)"
-   },
-   {
-    "vorher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.",
-    "nachher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.\nBilder eines DJI-Kartierungsfluges für die Einfärbung laden.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Mäanderflug wählen, vormals 865-867)"
+    "nachher": "Ordner mit den Bildern eines DJI-Kartierungsfluges.\nGesucht werden die _V.JPG, die _T.JPG sind die Thermalbilder.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mäanderflug) — B14 (Lena 2026-10-04: doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; Knopf und Menüeintrag tragen nur noch den Fachtext des Knopfes"
    },
    {
     "vorher": "Zweites Rosbag laden und mit dem offenen zusammenführen.",
@@ -2743,13 +2750,8 @@
    },
    {
     "vorher": "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
-    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Beide in einem Splat einfärben)"
-   },
-   {
-    "vorher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
-    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.\nEin Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Beide in einem Splat einfärben, vormals 1102-1105)"
+    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Beide in einem Splat einfärben) — B14 (Lena 2026-10-04: doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; Knopf und Menüeintrag tragen nur noch den Fachtext des Knopfes"
    },
    {
     "vorher": "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\nFarbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit max'\ndurchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.",

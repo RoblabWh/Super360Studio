@@ -7,12 +7,12 @@ QAction, sodass Menü und Seitenleiste denselben Zustand zeigen.
 from __future__ import annotations
 
 import numpy as np
-from PyQt5.QtCore import QEvent, Qt, QTimer
+from PyQt5.QtCore import QEvent, QRect, QSize, Qt, QTimer
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import (
     QAbstractButton, QAction, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
-    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QSlider, QSpinBox, QVBoxLayout, QWidget,
+    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QPushButton,
+    QSlider, QSpinBox, QStyle, QVBoxLayout, QWidget,
 )
 
 from ui.collapsible import Section
@@ -40,21 +40,14 @@ class _ImageDialog(QDialog):
 
 
 def _compact_combo(combo: QComboBox) -> QComboBox:
-    """Verhindert, dass lange Eintragstexte die Sidebar-Mindestbreite sprengen."""
+    """Verhindert, dass lange Eintragstexte die Sidebar-Mindestbreite sprengen.
+
+    Die Mindestbreite kommt aus einer festen Zeichenzahl, nicht aus dem
+    längsten Eintrag; nach oben wächst die Auswahl mit der Seitenleiste.
+    """
     combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
     combo.setMinimumContentsLength(10)
-    _cap_width(combo, "Maximal dicht (whs_de", 44)
     return combo
-
-
-def _cap_width(widget: QWidget, sample_text: str, extra_px: int) -> None:
-    """Deckelt die Breite fontabhängig — hält die Sidebar bei jedem DPI schmal.
-
-    Ein via setMaximumWidth gesetztes Maximum begrenzt auch das effektive
-    Layout-Minimum (smartMinSize), das sonst vom breiten minimumSizeHint kommt.
-    """
-    fm = widget.fontMetrics()
-    widget.setMaximumWidth(fm.horizontalAdvance(sample_text) + extra_px)
 
 
 def _wrappable(form: QFormLayout) -> QFormLayout:
@@ -157,13 +150,106 @@ def aktionshaken(action: QAction) -> QCheckBox:
     return chk
 
 
+class _Knopfreihe(QLayout):
+    """Knöpfe nebeneinander, solange sie in die Breite passen, sonst untereinander.
+
+    Nebeneinander bekommt jeder Knopf seine Wunschbreite und einen gleichen
+    Teil des Rests; untereinander jeder die volle Breite. Die Höhe hängt
+    darum von der Breite ab (heightForWidth).
+    """
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._items: list = []
+
+    def addItem(self, item) -> None:  # noqa: N802 (Qt-Name)
+        self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, i: int):  # noqa: N802 (Qt-Name)
+        return self._items[i] if 0 <= i < len(self._items) else None
+
+    def takeAt(self, i: int):  # noqa: N802 (Qt-Name)
+        return self._items.pop(i) if 0 <= i < len(self._items) else None
+
+    def expandingDirections(self):  # noqa: N802 (Qt-Name)
+        return Qt.Orientations(Qt.Horizontal)
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt-Name)
+        return True
+
+    def heightForWidth(self, breite: int) -> int:  # noqa: N802 (Qt-Name)
+        return self._anordnen(QRect(0, 0, breite, 0), setzen=False)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt-Name)
+        items = self._sichtbar()
+        m = self.contentsMargins()
+        b = sum(it.sizeHint().width() for it in items) + self._abstand(True) * max(0, len(items) - 1)
+        h = max((it.sizeHint().height() for it in items), default=0)
+        return QSize(b + m.left() + m.right(), h + m.top() + m.bottom())
+
+    def minimumSize(self) -> QSize:  # noqa: N802 (Qt-Name)
+        items = self._sichtbar()
+        m = self.contentsMargins()
+        b = max((it.minimumSize().width() for it in items), default=0)
+        h = max((it.minimumSize().height() for it in items), default=0)
+        return QSize(b + m.left() + m.right(), h + m.top() + m.bottom())
+
+    def setGeometry(self, rect: QRect) -> None:  # noqa: N802 (Qt-Name)
+        super().setGeometry(rect)
+        self._anordnen(rect, setzen=True)
+
+    def _sichtbar(self) -> list:
+        return [it for it in self._items if not it.isEmpty()]
+
+    def _abstand(self, waagerecht: bool) -> int:
+        if self.spacing() >= 0:
+            return self.spacing()
+        stil = self.parentWidget().style() if self.parentWidget() is not None else None
+        if stil is None:
+            return 6
+        return max(0, stil.pixelMetric(QStyle.PM_LayoutHorizontalSpacing if waagerecht
+                                       else QStyle.PM_LayoutVerticalSpacing))
+
+    def _anordnen(self, rect: QRect, setzen: bool) -> int:
+        """Ordnet die Knöpfe in ``rect`` an; gibt die nötige Höhe zurück."""
+        items = self._sichtbar()
+        m = self.contentsMargins()
+        x0, y0 = rect.x() + m.left(), rect.y() + m.top()
+        breite = rect.width() - m.left() - m.right()
+        if not items:
+            return m.top() + m.bottom()
+        ab = self._abstand(True)
+        wunsch = [it.sizeHint().width() for it in items]
+        if sum(wunsch) + ab * (len(items) - 1) <= breite:
+            rest = breite - sum(wunsch) - ab * (len(items) - 1)
+            h = max(it.sizeHint().height() for it in items)
+            x = x0
+            for i, (it, w) in enumerate(zip(items, wunsch)):
+                w += rest // len(items) + (1 if i < rest % len(items) else 0)
+                if setzen:
+                    it.setGeometry(QRect(x, y0, w, h))
+                x += w + ab
+            return h + m.top() + m.bottom()
+        ab = self._abstand(False)
+        y = y0
+        for it in items:
+            h = it.sizeHint().height()
+            if setzen:
+                it.setGeometry(QRect(x0, y, max(breite, it.minimumSize().width()), h))
+            y += h + ab
+        return y - ab - y0 + m.top() + m.bottom()
+
+
 def knopfzeile(*knoepfe: QWidget) -> QWidget:
-    """Knöpfe nebeneinander, ohne eigenen Rand."""
+    """Knöpfe in einer Zeile ohne eigenen Rand; reicht die Breite nicht, untereinander."""
     zeile = QWidget()
-    hl = QHBoxLayout(zeile)
-    hl.setContentsMargins(0, 0, 0, 0)
+    reihe = _Knopfreihe(zeile)
+    reihe.setContentsMargins(0, 0, 0, 0)
     for k in knoepfe:
-        hl.addWidget(k)
+        reihe.addWidget(k)
     return zeile
 
 
@@ -193,17 +279,13 @@ def zahl(minimum, maximum, wert, schritt=None, *, dezimalen: int | None = None,
     return spin
 
 
-def auswahl(eintraege, aktuell=None, slot=None, tip: str = "",
-            muster: str = "Maximal dicht (whs_de", rand: int = 44) -> QComboBox:
-    """Auswahlliste aus Texten oder (Text, Daten); schmal gehalten wie die Seitenleiste.
+def auswahl(eintraege, aktuell=None, slot=None, tip: str = "") -> QComboBox:
+    """Auswahlliste aus Texten oder (Text, Daten); Breite wie :func:`_compact_combo`.
 
     ``aktuell`` wählt den Eintrag mit diesen Daten vor, bevor ``slot`` an
-    currentIndexChanged hängt. Die Breite deckelt ``muster`` plus ``rand`` Pixel.
+    currentIndexChanged hängt.
     """
-    combo = QComboBox()
-    combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
-    combo.setMinimumContentsLength(10)
-    _cap_width(combo, muster, rand)
+    combo = _compact_combo(QComboBox())
     for e in eintraege:
         if isinstance(e, str):
             combo.addItem(e)
@@ -388,7 +470,7 @@ if __name__ == "__main__":
     import os
     import sys
 
-    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtWidgets import QWIDGETSIZE_MAX, QApplication
 
     from ui.collapsible import SectionStack
     from ui.feinregler import regler_meter
@@ -542,10 +624,26 @@ if __name__ == "__main__":
     assert gerufen == ["k"] and k.toolTip() == "setzt zurück" and "bold" in k.styleSheet()
     zeile = knopfzeile(k, knopf("Blaumaske zeigen"))
     assert zeile.layout().count() == 2 and zeile.layout().contentsMargins().left() == 0
+    # Knopfzeile: nebeneinander, solange es passt, sonst untereinander in voller Breite
+    reihe = zeile.layout()
+    k1, k2 = reihe.itemAt(0).widget(), reihe.itemAt(1).widget()
+    einzeilig = reihe.sizeHint().width()
+    assert reihe.hasHeightForWidth() and reihe.minimumSize().width() < einzeilig
+    assert reihe.heightForWidth(einzeilig) == reihe.sizeHint().height()
+    zeile.resize(einzeilig + 40, reihe.heightForWidth(einzeilig + 40))
+    reihe.setGeometry(zeile.rect())
+    assert k1.y() == k2.y() and k1.x() + k1.width() < k2.x()
+    assert k2.x() + k2.width() == einzeilig + 40
+    schmal = reihe.minimumSize().width()
+    assert reihe.heightForWidth(schmal) > 2 * k1.sizeHint().height()
+    zeile.resize(schmal, reihe.heightForWidth(schmal))
+    reihe.setGeometry(zeile.rect())
+    assert k1.x() == k2.x() == 0 and k1.width() == k2.width() == schmal and k2.y() > k1.y()
+    assert k2.y() + k2.height() == reihe.heightForWidth(schmal)
     assert type(sp) is QSpinBox and (sp.minimum(), sp.maximum(), sp.suffix()) == (0, 20, " px")
     assert type(dsp) is QDoubleSpinBox and dsp.decimals() == 2 and dsp.singleStep() == 0.25
     vergleich = _compact_combo(QComboBox())
-    assert cb.maximumWidth() == vergleich.maximumWidth()
+    assert cb.maximumWidth() == vergleich.maximumWidth() == QWIDGETSIZE_MAX
     assert cb.sizeAdjustPolicy() == vergleich.sizeAdjustPolicy()
     assert cb.minimumContentsLength() == vergleich.minimumContentsLength()
     assert auswahl(["a", "b"]).count() == 2

@@ -445,10 +445,6 @@ class PanoView(QWidget):
         if n > 0:
             self._show_frame(0)
 
-    def seek(self, idx: int) -> None:
-        """Zu Frame ``idx`` springen (Playback-Zustand bleibt erhalten)."""
-        self._seek_to(idx)
-
     @property
     def current_index(self) -> int:
         return self._cur_idx
