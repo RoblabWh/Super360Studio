@@ -65,6 +65,7 @@ from rosbags.highlevel import AnyReader
 
 from core.bag_reader import baue_typestore
 from core.gemeinsam import de
+from core.ros_umgebung import msg_pfad
 
 # --------------------------------------------------------------------- Topics
 TOPIC_BOX = "/exploration/box"                  # Zielgebiet (MarkerArray)
@@ -81,7 +82,7 @@ STATE_FEEDING = "FEEDING"
 #: PX4-Modus, in dem die Sollwerte von EPIC kommen.
 MODE_OFFBOARD = "OFFBOARD"
 
-STATE_MSG_PATH = "/opt/ros/humble/share/mavros_msgs/msg/State.msg"
+STATE_MSG_PATH = msg_pfad("mavros_msgs", "State")
 STATE_TYPENAME = "mavros_msgs/msg/State"
 # mavros_msgs/State ist kein Standardtyp. Liegt ROS nicht auf dem Rechner,
 # genuegt diese Kurzfassung — gebraucht wird nur das Feld "mode".

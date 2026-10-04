@@ -39,6 +39,8 @@ from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
+from core import ros_umgebung
+
 __all__ = ["FastLioResult", "FastLioRunner"]
 
 # Coarse pgrep pre-filter; _match_stale_cmdline() decides what really belongs
@@ -89,9 +91,14 @@ class FastLioRunner:
     FIRST_SCAN_TIMEOUT_S = 20.0   # base; scaled with 1/rate in run()
     MIN_SCANS = 5                 # below this a run does not count as success
 
-    def __init__(self, fastlio_ws: str = os.path.expanduser("~/fastlio2_ws"),
-                 livox_ws: str = os.path.expanduser("~/ws_livox"),
-                 ros_setup: str = "/opt/ros/humble/setup.bash"):
+    def __init__(self, fastlio_ws: str | None = None, livox_ws: str | None = None,
+                 ros_setup: str | None = None):
+        # Humble (22.04) oder Jazzy (24.04) und die Workspaces (~ oder
+        # $SUPER360_ROS_WS): erkannt in core.ros_umgebung.
+        if ros_setup is None:
+            ros_setup = ros_umgebung.setup_bash() or ""
+        fastlio_ws = fastlio_ws or ros_umgebung.workspace("fastlio2_ws")
+        livox_ws = livox_ws or ros_umgebung.workspace("ws_livox")
         self.fastlio_ws = fastlio_ws
         self.livox_ws = livox_ws
         self.ros_setup = ros_setup
@@ -244,6 +251,7 @@ class FastLioRunner:
         bag_path = os.path.abspath(bag_path)
         if not os.path.exists(bag_path):
             raise RuntimeError(f"Bag nicht gefunden: {bag_path}")
+        self._pruefe_umgebung()
         out_dir = os.path.abspath(out_dir)
         # Recorder writes into <out_dir>.tmp (same convention in
         # scripts/record_fastlio.py); promoted to out_dir only on success.
@@ -387,6 +395,19 @@ class FastLioRunner:
             expected_scans=expected_scans,
             dropped_scans=max(0, expected_scans - n_scans),
             duration_s=time.monotonic() - t0, log_tail=self._tail(st, 40))
+
+    def _pruefe_umgebung(self) -> None:
+        """Fehlt ROS oder ein Workspace, sofort abbrechen statt nach 30 s
+        Wartezeit auf 'Node init finished' mit einem fremden Log."""
+        fehlt = [p for p in (self.ros_setup,
+                             os.path.join(self.livox_ws, "install", "setup.bash"),
+                             os.path.join(self.fastlio_ws, "install", "setup.bash"))
+                 if not p or not os.path.isfile(p)]
+        if fehlt:
+            raise RuntimeError(
+                "ROS-Umgebung für FAST-LIO2 unvollständig, es fehlt: "
+                + ", ".join(p or f"ROS 2 ({ros_umgebung.erwartet()})" for p in fehlt)
+                + " — s. README „Karte berechnen“.")
 
     # ------------------------------------------------------------------- lock
 

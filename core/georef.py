@@ -473,11 +473,11 @@ if __name__ == "__main__":
     log("\n=== Test 2: seg0 real (Inline-Reader, GPS tot) ===")
     from pathlib import Path
     from rosbags.highlevel import AnyReader
-    from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 
-    ts_store = get_typestore(Stores.ROS2_HUMBLE)
-    msg_txt = Path("/opt/ros/humble/share/mavros_msgs/msg/GPSRAW.msg").read_text()
-    ts_store.register(get_types_from_msg(msg_txt, "mavros_msgs/msg/GPSRAW"))
+    from core.bag_reader import (GPSRAW_ERSATZ, GPSRAW_MSG_PATH, GPSRAW_TYPENAME,
+                                 baue_typestore)
+
+    ts_store = baue_typestore([(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, GPSRAW_ERSATZ)])
 
     nav, raws = [], []
     bagp = Path("/home/lena/RosBagSuper_Gui/rosbag_2026-07-11_15-37-07_seg0")

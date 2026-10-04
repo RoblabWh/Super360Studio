@@ -351,12 +351,11 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from rosbags.highlevel import AnyReader
-    from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 
-    ts_store = get_typestore(Stores.ROS2_HUMBLE)
-    ts_store.register(get_types_from_msg(
-        Path("/opt/ros/humble/share/mavros_msgs/msg/GPSRAW.msg").read_text(),
-        "mavros_msgs/msg/GPSRAW"))
+    from core.bag_reader import (GPSRAW_ERSATZ, GPSRAW_MSG_PATH, GPSRAW_TYPENAME,
+                                 baue_typestore)
+
+    ts_store = baue_typestore([(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, GPSRAW_ERSATZ)])
     nav, raws = [], []
     bagp = Path("/home/lena/RosBagSuper_Gui/rosbag_2026-07-11_15-37-07_seg0")
     with AnyReader([bagp], default_typestore=ts_store) as reader:

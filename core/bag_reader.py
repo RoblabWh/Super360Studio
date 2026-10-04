@@ -1,8 +1,9 @@
 """Rosbag-Lesezugriff (rosbags-basiert, kein ROS-Sourcing noetig).
 
 Liest ROS2-Bags (sqlite3) mit rosbags.highlevel.AnyReader. Der Nicht-Standard-Typ
-mavros_msgs/GPSRAW wird aus der .msg-Definition registriert. Nur lesen, nie schreiben.
-Qt-frei.
+mavros_msgs/GPSRAW wird aus der .msg-Definition der installierten ROS-Distribution
+registriert (core.ros_umgebung), ohne mavros_msgs aus einer eingebauten Kurzfassung.
+Nur lesen, nie schreiben. Qt-frei.
 """
 
 from __future__ import annotations
@@ -17,8 +18,34 @@ import numpy as np
 from rosbags.highlevel import AnyReader
 from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 
-GPSRAW_MSG_PATH = "/opt/ros/humble/share/mavros_msgs/msg/GPSRAW.msg"
+from core.ros_umgebung import msg_pfad
+
+GPSRAW_MSG_PATH = msg_pfad("mavros_msgs", "GPSRAW")
 GPSRAW_TYPENAME = "mavros_msgs/msg/GPSRAW"
+# Fehlt mavros_msgs (ROS nicht installiert oder ohne das Paket), traegt diese
+# Kurzfassung die Bags trotzdem: dieselben Felder in derselben Reihenfolge wie
+# GPSRAW.msg aus mavros_msgs 2.x (Humble und Jazzy), ohne Konstanten und
+# Kommentare. Fuer CDR zaehlen nur Typ und Reihenfolge der Felder.
+GPSRAW_ERSATZ = """
+std_msgs/Header header
+uint8 fix_type
+int32 lat
+int32 lon
+int32 alt
+uint16 eph
+uint16 epv
+uint16 vel
+uint16 cog
+uint8 satellites_visible
+int32 alt_ellipsoid
+uint32 h_acc
+uint32 v_acc
+uint32 vel_acc
+int32 hdg_acc
+uint16 yaw
+uint8 dgps_numch
+uint32 dgps_age
+"""
 
 _CAMERA_TYPES = ("sensor_msgs/msg/CompressedImage",)
 _LIDAR_TYPES = ("livox_ros_driver2/msg/CustomMsg", "sensor_msgs/msg/PointCloud2")
@@ -98,16 +125,16 @@ class ImuUp:
 def baue_typestore(zusatz=()):
     """ROS2-Humble-Typestore plus Nicht-Standard-Typen aus .msg-Dateien.
 
-    ``zusatz`` ist eine Folge von ``(msg_pfad, typname, ersatz)``. Liegt die
-    .msg-Datei vor, wird ihre Definition registriert, sonst die Kurzfassung
+    ``zusatz`` ist eine Folge von ``(msg_pfad, typname, ersatz)``; ``msg_pfad``
+    darf None sein (kein ROS installiert). Liegt die .msg-Datei vor, wird ihre Definition registriert, sonst die Kurzfassung
     ``ersatz``. Laesst sich die Datei nicht verarbeiten, springt ebenfalls
     ``ersatz`` ein. Ist ``ersatz`` None, fehlt der Typ ohne Datei, und eine
     beschaedigte Datei wirft.
     """
     store = get_typestore(Stores.ROS2_HUMBLE)
-    for msg_pfad, typname, ersatz in zusatz:
-        pfad = Path(msg_pfad)
-        text = pfad.read_text() if pfad.is_file() else ersatz
+    for datei, typname, ersatz in zusatz:
+        pfad = Path(datei) if datei else None
+        text = pfad.read_text() if pfad is not None and pfad.is_file() else ersatz
         if text is None:
             continue
         try:
@@ -129,7 +156,8 @@ class BagReader:
             raise FileNotFoundError(f"Bag nicht gefunden: {self.bag_path}")
         if p.is_dir():
             self._validate_bag_dir(p)
-        self._typestore = baue_typestore([(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, None)])
+        self._typestore = baue_typestore(
+            [(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, GPSRAW_ERSATZ)])
         try:
             self._reader = AnyReader([p], default_typestore=self._typestore)
             self._reader.open()
@@ -587,4 +615,36 @@ if __name__ == "__main__":
         f"dieser Flug war flach montiert, gemessen {up.tilt_deg:.1f} Grad")
 
     reader.close()
+
+    # Kurzfassung GPSRAW_ERSATZ: ohne mavros_msgs muss das Bag genauso lesbar
+    # sein, und wo die echte .msg liegt, muss die Kurzfassung dieselben Bytes
+    # gleich deuten (lauter verschiedene Werte, damit ein Versatz auffaellt).
+    _msg_echt, GPSRAW_MSG_PATH = GPSRAW_MSG_PATH, None
+    try:
+        ohne = BagReader(BAG)
+        fixes_ohne = ohne.read_gps()
+        ohne.close()
+    finally:
+        GPSRAW_MSG_PATH = _msg_echt
+    assert [(f.stamp, f.fix_type, f.eph_cm, f.epv_cm, f.satellites) for f in fixes_ohne] \
+        == [(f.stamp, f.fix_type, f.eph_cm, f.epv_cm, f.satellites) for f in fixes], \
+        "ohne mavros_msgs andere GPS-Fixe"
+    print(f"ohne mavros_msgs: {len(fixes_ohne)} Fixe, gleich — OK")
+    if GPSRAW_MSG_PATH and Path(GPSRAW_MSG_PATH).is_file():
+        voll = baue_typestore([(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, None)])
+        kurz = baue_typestore([(None, GPSRAW_TYPENAME, GPSRAW_ERSATZ)])
+        Typ, Hdr, Zeit = (voll.types[GPSRAW_TYPENAME], voll.types["std_msgs/msg/Header"],
+                          voll.types["builtin_interfaces/msg/Time"])
+        werte = dict(fix_type=3, lat=515700001, lon=70300002, alt=123456, eph=101,
+                     epv=202, vel=303, cog=404, satellites_visible=17,
+                     alt_ellipsoid=170000, h_acc=5005, v_acc=6006, vel_acc=7007,
+                     hdg_acc=-8008, yaw=9009, dgps_numch=4, dgps_age=1234567)
+        roh = voll.serialize_cdr(Typ(header=Hdr(stamp=Zeit(sec=7, nanosec=8),
+                                                frame_id="gps"), **werte), GPSRAW_TYPENAME)
+        m = kurz.deserialize_cdr(roh, GPSRAW_TYPENAME)
+        assert {k: getattr(m, k) for k in werte} == werte and m.header.frame_id == "gps", \
+            "GPSRAW_ERSATZ deutet die Bytes anders als GPSRAW.msg"
+        print(f"GPSRAW_ERSATZ gleich {GPSRAW_MSG_PATH} — OK")
+    else:
+        print("GPSRAW.msg nicht installiert — Vergleich mit der Kurzfassung entfaellt")
     print("bag_reader SELFTEST OK")

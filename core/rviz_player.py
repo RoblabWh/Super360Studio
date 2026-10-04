@@ -23,6 +23,8 @@ import threading
 import time
 from typing import Callable, Optional
 
+from core import ros_umgebung
+
 __all__ = ["RvizPlayer", "RvizPlayerError"]
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -34,10 +36,11 @@ _PANO_SCRIPT = os.path.join(_PKG, "scripts", "pano_publisher.py")
 
 # Nur /opt/ros reicht nicht: der Bag enthaelt livox_ros_driver2/CustomMsg sowie
 # traj_utils/quadrotor_msgs aus EPIC. Ohne diese Typen bricht `ros2 bag play` ab.
+# Die ROS-Distribution (Humble oder Jazzy) erkennt core.ros_umgebung.
 DEFAULT_SETUPS = (
-    "/opt/ros/humble/setup.bash",
-    os.path.expanduser("~/ws_livox/install/setup.bash"),
-    os.path.expanduser("~/EPIC_ros2/install/setup.bash"),
+    ros_umgebung.setup_bash() or "",
+    os.path.join(ros_umgebung.workspace("ws_livox"), "install", "setup.bash"),
+    os.path.join(ros_umgebung.workspace("EPIC_ros2"), "install", "setup.bash"),
 )
 
 
@@ -183,7 +186,8 @@ class RvizPlayer:
             raise RvizPlayerError(f"RViz-Konfiguration fehlt: {self.rviz_config}")
         if not self.setups:
             raise RvizPlayerError(
-                "Keine ROS-Umgebung gefunden (erwartet /opt/ros/humble/setup.bash).")
+                "Keine ROS-Umgebung gefunden (erwartet "
+                f"{ros_umgebung.erwartet()}).")
         self.ensure_metadata(bag_path)
 
         with self._lock:

@@ -107,23 +107,31 @@ if py:
     gpu = f" {info['gpu']} ({info['vram_gb']} GB)" if info.get("cuda") else ""
     zeile(bool(info.get("cuda")), f"CUDA-GPU{gpu}", splat_mod.hinweis(info) or "", False)
 
-print("\nKarte berechnen (FAST-LIO2, braucht ROS 2 Humble):")
+from core import ros_umgebung  # noqa: E402
+
+ros_name = ros_umgebung.distro() or ros_umgebung.passende_distro()
+ros_setup = ros_umgebung.setup_bash() or f"/opt/ros/{ros_name}/setup.bash"
+WS_LIVOX, WS_FASTLIO, WS_EPIC = (ros_umgebung.workspace(n)
+                                 for n in ("ws_livox", "fastlio2_ws", "EPIC_ros2"))
+print(f"\nKarte berechnen (FAST-LIO2, braucht ROS 2 {ros_name.capitalize()}):")
 for pfad, hinweis in (
-        ("/opt/ros/humble/setup.bash", "ROS 2 Humble: sudo apt install ros-humble-ros-base"),
-        (f"{HOME}/ws_livox/install/setup.bash",
+        (ros_setup, f"ROS 2 {ros_name.capitalize()}: sudo apt install ros-{ros_name}-ros-base "
+                    f"ros-{ros_name}-rviz2 ros-{ros_name}-mavros-msgs (s. README)"),
+        (f"{WS_LIVOX}/install/setup.bash",
          "livox_ros_driver2 in ~/ws_livox bauen (s. README)"),
-        (f"{HOME}/fastlio2_ws/install/setup.bash",
+        (f"{WS_FASTLIO}/install/setup.bash",
          "FAST_LIO_ROS2 in ~/fastlio2_ws bauen (s. README)"),
-        (f"{HOME}/fastlio2_ws/install/fast_lio/share/fast_lio/config/whs_dense.yaml",
+        (f"{WS_FASTLIO}/install/fast_lio/share/fast_lio/config/whs_dense.yaml",
          "cp config/fastlio/whs_dense.yaml ~/fastlio2_ws/src/FAST_LIO_ROS2/config/ "
          "und neu bauen")):
     zeile(os.path.exists(pfad), pfad.replace(HOME, "~"), hinweis, False)
-if os.path.exists("/opt/ros/humble/setup.bash"):
-    r = subprocess.run(["bash", "-c", "source /opt/ros/humble/setup.bash && command -v ros2"],
+if os.path.exists(ros_setup):
+    r = subprocess.run(["bash", "-c", f"source {ros_setup} && command -v ros2"],
                        capture_output=True, text=True)
     zeile(r.returncode == 0, "ros2 im ROS-Environment", "ROS-Installation prüfen", False)
-zeile(os.path.exists(f"{HOME}/EPIC_ros2/install/setup.bash"),
-      "~/EPIC_ros2 (nur RViz-Wiedergabe: traj_utils/quadrotor_msgs)", "", False)
+zeile(os.path.exists(f"{WS_EPIC}/install/setup.bash"),
+      f"{WS_EPIC.replace(HOME, '~')} (nur RViz-Wiedergabe: traj_utils/quadrotor_msgs)",
+      "", False)
 
 print("\nTests (optional):")
 zeile(bool(shutil.which("xvfb-run")), "xvfb-run (GUI-Tests ohne Bildschirm)",
