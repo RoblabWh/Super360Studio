@@ -620,7 +620,7 @@ class PanoView(QWidget):
 
     def _on_screenshot(self) -> None:
         if self._current_pano is None:
-            QMessageBox.warning(self, "Screenshot", "Kein Panorama geladen.")
+            QMessageBox.warning(self, "Bild speichern", "Kein Panorama geladen.")
             return
         default = f"pano_{max(0, self._cur_idx):06d}.png"
         path, _ = QFileDialog.getSaveFileName(
@@ -633,7 +633,7 @@ class PanoView(QWidget):
             return
         if not self._save_pano(path):
             QMessageBox.warning(
-                self, "Screenshot", f"Datei konnte nicht geschrieben werden:\n{path}"
+                self, "Bild speichern", f"Datei konnte nicht geschrieben werden:\n{path}"
             )
 
     # ----------------------------------------------------------- Aufräumen -

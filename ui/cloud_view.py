@@ -1418,7 +1418,7 @@ class CloudView(QtWidgets.QWidget):
 
     def screenshot(self, path: str) -> None:
         if not self._initialized:
-            raise RuntimeError("Screenshot erst möglich, wenn das Widget angezeigt wurde.")
+            raise RuntimeError("Das Bild der 3D-Ansicht lässt sich erst speichern, wenn sie angezeigt wird.")
         rw = self._vtkw.GetRenderWindow()
         rw.Render()
         w2i = vtk.vtkWindowToImageFilter()

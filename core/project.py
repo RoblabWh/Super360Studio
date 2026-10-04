@@ -269,8 +269,8 @@ if __name__ == "__main__":
         "project"
     )
     os.makedirs(OUT, exist_ok=True)
-    # Test-Cache-Root im Scratchpad: der echte cache/<seg0>/recording-Ordner wird
-    # parallel von einem anderen Agenten beschrieben und bleibt hier unberuehrt.
+    # Eigene Test-Cache-Wurzel unter OUT: der echte cache/<seg0>/recording-Ordner
+    # bleibt unberuehrt.
     root = os.path.join(OUT, "cache_root")
 
     import hashlib as _hl

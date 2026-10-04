@@ -494,7 +494,7 @@ class AnzeigeMixin:
         try:
             self._cloud_view.screenshot(path)
         except RuntimeError as exc:
-            self._show_error("Screenshot", str(exc))
+            self._show_error("3D-Ansicht als Bild speichern", str(exc))
             return
         self._log(f"Ansicht gespeichert: {path}")
 
