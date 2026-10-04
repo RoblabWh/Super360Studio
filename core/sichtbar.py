@@ -32,11 +32,14 @@ import os
 
 import numpy as np
 
+from core.gemeinsam import GRAU_EBENE, kamera_modell
+from core.temperatur import abtasten
+
 MIN_COS = 0.12            # streifender als ~83° zur Normalen: nicht verwenden
 TIEFE_SKALA = 0.5         # Tiefenkarte in halber Bildaufloesung
 TOLERANZ_M = 0.30         # so weit hinter der naechsten Flaeche gilt noch als sichtbar,
 TOLERANZ_REL = 0.01       # dazu dieser Anteil der Tiefe
-_FALLBACK = (107, 107, 107)
+_FALLBACK = (GRAU_EBENE,) * 3
 
 
 def normalen(punkte: np.ndarray, raster: float = 0.15, progress=None) -> np.ndarray:
@@ -126,8 +129,7 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
     tcw = np.asarray(cams["tcw"], dtype=np.float64)
     size = np.asarray(cams["size"], dtype=np.float64)
     params = np.asarray(cams["params"], dtype=np.float64)
-    model = cams["model"].item() if getattr(cams["model"], "shape", None) == () \
-        else str(cams["model"])
+    model = kamera_modell(cams)
     Ainv = np.linalg.inv(A)
     massstab = float(np.cbrt(abs(np.linalg.det(A))))   # COLMAP-Einheit -> Meter
     # Kamerazentren im Rahmen der Karte (fuer den Blickwinkel)
@@ -198,19 +200,15 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
             continue
         with Image.open(os.path.join(image_dir, str(name))) as im:
             img = np.asarray(im.convert("RGB"))
-        ih, iw = img.shape[:2]
-        sk_u, sk_v = iw / W, ih / H
         j = idx[besser]
-        ui = np.clip((u[besser] * sk_u).astype(np.int64), 0, iw - 1)
-        vi = np.clip((v[besser] * sk_v).astype(np.int64), 0, ih - 1)
-        farbe[j] = img[vi, ui]
+        farbe[j] = abtasten(img, u[besser], v[besser], W, H)
         beste[j] = guete[besser]
         if temp is not None:
             t_bild = temperatur(i, name)
             # Wer die Farbe aus diesem Bild bekommt, bekommt auch die
             # Temperatur daraus — sonst NaN statt einer fremden
             temp[j] = np.nan if t_bild is None else \
-                _tabtasten(t_bild, u[besser], v[besser], W, H)
+                abtasten(t_bild, u[besser], v[besser], W, H)
     maske = beste > 0
     if log is not None:
         log(f"Mit Sichtbarkeit gefärbt: {maske.mean() * 100:.1f} % der Punkte. Der "
@@ -220,11 +218,6 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
     if temp is not None:
         return farbe, maske, temp
     return farbe, maske
-
-
-def _tabtasten(bild, u, v, W, H):
-    from core.temperatur import abtasten  # noqa: PLC0415
-    return abtasten(bild, u, v, W, H)
 
 
 # Bewusst kein Auffuellen verdeckter Punkte vom Nachbarn: ausprobiert, und im

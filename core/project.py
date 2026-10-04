@@ -25,6 +25,8 @@ import os
 
 import numpy as np
 
+from core.gemeinsam import write_json_atomic
+
 # Der Cache haelt abgeleitete Daten (mehrere GB) und liegt bewusst ausserhalb
 # des Repos, weiterhin am historischen Ort. Per Env-Variable umhaengbar.
 DEFAULT_CACHE_ROOT = os.environ.get(
@@ -35,11 +37,18 @@ DEFAULT_CACHE_ROOT = os.environ.get(
 _RECORDING_FILES = ("points.bin", "intensity.bin", "offsets.npy", "stamps.npy", "poses.npy", "meta.json")
 
 
-def _write_json_atomic(path: str, obj) -> None:
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(obj, fh, indent=2)
-    os.replace(tmp, path)
+_write_json_atomic = write_json_atomic
+
+
+def lies_aufzeichnungs_meta(rec_dir: str) -> dict:
+    """meta.json einer Aufzeichnung lesen; wirft OSError/ValueError."""
+    with open(os.path.join(rec_dir, "meta.json"), encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _projektname(ordnername: str) -> str:
+    """Projektname aus dem Ordnernamen: der Hash-Anhang faellt weg."""
+    return ordnername.rsplit("-", 1)[0]
 
 
 class Project:
@@ -85,13 +94,12 @@ class Project:
         obj = cls.__new__(cls)
         obj.dir = dir_path
         obj.cache_root = os.path.dirname(dir_path)
-        obj.bag_name = os.path.basename(dir_path).rsplit("-", 1)[0]
+        obj.bag_name = _projektname(os.path.basename(dir_path))
         obj.bag_path = ""
-        meta_p = os.path.join(dir_path, "recording", "meta.json")
-        if os.path.isfile(meta_p):
+        rec_dir = os.path.join(dir_path, "recording")
+        if os.path.isfile(os.path.join(rec_dir, "meta.json")):
             try:
-                with open(meta_p, encoding="utf-8") as fh:
-                    obj.bag_path = str(json.load(fh).get("bag") or "")
+                obj.bag_path = str(lies_aufzeichnungs_meta(rec_dir).get("bag") or "")
             except (OSError, ValueError):
                 pass
         return obj
@@ -104,18 +112,17 @@ class Project:
             return out
         for name in sorted(os.listdir(cache_root)):
             d = os.path.join(cache_root, name)
-            meta_p = os.path.join(d, "recording", "meta.json")
-            if not os.path.isfile(meta_p):
+            rec_dir = os.path.join(d, "recording")
+            if not os.path.isfile(os.path.join(rec_dir, "meta.json")):
                 continue
             try:
-                with open(meta_p, encoding="utf-8") as fh:
-                    meta = json.load(fh)
+                meta = lies_aufzeichnungs_meta(rec_dir)
             except (OSError, ValueError):
                 continue
             quellen = meta.get("sources") or []
             out.append({
                 "dir": d,
-                "name": name.rsplit("-", 1)[0],
+                "name": _projektname(name),
                 "bag": meta.get("bag") or "",
                 "n_scans": int(meta.get("n_scans") or 0),
                 "n_points": int(meta.get("n_points") or 0),
@@ -153,7 +160,7 @@ class Project:
     }
 
     def colors_dir(self) -> str:
-        return self._subdir("colors")
+        return self.layer_dir("onboard")
 
     def layer_dir(self, key: str) -> str:
         """Ordner einer Farbebene; legt ihn an."""
@@ -200,8 +207,7 @@ class Project:
         return all(os.path.isfile(os.path.join(d, f)) for f in _RECORDING_FILES)
 
     def has_colors(self) -> bool:
-        d = os.path.join(self.dir, "colors")
-        return all(os.path.isfile(os.path.join(d, f)) for f in ("colors.bin", "valid.bin", "meta.json"))
+        return self.has_layer("onboard")
 
     def has_pano(self, width: int) -> bool:
         return os.path.isfile(os.path.join(self.dir, f"pano_{int(width)}", "index.json"))
@@ -320,6 +326,32 @@ if __name__ == "__main__":
         open(os.path.join(prj.recording_dir(), f), "wb").close()
     assert prj.has_recording()
     print("has_recording False->True OK")
+
+    # Onboard-Farben sind die Ebene "onboard"
+    for f in ("colors.bin", "valid.bin", "meta.json"):
+        open(os.path.join(prj.colors_dir(), f), "wb").close()
+    assert prj.colors_dir() == prj.layer_dir("onboard")
+    assert prj.has_colors() and prj.available_layers() == ["onboard"]
+    print("has_colors = has_layer('onboard') OK")
+
+    # meta.json: lies_aufzeichnungs_meta wirft, from_dir und list_projects schlucken
+    try:
+        lies_aufzeichnungs_meta(prj.recording_dir())  # leere Datei von oben
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("leere meta.json muss werfen")
+    prj_dir = Project.from_dir(prj.dir)
+    assert prj_dir.bag_name == prj.bag_name and prj_dir.bag_path == ""
+    assert Project.list_projects(root) == []
+    _write_json_atomic(os.path.join(prj.recording_dir(), "meta.json"),
+                       {"bag": BAG, "n_scans": 3, "n_points": 30, "created": "2026-07-11"})
+    assert lies_aufzeichnungs_meta(prj.recording_dir())["bag"] == BAG
+    assert Project.from_dir(prj.dir).bag_path == BAG
+    eintraege = Project.list_projects(root)
+    assert [e["name"] for e in eintraege] == [prj.bag_name], eintraege
+    assert eintraege[0]["n_scans"] == 3 and not eintraege[0]["zusammengefuehrt"]
+    print(f"from_dir/list_projects OK: {eintraege[0]['name']}")
 
     # Settings-Roundtrip
     assert prj.load_settings() == {}

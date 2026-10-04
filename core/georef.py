@@ -25,16 +25,17 @@ _MAX_COV_M = 10.0
 _MIN_SATS = 6
 _MIN_FIX_TYPE = 3
 
-_FIX_TYPE_NAMES = {
-    0: "kein GPS-Gerät erkannt",
-    1: "kein Fix",
-    2: "nur 2D-Fix",
-    3: "3D-Fix",
-    4: "DGPS",
-    5: "RTK Float",
-    6: "RTK Fixed",
-    7: "statisch",
-    8: "PPP",
+#: GPSRAW fix_type -> (Kurztext für Tabellen, Langtext für Begründungen)
+FIX_TYPE_TEXT = {
+    0: ("kein GPS", "kein GPS-Gerät erkannt"),
+    1: ("kein Fix", "kein Fix"),
+    2: ("2D", "nur 2D-Fix"),
+    3: ("3D", "3D-Fix"),
+    4: ("DGPS", "DGPS"),
+    5: ("RTK Float", "RTK Float"),
+    6: ("RTK Fixed", "RTK Fixed"),
+    7: ("statisch", "statisch"),
+    8: ("PPP", "PPP"),
 }
 
 _T_LLH_ECEF: Transformer | None = None
@@ -185,7 +186,7 @@ def assess(fixes: Sequence) -> GpsQuality:
     if cnt_latlon:
         reasons.append(f"lat=lon=0 (keine gültige Position) bei {cnt_latlon}/{n} Fixen")
     for ft in sorted(bad_fix_types):
-        name = _FIX_TYPE_NAMES.get(ft, "unbekannt")
+        name = FIX_TYPE_TEXT[ft][1] if ft in FIX_TYPE_TEXT else "unbekannt"
         reasons.append(f"fix_type={ft} ({name}) bei {bad_fix_types[ft]}/{n} Fixen")
     if cnt_sats:
         med = int(median_sats) if median_sats is not None else 0

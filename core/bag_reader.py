@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import threading
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -95,11 +95,27 @@ class ImuUp:
     t_end: float  # Ende des Fensters (Bag-Zeit, s)
 
 
-def _build_typestore():
+def baue_typestore(zusatz=()):
+    """ROS2-Humble-Typestore plus Nicht-Standard-Typen aus .msg-Dateien.
+
+    ``zusatz`` ist eine Folge von ``(msg_pfad, typname, ersatz)``. Liegt die
+    .msg-Datei vor, wird ihre Definition registriert, sonst die Kurzfassung
+    ``ersatz``. Laesst sich die Datei nicht verarbeiten, springt ebenfalls
+    ``ersatz`` ein. Ist ``ersatz`` None, fehlt der Typ ohne Datei, und eine
+    beschaedigte Datei wirft.
+    """
     store = get_typestore(Stores.ROS2_HUMBLE)
-    msg_path = Path(GPSRAW_MSG_PATH)
-    if msg_path.is_file():
-        store.register(get_types_from_msg(msg_path.read_text(), GPSRAW_TYPENAME))
+    for msg_pfad, typname, ersatz in zusatz:
+        pfad = Path(msg_pfad)
+        text = pfad.read_text() if pfad.is_file() else ersatz
+        if text is None:
+            continue
+        try:
+            store.register(get_types_from_msg(text, typname))
+        except Exception:  # noqa: BLE001 — beschaedigte .msg: Kurzfassung genuegt
+            if ersatz is None:
+                raise
+            store.register(get_types_from_msg(ersatz, typname))
     return store
 
 
@@ -113,7 +129,7 @@ class BagReader:
             raise FileNotFoundError(f"Bag nicht gefunden: {self.bag_path}")
         if p.is_dir():
             self._validate_bag_dir(p)
-        self._typestore = _build_typestore()
+        self._typestore = baue_typestore([(GPSRAW_MSG_PATH, GPSRAW_TYPENAME, None)])
         try:
             self._reader = AnyReader([p], default_typestore=self._typestore)
             self._reader.open()

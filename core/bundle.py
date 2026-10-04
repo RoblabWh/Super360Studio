@@ -31,6 +31,8 @@ import os
 import shutil
 import time
 
+from core.gemeinsam import write_json_atomic
+
 MANIFEST = "super360.json"
 FORMAT = "super360studio-projekt"
 VERSION = 1
@@ -126,6 +128,24 @@ def _copy_tree(src: str, dst: str, zaehler: dict, progress=None, cancel=None) ->
         dirs.sort()
 
 
+def pruefe_ziel(dest: str) -> tuple:
+    """Taugt ``dest`` als Zielordner fuer den Export? -> (ok, zustand).
+
+    ``zustand``: "neu" (wird angelegt), "leer", "projekt" (enthaelt schon ein
+    exportiertes Projekt, wird ueberschrieben), "fremd" (nicht leer und ohne
+    Manifest) oder "datei" (kein Ordner). Abgelehnt werden die beiden letzten.
+    """
+    if not os.path.exists(dest):
+        return True, "neu"
+    if not os.path.isdir(dest):
+        return False, "datei"
+    if not os.listdir(dest):
+        return True, "leer"
+    if os.path.isfile(os.path.join(dest, MANIFEST)):
+        return True, "projekt"
+    return False, "fremd"
+
+
 def export_project(project, dest: str, teile: dict, bag_paths=None,
                    calib_path: str | None = None, meta_extra: dict | None = None,
                    progress=None, cancel=None) -> dict:
@@ -135,11 +155,11 @@ def export_project(project, dest: str, teile: dict, bag_paths=None,
     Manifest, wird abgelehnt — sonst schuettet der Export fremde Daten zu.
     """
     dest = os.path.abspath(dest)
-    if os.path.exists(dest) and os.listdir(dest):
-        if not os.path.isfile(os.path.join(dest, MANIFEST)):
-            raise RuntimeError(
-                f"'{os.path.basename(dest)}' ist nicht leer und enthält kein "
-                f"Super360-Projekt. Bitte einen leeren oder neuen Ordner wählen.")
+    ok, _zustand = pruefe_ziel(dest)
+    if not ok:
+        raise RuntimeError(
+            f"'{os.path.basename(dest)}' ist nicht leer und enthält kein "
+            f"Super360-Projekt. Bitte einen leeren oder neuen Ordner wählen.")
     os.makedirs(dest, exist_ok=True)
 
     info = describe(project, bag_paths)
@@ -267,7 +287,7 @@ def oeffnen(src: str) -> dict:
     auch mehrfach und auf einem anderen Rechner, gesucht wird ueber den
     Ordnernamen des Bags.
     """
-    from core.project import Project  # noqa: PLC0415
+    from core.project import Project, lies_aufzeichnungs_meta  # noqa: PLC0415
 
     src = os.path.abspath(src)
     manifest = read_manifest(src)
@@ -278,10 +298,9 @@ def oeffnen(src: str) -> dict:
     alte = [q.get("bag") for q in (manifest.get("quellen") or [])]
     nach_name = {os.path.basename(str(a).rstrip("/")): n
                  for a, n in zip(alte, neue) if a and n}
-    meta_p = os.path.join(projekt_dir, "recording", "meta.json")
+    rec_dir = os.path.join(projekt_dir, "recording")
     try:
-        with open(meta_p, encoding="utf-8") as fh:
-            meta = json.load(fh)
+        meta = lies_aufzeichnungs_meta(rec_dir)
     except (OSError, ValueError) as exc:
         raise RuntimeError(f"meta.json der Aufzeichnung nicht lesbar: {exc}") from exc
 
@@ -300,10 +319,7 @@ def oeffnen(src: str) -> dict:
             s["bag"] = neu(s["bag"])
             geaendert = True
     if geaendert:
-        tmp = meta_p + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(meta, fh, indent=2)
-        os.replace(tmp, meta_p)
+        write_json_atomic(os.path.join(rec_dir, "meta.json"), meta)
     project = Project.from_dir(projekt_dir)
     name = (manifest.get("projekt") or {}).get("name")
     if name:
@@ -424,6 +440,22 @@ if __name__ == "__main__":
         raise AssertionError("fremder Ordner wurde nicht abgelehnt")
     assert os.path.isfile(os.path.join(fremd, "wichtig.txt"))
 
+    print("== Test 3b: pruefe_ziel, eine Datei als Ziel ==")
+    leer = os.path.join(wurzel, "leer")
+    os.makedirs(leer)
+    datei = os.path.join(fremd, "wichtig.txt")
+    zustaende = {p: pruefe_ziel(p) for p in (os.path.join(wurzel, "neu"), leer, ziel,
+                                             fremd, datei)}
+    assert list(zustaende.values()) == [(True, "neu"), (True, "leer"), (True, "projekt"),
+                                        (False, "fremd"), (False, "datei")], zustaende
+    try:
+        export_project(proj, datei, {}, bag_paths=[bag_a])
+    except RuntimeError as exc:
+        print(f"  Datei abgelehnt: {str(exc)[:60]}…")
+    else:
+        raise AssertionError("Datei als Ziel wurde nicht abgelehnt")
+    assert open(datei).read() == "nicht loeschen"
+
     print("== Test 4: Import in einen anderen Cache ==")
     cache2 = os.path.join(wurzel, "cache2")
     proj2 = Project(bag_a, cache_root=cache2)
@@ -449,6 +481,17 @@ if __name__ == "__main__":
     print(f"  Bag zeigt danach auf {os.path.relpath(meta3['bag'], wurzel)}")
     assert meta3["bag"].startswith(ziel2), meta3["bag"]
     assert os.path.exists(meta3["bag"]) and not res3["fehlende_bags"]
+
+    print("== Test 5b: Exportordner an Ort und Stelle oeffnen ==")
+    auf = oeffnen(ziel2)
+    meta_p = os.path.join(ziel2, "projekt", "recording", "meta.json")
+    meta5 = json.load(open(meta_p, encoding="utf-8"))
+    assert meta5["bag"] == os.path.join(ziel2, "bags", os.path.basename(bag_a)), meta5
+    assert open(meta_p, encoding="utf-8").read() == json.dumps(meta5, indent=2)
+    assert auf["bags"] == [meta5["bag"]] and not auf["fehlende_bags"]
+    assert auf["project"].dir == os.path.join(ziel2, "projekt")
+    assert auf["project"].bag_name == os.path.basename(bag_a)
+    print(f"  Bag zeigt danach auf {os.path.relpath(meta5['bag'], wurzel)}")
 
     print("== Test 6: kaputter Ordner ==")
     for pfad, erwartet in ((wurzel, "keine super360.json"),

@@ -7,6 +7,12 @@ und setzen, damit ihn das Fenster in den Einstellungen ablegen kann.
 Bewusst kein QToolBox: der laesst immer nur einen Abschnitt offen. Beim Arbeiten
 mit dieser Anwendung sind aber regelmaessig mehrere gleichzeitig im Blick, etwa
 die Einfaerbung und die Anzeige.
+
+Ein einklappbarer Unterblock im Inhalt eines Abschnitts ist selbst eine
+:class:`Section`. Mit :meth:`SectionStack.melde_an` angemeldet, steht sein
+Zustand unter einem Schluessel wie ``maeander.hauptpunkt`` neben denen der
+Abschnitte, und sein Auf- und Zuklappen meldet der Stapel wie das eines
+Abschnitts.
 """
 
 from __future__ import annotations
@@ -60,12 +66,11 @@ class Section(QtWidgets.QWidget):
         self._head.setChecked(bool(on))
         self._sync()
 
-    def set_title(self, title: str) -> None:
-        self._title = str(title)
-        self._sync()
-
     def content(self) -> QtWidgets.QWidget:
         return self._content
+
+    def einklappbar(self) -> bool:
+        return True
 
     # ------------------------------------------------------------------ intern
 
@@ -90,6 +95,7 @@ class SectionStack(QtWidgets.QWidget):
         self._lay.setContentsMargins(4, 4, 4, 4)
         self._lay.setSpacing(2)
         self._sections: dict[str, Section] = {}
+        self._unterbloecke: dict[str, Section] = {}
 
     def add(self, key: str, title: str, content: QtWidgets.QWidget,
             expanded: bool = True) -> Section:
@@ -103,20 +109,40 @@ class SectionStack(QtWidgets.QWidget):
         """Nach dem letzten add aufrufen: schiebt alles nach oben zusammen."""
         self._lay.addStretch(1)
 
+    def melde_an(self, section: Section) -> Section:
+        """Einklappbaren Unterblock anmelden: Zustand und toggled wie ein Abschnitt."""
+        key = section.key
+        if not key or not section.einklappbar():
+            raise ValueError(f"Unterblock ohne Schluessel oder nicht einklappbar: {key!r}")
+        if key in self._sections or key in self._unterbloecke:
+            raise ValueError(f"Schluessel doppelt: {key!r}")
+        section.toggled.connect(self.toggled)
+        self._unterbloecke[key] = section
+        return section
+
     def section(self, key: str) -> Section | None:
         return self._sections.get(str(key))
 
+    def sections(self, mit_unterbloecken: bool = False) -> list[Section]:
+        """Alle Abschnitte in Bauordnung, auf Wunsch samt Unterbloecken – auch zugeklappte."""
+        alle = list(self._sections.values())
+        if mit_unterbloecken:
+            alle += list(self._unterbloecke.values())
+        return alle
+
     def states(self) -> dict:
-        return {k: s.is_expanded() for k, s in self._sections.items()}
+        return {s.key: s.is_expanded() for s in self.sections(mit_unterbloecken=True)}
 
     def set_states(self, states: dict) -> None:
         for k, on in (states or {}).items():
             sec = self._sections.get(str(k))
+            if sec is None:
+                sec = self._unterbloecke.get(str(k))
             if sec is not None:
                 sec.set_expanded(bool(on))
 
     def set_all(self, on: bool) -> None:
-        for sec in self._sections.values():
+        for sec in self.sections(mit_unterbloecken=True):
             sec.set_expanded(bool(on))
 
 
@@ -138,4 +164,30 @@ if __name__ == "__main__":
     assert stack.states() == {"a": False, "b": True, "c": True}, stack.states()
     stack.set_all(False)
     assert not any(stack.states().values())
+
+    # Unterblock im Inhalt von "b": eigener Zustand, Umschalten meldet der Stapel
+    gemeldet = []
+    stack.toggled.connect(lambda k, on: gemeldet.append((k, on)))
+    unter = Section("b.unter", "Unterblock", QtWidgets.QLabel("Inhalt"), expanded=False)
+    stack.section("b").content().layout().addWidget(unter)
+    assert stack.melde_an(unter) is unter
+    assert stack.states() == {"a": False, "b": False, "c": False, "b.unter": False}, stack.states()
+    unter._head.click()
+    assert gemeldet == [("b.unter", True)], gemeldet
+    assert stack.states()["b.unter"] is True
+    stack.set_states({"b.unter": False, "a": True})
+    assert stack.states() == {"a": True, "b": False, "c": False, "b.unter": False}, stack.states()
+    stack.set_all(True)
+    assert all(stack.states().values())
+    stack.set_all(False)
+    assert not any(stack.states().values())
+    assert stack.sections() == [stack.section(k) for k in "abc"]
+    assert stack.sections(mit_unterbloecken=True)[-1] is unter     # auch zugeklappt
+    for falsch in (unter, Section("a", "gleich", QtWidgets.QWidget()),
+                   Section("", "ohne", QtWidgets.QWidget())):
+        try:
+            stack.melde_an(falsch)
+        except ValueError:
+            continue
+        raise AssertionError(f"melde_an nimmt {falsch.key!r} an")
     print("collapsible SELFTEST OK:", stack.states())

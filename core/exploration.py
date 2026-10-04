@@ -62,7 +62,9 @@ from pathlib import Path
 
 import numpy as np
 from rosbags.highlevel import AnyReader
-from rosbags.typesys import Stores, get_types_from_msg, get_typestore
+
+from core.bag_reader import baue_typestore
+from core.gemeinsam import de
 
 # --------------------------------------------------------------------- Topics
 TOPIC_BOX = "/exploration/box"                  # Zielgebiet (MarkerArray)
@@ -107,14 +109,7 @@ class KeineExplorationsdaten(RuntimeError):
 
 
 def _typestore():
-    store = get_typestore(Stores.ROS2_HUMBLE)
-    pfad = Path(STATE_MSG_PATH)
-    text = pfad.read_text() if pfad.is_file() else _STATE_FALLBACK
-    try:
-        store.register(get_types_from_msg(text, STATE_TYPENAME))
-    except Exception:  # noqa: BLE001 — beschaedigte .msg: Kurzfassung genuegt
-        store.register(get_types_from_msg(_STATE_FALLBACK, STATE_TYPENAME))
-    return store
+    return baue_typestore([(STATE_MSG_PATH, STATE_TYPENAME, _STATE_FALLBACK)])
 
 
 def _nachrichten(reader, topic: str):
@@ -280,9 +275,7 @@ def _markiere_scan(gitter_liste, box_min, box_max, voxel, ursprung, punkte,
 
 # -------------------------------------------------------------------- Ergebnis
 
-def _de(x: float, n: int = 1) -> str:
-    """Zahl mit deutschem Dezimalkomma."""
-    return f"{x:.{n}f}".replace(".", ",")
+_de = de
 
 
 @dataclass
@@ -610,15 +603,27 @@ def rechnen_und_ablegen(bag_path: str, project, log_cb, progress_cb, cancel,
     return grad, ""
 
 
+def aus_cache(gespeichert: dict | None):
+    """Gespeicherten Stand auswerten: (Grad|None, Hinweis).
+
+    Ein leerer Stand ergibt ``(None, "")``, ein gespeichertes negatives
+    Ergebnis ``(None, Grund)``. Ein unbrauchbarer Stand wirft TypeError oder
+    ValueError; was dann geschieht, entscheidet der Aufrufer.
+    """
+    if not gespeichert:
+        return None, ""
+    if gespeichert.get("keine_daten"):
+        return None, str(gespeichert["keine_daten"])
+    return Explorationsgrad.aus_dict(gespeichert), ""
+
+
 def holen(bag_path: str, project, log_cb, progress_cb, cancel,
           von: float = 0.0, bis: float = 1.0):
-    """Wie :func:`_exploration_rechnen`, nimmt aber den Cache, wenn es ihn gibt."""
+    """Wie :func:`rechnen_und_ablegen`, nimmt aber den Cache, wenn es ihn gibt."""
     gespeichert = project.load_exploration()
     if gespeichert:
-        if gespeichert.get("keine_daten"):
-            return None, str(gespeichert["keine_daten"])
         try:
-            return Explorationsgrad.aus_dict(gespeichert), ""
+            return aus_cache(gespeichert)
         except (TypeError, ValueError) as exc:
             log_cb(f"Gespeicherter Explorationsgrad unbrauchbar ({exc}) — "
                    "wird neu gerechnet.")
@@ -676,9 +681,24 @@ if __name__ == "__main__":
     assert abs(ohne.wert - 69.9) < 1e-9, "ohne Phase muss der ganze Flug gelten"
     print(f"  {grad.kurz()} / ohne Phase: {ohne.kurz()} — OK")
 
+    print("== Test 5: gespeicherter Stand ==")
+    zurueck, hinweis = aus_cache(json.loads(json.dumps(grad.als_dict())))
+    assert zurueck.als_dict() == grad.als_dict() and hinweis == ""
+    assert aus_cache({"keine_daten": "keine Box"}) == (None, "keine Box")
+    assert aus_cache(None) == (None, "") and aus_cache({}) == (None, "")
+    for kaputt in ({"prozent": 1.0}, {**grad.als_dict(), "phasen": [(1.0,)]},
+                   {**grad.als_dict(), "phasen": [("a", "b")]}):
+        try:
+            aus_cache(kaputt)
+        except (TypeError, ValueError):
+            pass
+        else:
+            raise AssertionError(f"kaputter Stand nicht erkannt: {kaputt}")
+    print("  Grad, keine Daten, leer, kaputt — OK")
+
     bag = sys.argv[1] if len(sys.argv) > 1 else None
     if bag:
-        print("== Test 5: echtes Bag ==")
+        print("== Test 6: echtes Bag ==")
         try:
             g2 = berechne(bag, progress=lambda f, m: print(f"    {f * 100:5.1f} % {m}",
                                                            end="\r"))

@@ -143,10 +143,6 @@ class RvizPlayer:
         with self._lock:
             return self._alive(self._rviz)
 
-    def pano_running(self) -> bool:
-        with self._lock:
-            return self._alive(self._pano)
-
     def is_playing(self) -> bool:
         with self._lock:
             return self._alive(self._play)

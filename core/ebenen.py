@@ -12,6 +12,8 @@ from typing import Callable
 
 import numpy as np
 
+from core.gemeinsam import write_json_atomic
+
 #: Ebenen mit Temperatur je Punkt
 THERMAL = ("meander_thermal", "meander_thermal_splat")
 
@@ -51,6 +53,48 @@ def lade_farbdateien(colors_dir: str, n_points: int,
             log_cb("Farb-Cache ohne Aufzeichnungs-Fingerprint (älterer Stand) — "
                    "wird übernommen.")
     return colors.reshape(-1, 3), valid.astype(bool), None
+
+
+def speichern(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict,
+              temperatur: np.ndarray | None = None) -> None:
+    """Farbebene ablegen — dasselbe Format wie die Einfaerbung aus der 360-Kamera.
+
+    ``temperatur`` (float32 je Punkt, NaN wo keine) landet als
+    ``temperatur.bin`` daneben; ohne wird eine alte entfernt, damit nie eine
+    Temperatur zu einer anderen Einfaerbung passt als ihrer eigenen.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    tbin = os.path.join(out_dir, "temperatur.bin")
+    if temperatur is not None:
+        np.ascontiguousarray(temperatur, dtype=np.float32).tofile(tbin)
+    elif os.path.exists(tbin):
+        os.remove(tbin)
+    np.ascontiguousarray(rgb, dtype=np.uint8).tofile(os.path.join(out_dir, "colors.bin"))
+    np.ascontiguousarray(maske.astype(np.uint8)).tofile(
+        os.path.join(out_dir, "valid.bin"))
+    write_json_atomic(os.path.join(out_dir, "meta.json"), meta)
+
+
+def lade_temperatur(out_dir: str, n_points: int) -> np.ndarray | None:
+    """Temperatur je Punkt (float32, NaN wo keine) oder None."""
+    tbin = os.path.join(out_dir, "temperatur.bin")
+    if not os.path.isfile(tbin):
+        return None
+    t = np.fromfile(tbin, dtype=np.float32)
+    return t if t.size == n_points else None
+
+
+def laden(out_dir: str, n_points: int) -> tuple[np.ndarray, np.ndarray] | None:
+    """Farbebene lesen, oder None wenn sie fehlt bzw. nicht zur Wolke passt."""
+    cbin = os.path.join(out_dir, "colors.bin")
+    vbin = os.path.join(out_dir, "valid.bin")
+    if not (os.path.isfile(cbin) and os.path.isfile(vbin)):
+        return None
+    rgb = np.fromfile(cbin, dtype=np.uint8)
+    val = np.fromfile(vbin, dtype=np.uint8)
+    if rgb.size != n_points * 3 or val.size != n_points:
+        return None
+    return rgb.reshape(-1, 3), val.astype(bool)
 
 
 def meta_lesen(ordner: str) -> dict | None:

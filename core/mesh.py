@@ -2,7 +2,8 @@
 
 Die Geometrie haengt nur an der Punktwolke, nicht an ihrer Einfaerbung. Sie
 wird je Aufzeichnung einmal gerechnet und im Projekt abgelegt
-(:func:`build_geometry`, :func:`save_geometry`); jede Farbebene (Onboard,
+(:func:`build_geometry`, :func:`save_geometry`, beides zusammen mit dem
+Laden in :func:`geometrie_holen`); jede Farbebene (Onboard,
 Maeander, Fusion …) und die Intensitaet kommen danach in Sekunden dazu
 (:func:`vertex_colors`, :func:`vertex_scalar`).
 
@@ -58,8 +59,10 @@ from typing import Callable, Optional
 
 import numpy as np
 
+from core.gemeinsam import GRAU_ANZEIGE, fmt_int, melde, pruefe_abbruch
+
 __all__ = ["build_geometry", "rest_maske", "save_geometry", "load_geometry", "geometry_dir",
-           "vertex_colors", "vertex_scalar", "to_open3d", "build_mesh", "write_mesh",
+           "geometrie_holen", "vertex_colors", "vertex_scalar", "to_open3d", "write_mesh",
            "find_cloudcompare", "open_in_cloudcompare", "opencl_available",
            "INSTALL_HINT"]
 
@@ -78,17 +81,9 @@ _PLAN_MIN = 0.3    # Flachheit darueber: nicht linienhaft
 _MIN_NACHBARN = 20
 _K_VOX = 4         # Zellen je Ecke fuer die Farbe
 _GEOM_VERSION = 2  # erhoehen, wenn sich das Verfahren aendert (alter Cache gilt nicht)
-_GRAU = 90         # Ecken ohne eingefaerbte Nachbarn, wie ungefaerbte Punkte
-
-
-def _p(cb: ProgressCb, f: float, msg: str) -> None:
-    if cb is not None:
-        cb(float(f), msg)
-
-
-def _check(cancel) -> None:
-    if cancel is not None and cancel():
-        raise RuntimeError("Abgebrochen")
+_GRAU = GRAU_ANZEIGE  # Ecken ohne eingefaerbte Nachbarn, wie ungefaerbte Punkte
+_p = melde
+_check = pruefe_abbruch
 
 
 # ================================================================ Voxelraster
@@ -463,6 +458,55 @@ def load_geometry(path: str) -> dict | None:
     return geom
 
 
+def geometrie_holen(ziel: str, world: np.ndarray, pfad: np.ndarray | None, voxel: float,
+                    depth: int, trim: float, hybrid: bool,
+                    intensity: np.ndarray | None = None, vorhanden: dict | None = None,
+                    fuer_ansicht: bool = True, progress: ProgressCb = None, cancel=None,
+                    log=None) -> dict:
+    """Geometrie fuer ``ziel`` (:func:`geometry_dir`): aus dem Speicher, aus dem
+    Projekt oder neu gerechnet und dort abgelegt.
+
+    ``vorhanden`` ist die schon geladene Geometrie zu ``ziel`` und geht vor.
+    Mit ``fuer_ansicht`` kommt die Geometrie fuer die 3D-Ansicht: Laden und
+    Speichern werden gemeldet, eine neu gerechnete wird aus dem Projekt neu
+    geladen (``point_voxel`` als Memmap), dazu ``intensity`` je Ecke (einmal
+    gerechnet, abgelegt als ``vertex_intensity.npy``) und ``rest_punkte``
+    (:func:`rest_maske`). Ohne ``fuer_ansicht`` nur die Geometrie (Export).
+    ``cancel``: Callable oder ``threading.Event``.
+    """
+    say = log or (lambda _m: None)
+    abbruch = cancel if cancel is None or callable(cancel) else cancel.is_set
+
+    if vorhanden:
+        geom = vorhanden
+    else:
+        geom = load_geometry(ziel)
+        if geom is not None and fuer_ansicht:
+            _p(progress, 0.5, "Lade gespeichertes Mesh …")
+            say(f"Mesh aus dem Projekt: {fmt_int(geom['stats']['dreiecke'])} Dreiecke.")
+    if geom is None:
+        geom = build_geometry(world, pfad, voxel=voxel, depth=depth, trim=trim,
+                              hybrid=hybrid, progress=lambda f, m: _p(progress, 0.9 * f, m),
+                              cancel=abbruch, log=log)
+        if fuer_ansicht:
+            _p(progress, 0.9, "Speichere Mesh …")
+        save_geometry(geom, ziel)
+        if fuer_ansicht:
+            geom = load_geometry(ziel) or geom
+    if not fuer_ansicht:
+        return geom
+    # Intensitaet je Ecke einmal rechnen und ablegen (liest alle Punkte)
+    ipfad = os.path.join(ziel, "vertex_intensity.npy")
+    if os.path.isfile(ipfad):
+        geom["intensity"] = np.load(ipfad)
+    elif intensity is not None:
+        _p(progress, 0.95, "Mesh: Intensität je Ecke …")
+        geom["intensity"] = vertex_scalar(geom, intensity)
+        np.save(ipfad, geom["intensity"])
+    geom["rest_punkte"] = rest_maske(geom)
+    return geom
+
+
 # ================================================================ Farben
 
 def _voxel_mittel(geom: dict, werte: np.ndarray, gewicht: np.ndarray | None):
@@ -521,20 +565,6 @@ def to_open3d(geom: dict, rgb: np.ndarray | None = None):
     if rgb is not None:
         mesh.vertex_colors = o3d.utility.Vector3dVector(np.asarray(rgb, np.float64) / 255.0)
     return mesh
-
-
-def build_mesh(points: np.ndarray, colors_rgb: np.ndarray | None,
-               sensor_path: np.ndarray | None, voxel: float = 0.04, depth: int = 12,
-               trim: float = 0.0, max_gap: float = 2.0, progress: ProgressCb = None,
-               cancel=None, log=None, backend: str = "auto"):
-    """Geometrie plus Farben in einem Schritt: (open3d.TriangleMesh, stats)."""
-    geom = build_geometry(points, sensor_path, voxel=voxel, depth=depth, trim=trim,
-                          max_gap=max_gap, backend=backend, progress=progress,
-                          cancel=cancel, log=log)
-    rgb = None
-    if colors_rgb is not None:
-        rgb, _ = vertex_colors(geom, colors_rgb, None)
-    return to_open3d(geom, rgb), geom["stats"]
 
 
 def write_mesh(mesh, path: str, stats: dict | None = None) -> str:
@@ -651,6 +681,57 @@ if __name__ == "__main__":
     assert np.array_equal(g2["zelle_rest"], geom["zelle_rest"])
     path = write_mesh(to_open3d(g2, rgb), os.path.join(OUT, "kugel.ply"), g2["stats"])
     print(f"== Speichern/Laden gleich, PLY -> {path}")
+
+    # ---------- Test 3: Geometrie holen ----------
+    # Der erste Aufruf rechnet und legt ab, der zweite laedt ohne Neubau
+    # dieselben Ecken; fuer den Export ohne Intensitaet und Restpunkte
+    import threading
+    ziel = os.path.join(OUT, "holen")
+    fehlt = os.path.join(OUT, "holen_fehlt")
+    for d in (ziel, fehlt):
+        if os.path.isdir(d):
+            shutil.rmtree(d)
+    args = (v, np.zeros((1, 3)), 0.05, 8, 0.0, True)
+    zeilen, schritte = [], []
+
+    def merke(f, m):
+        schritte.append((f, m))
+
+    g1 = geometrie_holen(ziel, *args, intensity=v[:, 2], progress=merke, log=zeilen.append)
+    assert any("Zellen im" in z for z in zeilen), zeilen
+    assert schritte[-2:] == [(0.9, "Speichere Mesh …"), (0.95, "Mesh: Intensität je Ecke …")]
+    assert max(f for f, _ in schritte[:-2]) <= 0.9 * 0.95 + 1e-9, schritte
+    assert isinstance(g1["point_voxel"], np.memmap), "nach dem Speichern nicht neu geladen"
+    assert os.path.isfile(os.path.join(ziel, "vertex_intensity.npy"))
+    assert len(g1["intensity"]) == len(g1["vertices"]) and len(g1["rest_punkte"]) == len(v)
+    zeilen.clear()
+    schritte.clear()
+    g2 = geometrie_holen(ziel, *args, intensity=v[:, 2], progress=merke, log=zeilen.append)
+    assert zeilen == [f"Mesh aus dem Projekt: {fmt_int(g1['stats']['dreiecke'])} Dreiecke."], \
+        f"neu gebaut: {zeilen}"
+    assert schritte == [(0.5, "Lade gespeichertes Mesh …")], schritte
+    for k in ("vertices", "triangles", "normals", "intensity", "rest_punkte"):
+        assert np.array_equal(g2[k], g1[k]), k
+    zeilen.clear()
+    schritte.clear()
+    g3 = geometrie_holen(ziel, *args, intensity=v[:, 2], fuer_ansicht=False, progress=merke,
+                         log=zeilen.append)
+    assert "intensity" not in g3 and "rest_punkte" not in g3, sorted(g3)
+    assert np.array_equal(g3["vertices"], g1["vertices"])
+    assert zeilen == [] and schritte == [], (zeilen, schritte)
+    assert geometrie_holen(fehlt, *args, vorhanden=g3, fuer_ansicht=False) is g3
+    halt = threading.Event()
+    halt.set()
+    for c in (halt, halt.is_set):
+        try:
+            geometrie_holen(fehlt, *args, fuer_ansicht=False, cancel=c)
+        except RuntimeError as exc:
+            assert str(exc) == "Abgebrochen"
+        else:
+            raise AssertionError("geometrie_holen hat nicht abgebrochen")
+    assert not os.path.exists(fehlt), "ohne Geometrie etwas abgelegt"
+    print(f"== Geometrie holen: zweiter Aufruf ohne Neubau, {len(g2['vertices']):,} Ecken "
+          f"gleich; Export ohne Intensitaet und Restpunkte; Abbruch wirkt")
     print(f"== CloudCompare: {find_cloudcompare() or 'nicht gefunden'}")
     if "--oeffnen" in sys.argv:
         print("   gestartet:", open_in_cloudcompare([path]))

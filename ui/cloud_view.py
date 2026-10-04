@@ -50,6 +50,8 @@ except ImportError:
     pass
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
+from core.gemeinsam import GRAU_ANZEIGE
+
 _ACCENT = (0x4F / 255.0, 0xC3 / 255.0, 0xF7 / 255.0)  # #4FC3F7
 _BG = {"dunkel": (0.102, 0.110, 0.125), "hell": (0.93, 0.94, 0.955)}
 _UNIFORM_COLOR = {"dunkel": (0.80, 0.82, 0.85), "hell": (0.22, 0.25, 0.28)}
@@ -1142,27 +1144,7 @@ class CloudView(QtWidgets.QWidget):
             self._render()
             return
         pts = np.ascontiguousarray(np.asarray(points).reshape(-1, 3), dtype=np.float32)
-        n = len(pts)
-        vtk_pts = vtk.vtkPoints()
-        vtk_pts.SetData(_strip_numpy_ref(
-            numpy_to_vtk(pts, deep=False, array_type=vtk.VTK_FLOAT)))
-        poly = vtk.vtkPolyData()
-        poly.SetPoints(vtk_pts)
-        verts = vtk.vtkCellArray()
-        refs: list = [pts]
-        try:
-            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
-            conn = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
-                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
-            refs += [offsets, conn]
-        except (AttributeError, TypeError):  # pre-9.0 fallback
-            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
-            legacy[0::2] = 1
-            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
-            refs.append(legacy)
-        poly.SetVerts(verts)
+        poly, refs = self._point_poly(pts)
         self._prev_refs = refs
         self._prev_mapper.SetInputData(poly)
         self._prev_actor.GetProperty().SetColor(*color)
@@ -1400,28 +1382,7 @@ class CloudView(QtWidgets.QWidget):
         self._hover_pts = self._hover_temp = None     # Stichprobe neu ziehen
         disp = self._points if sel is None else self._points[sel]
         self._disp_points = np.ascontiguousarray(disp, dtype=np.float32)
-        n = len(self._disp_points)
-
-        refs: list = [self._disp_points]
-        vtk_pts = vtk.vtkPoints()
-        vtk_pts.SetData(_strip_numpy_ref(
-            numpy_to_vtk(self._disp_points, deep=False, array_type=vtk.VTK_FLOAT)))
-        poly = vtk.vtkPolyData()
-        poly.SetPoints(vtk_pts)
-        verts = vtk.vtkCellArray()
-        try:
-            offsets = np.arange(n + 1, dtype=_ID_DTYPE)
-            conn = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetData(_strip_numpy_ref(numpy_to_vtkIdTypeArray(offsets, deep=False)),
-                          _strip_numpy_ref(numpy_to_vtkIdTypeArray(conn, deep=False)))
-            refs += [offsets, conn]
-        except (AttributeError, TypeError):  # pre-9.0 fallback: legacy cell layout
-            legacy = np.empty(2 * n, dtype=_ID_DTYPE)
-            legacy[0::2] = 1
-            legacy[1::2] = np.arange(n, dtype=_ID_DTYPE)
-            verts.SetCells(n, _strip_numpy_ref(numpy_to_vtkIdTypeArray(legacy, deep=False)))
-            refs.append(legacy)
-        poly.SetVerts(verts)
+        poly, refs = self._point_poly(self._disp_points)
         self._vtk_refs = refs
         self._poly = poly
         self._mapper.SetInputData(poly)
@@ -1444,7 +1405,7 @@ class CloudView(QtWidgets.QWidget):
                     if invalid.any():
                         if rgb is self._colors:
                             rgb = rgb.copy()
-                        rgb[invalid] = 90
+                        rgb[invalid] = GRAU_ANZEIGE
             elif mode == "hoehe":
                 rgb = _scalar_to_rgb(self._disp_points[:, 2], _TURBO)
             elif mode == "intensitaet" and self._intensity is not None:

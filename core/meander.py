@@ -19,6 +19,10 @@ Diese Datei aendert an dem Verfahren nichts. Sie tut drei Dinge:
   (:func:`colorize_points`) — Super360 Studio braucht je Punkt eine Farbe und
   die Auskunft, ob sie echt ist.
 
+Dazu kommen die Schritte, die die Arbeitsthreads der Oberflaeche brauchen
+(:func:`bauen`, :func:`bereit_machen`, :func:`kameras`), und die kleinen
+Dateien des Arbeitsordners (Thermal- und RGB-Zuschlag).
+
 Qt-frei. ``colorize_pipeline`` wird erst beim Gebrauch importiert, damit die
 Anwendung ohne das Nachbarrepo startet.
 """
@@ -31,6 +35,12 @@ import sys
 
 import numpy as np
 
+from core.ebenen import lade_temperatur as load_temperatur
+from core.ebenen import laden as load_layer
+from core.ebenen import speichern as save_layer
+from core.gemeinsam import (GRAU_EBENE, kamera_modell, melde, pruefe_abbruch,
+                            write_json_atomic)
+
 #: Orte, an denen das Nachbarrepo liegen kann. Der erste Treffer gewinnt.
 PIPELINE_CANDIDATES = (
     os.path.expanduser("~/PointCloudMerger"),
@@ -39,7 +49,7 @@ PIPELINE_CANDIDATES = (
 )
 
 _ALIGN_TARGET_PTS = 400_000   # so viel Wolke sieht die Ausrichtung
-_FALLBACK = (107, 107, 107)   # Grau fuer nicht getroffene Punkte
+_FALLBACK = (GRAU_EBENE,) * 3   # Grau fuer nicht getroffene Punkte
 
 #: Unter diesem Anteil sitzt die Ausrichtung falsch. Bei einer Nadir-
 #: befliegung liegen die Fotopunkte auf genau der Oberflaeche, die das
@@ -290,12 +300,146 @@ def load_thermal_zuschlag(work_dir: str) -> tuple:
 def save_thermal_zuschlag(work_dir: str, zuschlag) -> None:
     dgier, dx, dy = (float(v) for v in zuschlag)
     os.makedirs(work_dir, exist_ok=True)
-    tmp = os.path.join(work_dir, _THERMAL_LAGE + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump({"gier_grad": dgier, "x": dx, "y": dy,
-                   "bezug": "Zuschlag auf die RGB-Lage, X und Y in Metern"},
-                  fh, indent=2)
-    os.replace(tmp, os.path.join(work_dir, _THERMAL_LAGE))
+    write_json_atomic(os.path.join(work_dir, _THERMAL_LAGE),
+                      {"gier_grad": dgier, "x": dx, "y": dy,
+                       "bezug": "Zuschlag auf die RGB-Lage, X und Y in Metern"})
+
+
+# ------------------------------------------------------------ RGB-Zuschlag
+#
+# Handzuschlag auf die gefundene RGB-Lage (Gier in Grad, X, Y, Z in Metern),
+# wie ihn die Handjustage zuletzt hinterlassen hat.
+
+_RGB_ZUSCHLAG = "rgb_zuschlag.json"
+
+
+def load_rgb_zuschlag(work_dir: str) -> dict | None:
+    """Gespeicherten RGB-Zuschlag lesen (Schluessel yaw, x, y, z); None, wenn
+    die Datei fehlt oder unlesbar ist."""
+    try:
+        with open(os.path.join(work_dir, _RGB_ZUSCHLAG), encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def save_rgb_zuschlag(work_dir: str, d: dict) -> None:
+    """RGB-Zuschlag schreiben; ``d`` traegt yaw, x, y und z."""
+    write_json_atomic(os.path.join(work_dir, _RGB_ZUSCHLAG),
+                      {k: float(d[k]) for k in ("yaw", "x", "y", "z")})
+
+
+# ------------------------------------------------------------ Arbeitsordner
+
+def zaehle_rgb_jpeg(ordner: str) -> int:
+    """JPEGs im Ordner ohne die Thermalbilder (_T.JPG)."""
+    return len([f for f in os.listdir(ordner)
+                if f.upper().endswith((".JPG", ".JPEG"))
+                and not f.upper().endswith("_T.JPG")])
+
+
+def hat_modell(work_dir: str) -> bool:
+    """Liegt im Arbeitsordner schon ein Kameramodell (sonst muss COLMAP laufen)?"""
+    if os.path.exists(os.path.join(work_dir, "cameras.npz")):
+        return True
+    if os.path.exists(os.path.join(work_dir, "sparse", "0", "cameras.bin")):
+        return True
+    return False
+
+
+# ------------------------------------------------------------ Arbeitsthread
+
+def bauen(args: dict, log):
+    """Pipeline aufsetzen; die Arbeitswolke geht als cloud.npy hinein.
+
+    ``args`` traegt points, photo_dir, work_dir, thermal, rgb_versatz und
+    thermal_versatz, im GUI-Thread eingesammelt.
+    """
+    return build_pipeline(
+        args["points"], args["photo_dir"], args["work_dir"],
+        thermal=args["thermal"], rgb_versatz=args["rgb_versatz"],
+        thermal_versatz=args["thermal_versatz"], log=log)
+
+
+def _als_abfrage(cancel):
+    """``cancel`` (Event, Callable oder None) als Callable ohne Argumente —
+    so will die Pipeline ihr ``_cancel``."""
+    if cancel is None:
+        return lambda: False
+    if callable(cancel):
+        return cancel
+    return lambda: cancel.is_set()
+
+
+def bereit_machen(pipe, args: dict, th_zuschlag, optik_jetzt, progress, cancel,
+                  log, von: float, bis: float) -> tuple:
+    """Pipeline mit Lage fuer einen Arbeitsthread: (pipe, thermal_zuschlag, optik).
+
+    Mit Pipeline gelten Thermal-Zuschlag und Optik, wie sie im GUI-Thread
+    eingesammelt wurden. Ohne — Projekt frisch geoeffnet, nie ausgerichtet —
+    gilt, was im Projekt steht, und die Ausrichtung kommt aus dem
+    Arbeitsordner. Fortschritt laeuft von ``von`` bis ``bis``.
+    """
+    from core import optik as optik_mod  # noqa: PLC0415
+    p, th, opt = pipe, th_zuschlag, optik_jetzt
+    spanne = bis - von
+    if p is None:
+        th = load_thermal_zuschlag(args["work_dir"])
+        opt = optik_mod.laden(args["work_dir"])
+        p = bauen(args, log)
+        p._cancel = _als_abfrage(cancel)
+        prepare(p, progress=lambda f, m: melde(progress, von + 0.8 * spanne * f, m))
+        k = align(p, progress=lambda f, m: melde(progress,
+                                                 von + spanne * (0.8 + 0.2 * f), m))
+        # Lieber hier abbrechen als Minuten in eine falsche Lage stecken: die
+        # Trefferquote beim Einfaerben merkt den Fehlgriff nicht, sie liegt
+        # auch dann nahe 100 %.
+        schlecht = pruefe_ausrichtung(k)
+        eingemessen = (opt.get("rgb") or {}).get("auf_flaeche_nachher")
+        if schlecht and eingemessen is not None and eingemessen >= MIN_AUF_FLAECHE:
+            # Die Kennzahl der Ausrichtung ist von vor dem Einmessen; mit der
+            # eingemessenen Optik liegen die Fotopunkte auf.
+            log(f"Ausrichtung mit eingemessener Optik: "
+                f"{eingemessen * 100:.1f} % der Fotopunkte auf der "
+                f"Oberfläche.")
+        elif schlecht:
+            raise RuntimeError(schlecht)
+    p._cancel = _als_abfrage(cancel)
+    if pipe is None:
+        p.s360_korrektur = opt.get("korrektur")
+    return p, th, opt
+
+
+def kameras(p, opt: dict, th, thermal: bool = True) -> dict:
+    """Kameras und Affine zum Einfaerben mit einer ausgerichteten Pipeline.
+
+    ``opt`` ist die Optik (rgb_faktor, thermal_faktor, thermal), ``th`` der
+    Thermal-Zuschlag auf die RGB-Lage. Rueckgabe: ``rgb_faktor``,
+    ``thermal_faktor``, ``yaw_deg``, ``A``, ``b`` und ``rgb`` (Kameras), dazu
+    ``thermal`` (Kameras oder None), ``temperatur`` (Quelle oder None) und,
+    wenn es Thermalkameras gibt, ``yaw_th``, ``A_th``, ``b_th`` (sonst None).
+    Mit ``thermal=False`` bleibt Thermal ganz aussen vor. Ob eine fehlende
+    Thermaloptik oder Temperaturquelle den Schritt ueberspringt, entscheidet
+    der Aufrufer.
+    """
+    from core import optik as optik_mod  # noqa: PLC0415
+    rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
+    yaw = float(np.degrees(p.yaw))
+    # lage_affine statt p.affine(): nimmt die Feinausrichtung mit
+    A, b = lage_affine(p, yaw, p.t)
+    k = {"rgb_faktor": rf, "thermal_faktor": tf, "yaw_deg": yaw, "A": A, "b": b,
+         "rgb": optik_mod.rgb_cams(p, rf), "thermal": None, "temperatur": None,
+         "yaw_th": None, "A_th": None, "b_th": None}
+    if not thermal:
+        return k
+    from core import temperatur as temperatur_mod  # noqa: PLC0415
+    k["thermal"] = optik_mod.thermal_cams(p, opt.get("thermal"), tf, rf)
+    k["temperatur"] = temperatur_mod.quelle(p)
+    if k["thermal"] is not None:
+        yaw_th, t_th = thermal_lage(yaw, p.t, th)
+        k["yaw_th"] = yaw_th
+        k["A_th"], k["b_th"] = lage_affine(p, yaw_th, t_th)
+    return k
 
 
 def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
@@ -322,34 +466,54 @@ def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
     tcw = np.asarray(cams["tcw"], dtype=np.float64)
     size = np.asarray(cams["size"])
     params = np.asarray(cams["params"])
-    model = cams["model"].item() if getattr(cams["model"], "shape", None) == () \
-        else str(cams["model"])
+    model = kamera_modell(cams)
     from PIL import Image  # noqa: PLC0415
 
     P = np.asarray(points, dtype=np.float64)
-    N = len(P)
     Ainv = np.linalg.inv(np.asarray(A, dtype=np.float64))
     P_col = (Ainv @ (P - np.asarray(b, dtype=np.float64)).T).T
     PT = np.ascontiguousarray(P_col.T)
     del P_col
 
+    def bild_holen(_i, n):
+        return np.asarray(Image.open(os.path.join(image_dir, str(n))).convert("RGB"))
+
+    col, best, temp = _nadir_faerben(PT, Rcw, tcw, size, params, model, bild_holen, 1.0,
+                                     names, cz._project, progress=progress,
+                                     cancel=cancel, temperatur=temperatur)
+    maske = np.isfinite(best)
+    if temp is not None:
+        return col, maske, temp
+    return col, maske
+
+
+def _nadir_faerben(PT, Rcw, tcw, size, params, model, bild_holen, skala, names,
+                   projizieren, progress=None, cancel=None, temperatur=None) -> tuple:
+    """Kern von :func:`colorize_points` und :meth:`LivePreview.colorize`.
+
+    ``PT`` sind die Punkte im Rahmen der Kameras, spaltenweise (3, N).
+    ``bild_holen(i, name)`` liefert das Bild der Kamera i, erst wenn sie
+    einen Punkt trifft; ``skala`` rechnet die Bildkoordinaten auf dieses Bild
+    um (1.0: keine Umrechnung). Gibt (Farben, Nadirabstand je Punkt — inf wo
+    keine Kamera trifft —, Temperatur oder None).
+    """
+    N = PT.shape[1]
     best = np.full(N, np.inf, dtype=np.float32)
     col = np.empty((N, 3), dtype=np.uint8)
     col[:] = _FALLBACK
     temp = np.full(N, np.nan, dtype=np.float32) if temperatur is not None else None
     n_cams = len(names)
     for i, n in enumerate(names):
-        if cancel is not None and cancel():
-            raise RuntimeError("Abgebrochen")
+        pruefe_abbruch(cancel)
         pc = (Rcw[i] @ PT).T + tcw[i]
-        u, v, front, rad = cz._project(pc, size[i], params[i], model)
+        u, v, front, rad = projizieren(pc, size[i], params[i], model)
         W, H = size[i]
         gilt = front & (u >= 0) & (u < W) & (v >= 0) & (v < H) & (rad < best)
         if gilt.any():
-            img = np.asarray(Image.open(os.path.join(image_dir, str(n))).convert("RGB"))
+            img = bild_holen(i, n)
             ih, iw = img.shape[:2]
-            ui = np.clip(u[gilt].astype(np.int32), 0, iw - 1)
-            vi = np.clip(v[gilt].astype(np.int32), 0, ih - 1)
+            ui = np.clip((u[gilt] * skala).astype(np.int32), 0, iw - 1)
+            vi = np.clip((v[gilt] * skala).astype(np.int32), 0, ih - 1)
             col[gilt] = img[vi, ui]
             best[gilt] = rad[gilt].astype(np.float32)
             if temp is not None:
@@ -361,10 +525,7 @@ def colorize_points(points: np.ndarray, cams, image_dir: str, A, b,
             progress((i + 1) / n_cams,
                      f"Färbe aus Bild {i + 1}/{n_cams} — "
                      f"{np.isfinite(best).mean() * 100:.1f} % getroffen")
-    maske = np.isfinite(best)
-    if temp is not None:
-        return col, maske, temp
-    return col, maske
+    return col, best, temp
 
 
 class LivePreview:
@@ -396,14 +557,11 @@ class LivePreview:
         self.tcw = np.asarray(cams["tcw"], dtype=np.float64)
         self.size = np.asarray(cams["size"])
         self.params = np.asarray(cams["params"])
-        self.model = (cams["model"].item()
-                      if getattr(cams["model"], "shape", None) == ()
-                      else str(cams["model"]))
+        self.model = kamera_modell(cams)
         self.bilder: list = []
         n = len(self.names)
         for i, name in enumerate(self.names):
-            if cancel is not None and cancel():
-                raise RuntimeError("Abgebrochen")
+            pruefe_abbruch(cancel)
             with Image.open(os.path.join(image_dir, str(name))) as im:
                 im = im.convert("RGB")
                 klein = im.resize((max(int(im.width * self.scale), 1),
@@ -426,79 +584,20 @@ class LivePreview:
             tcw = np.asarray(cams["tcw"], dtype=np.float64)
             size = np.asarray(cams["size"])
             params = np.asarray(cams["params"])
-            model = (cams["model"].item() if getattr(cams["model"], "shape", None) == ()
-                     else str(cams["model"]))
+            model = kamera_modell(cams)
         P = np.asarray(points, dtype=np.float64)
-        N = len(P)
         Ainv = np.linalg.inv(np.asarray(A, dtype=np.float64))
         PT = np.ascontiguousarray(((Ainv @ (P - np.asarray(b, float)).T).T).T)
-        best = np.full(N, np.inf, dtype=np.float32)
-        col = np.empty((N, 3), dtype=np.uint8)
-        col[:] = _FALLBACK
-        for i, img in enumerate(self.bilder):
-            pc = (Rcw[i] @ PT).T + tcw[i]
-            u, v, front, rad = self._cz._project(pc, size[i], params[i], model)
-            W, H = size[i]
-            gilt = front & (u >= 0) & (u < W) & (v >= 0) & (v < H) & (rad < best)
-            if not gilt.any():
-                continue
-            ih, iw = img.shape[:2]
-            ui = np.clip((u[gilt] * self.scale).astype(np.int32), 0, iw - 1)
-            vi = np.clip((v[gilt] * self.scale).astype(np.int32), 0, ih - 1)
-            col[gilt] = img[vi, ui]
-            best[gilt] = rad[gilt].astype(np.float32)
+        bilder = self.bilder
+        col, best, _ = _nadir_faerben(PT, Rcw, tcw, size, params, model,
+                                      lambda i, _n: bilder[i], self.scale,
+                                      self.names, self._cz._project)
         return col, np.isfinite(best)
 
 
-# ------------------------------------------------------------------ Ebenen
-
-def save_layer(out_dir: str, rgb: np.ndarray, maske: np.ndarray, meta: dict,
-               temperatur: np.ndarray | None = None) -> None:
-    """Farbebene ablegen — dasselbe Format wie die Einfaerbung aus der 360-Kamera.
-
-    ``temperatur`` (float32 je Punkt, NaN wo keine) landet als
-    ``temperatur.bin`` daneben; ohne wird eine alte entfernt, damit nie eine
-    Temperatur zu einer anderen Einfaerbung passt als ihrer eigenen.
-    """
-    os.makedirs(out_dir, exist_ok=True)
-    tbin = os.path.join(out_dir, "temperatur.bin")
-    if temperatur is not None:
-        np.ascontiguousarray(temperatur, dtype=np.float32).tofile(tbin)
-    elif os.path.exists(tbin):
-        os.remove(tbin)
-    np.ascontiguousarray(rgb, dtype=np.uint8).tofile(os.path.join(out_dir, "colors.bin"))
-    np.ascontiguousarray(maske.astype(np.uint8)).tofile(
-        os.path.join(out_dir, "valid.bin"))
-    tmp = os.path.join(out_dir, "meta.json.tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(meta, fh, indent=2)
-    os.replace(tmp, os.path.join(out_dir, "meta.json"))
-
-
-def load_temperatur(out_dir: str, n_points: int) -> np.ndarray | None:
-    """Temperatur je Punkt (float32, NaN wo keine) oder None."""
-    tbin = os.path.join(out_dir, "temperatur.bin")
-    if not os.path.isfile(tbin):
-        return None
-    t = np.fromfile(tbin, dtype=np.float32)
-    return t if t.size == n_points else None
-
-
-def load_layer(out_dir: str, n_points: int) -> tuple[np.ndarray, np.ndarray] | None:
-    """Farbebene lesen, oder None wenn sie fehlt bzw. nicht zur Wolke passt."""
-    cbin = os.path.join(out_dir, "colors.bin")
-    vbin = os.path.join(out_dir, "valid.bin")
-    if not (os.path.isfile(cbin) and os.path.isfile(vbin)):
-        return None
-    rgb = np.fromfile(cbin, dtype=np.uint8)
-    val = np.fromfile(vbin, dtype=np.uint8)
-    if rgb.size != n_points * 3 or val.size != n_points:
-        return None
-    return rgb.reshape(-1, 3), val.astype(bool)
-
-
 if __name__ == "__main__":
-    # Selbsttest ohne COLMAP: Projektion und Ebenen-Format pruefen.
+    # Selbsttest ohne COLMAP: Projektion, Ebenen-Format und die Helfer
+    # fuer den Arbeitsthread pruefen.
     import tempfile
     import shutil
 
@@ -627,6 +726,164 @@ if __name__ == "__main__":
     assert t is not None and t[0] == 20.5 and np.isnan(t[2])
     save_layer(lay, rgb, maske, {"quelle": "selbsttest"})
     assert load_temperatur(lay, len(pts)) is None, "alte Temperatur blieb liegen"
+    from core import ebenen as ebenen_mod
+    assert save_layer is ebenen_mod.speichern and load_layer is ebenen_mod.laden \
+        and load_temperatur is ebenen_mod.lade_temperatur
     print("  Ebene passt, falsche Punktzahl wird abgelehnt, Temperatur hin und zurueck")
+
+    print("== Test 8: Arbeitsordner, RGB-Zuschlag ==")
+    flug = os.path.join(tmp, "flug")
+    os.makedirs(flug)
+    for name in ("a_V.JPG", "b_v.jpg", "c.jpeg", "d_T.JPG", "e_t.jpg", "f.png", "g.JPG"):
+        open(os.path.join(flug, name), "wb").close()
+    assert zaehle_rgb_jpeg(flug) == 4, zaehle_rgb_jpeg(flug)
+    arbeit = os.path.join(tmp, "arbeit")
+    os.makedirs(os.path.join(arbeit, "sparse", "0"))
+    assert not hat_modell(arbeit)
+    open(os.path.join(arbeit, "sparse", "0", "cameras.bin"), "wb").close()
+    assert hat_modell(arbeit)
+    os.remove(os.path.join(arbeit, "sparse", "0", "cameras.bin"))
+    np.savez(os.path.join(arbeit, "cameras.npz"), x=np.zeros(1))
+    assert hat_modell(arbeit)
+    assert load_rgb_zuschlag(arbeit) is None, "ohne Datei nicht None"
+    save_rgb_zuschlag(arbeit, {"yaw": 0.5, "x": np.float32(1.25), "y": -2, "z": 0.0})
+    with open(os.path.join(arbeit, _RGB_ZUSCHLAG), encoding="utf-8") as fh:
+        roh = fh.read()
+    assert json.loads(roh) == {"yaw": 0.5, "x": 1.25, "y": -2.0, "z": 0.0}
+    assert "\n  " in roh, "nicht eingerueckt"
+    assert load_rgb_zuschlag(arbeit) == {"yaw": 0.5, "x": 1.25, "y": -2.0, "z": 0.0}
+    assert not os.path.exists(os.path.join(arbeit, _RGB_ZUSCHLAG + ".tmp"))
+    # die alte, nicht eingerueckte Form liest sich genauso
+    with open(os.path.join(arbeit, _RGB_ZUSCHLAG), "w", encoding="utf-8") as fh:
+        json.dump({"yaw": 0.0, "x": 0.0, "y": 0.0, "z": 3.0}, fh)
+    assert load_rgb_zuschlag(arbeit)["z"] == 3.0
+    with open(os.path.join(arbeit, _RGB_ZUSCHLAG), "w", encoding="utf-8") as fh:
+        fh.write("{kaputt")
+    assert load_rgb_zuschlag(arbeit) is None, "kaputte Datei nicht None"
+    print("  JPEG-Zaehlung ohne _T, Modell erkannt, Zuschlag hin und zurueck")
+
+    print("== Test 9: Pipeline bauen und bereit machen ==")
+    import threading
+    welt = np.random.default_rng(1).uniform(-5, 5, size=(1000, 3))
+    args = {"points": welt, "photo_dir": flug, "work_dir": os.path.join(tmp, "work"),
+            "thermal": True, "rgb_versatz": [1.0, -2.0], "thermal_versatz": [0.5, 0.0]}
+    gebaut = bauen(args, None)
+    assert gebaut.photo_dir == flug and gebaut.thermal is True
+    assert gebaut.rgb_versatz.tolist() == [1.0, -2.0]
+    assert gebaut.thermal_versatz.tolist() == [0.5, 0.0]
+    assert np.array_equal(np.load(os.path.join(args["work_dir"], "cloud.npy")), welt)
+
+    # Mit Pipeline: Zuschlag und Optik bleiben, wie sie hereinkommen
+    ereignis = threading.Event()
+    opt_jetzt = {"rgb_faktor": 1.05, "thermal_faktor": 1.0, "korrektur": {"M": 1}}
+    p_.s360_korrektur = None
+    erg = bereit_machen(p_, args, (1.0, 2.0, 3.0), opt_jetzt, None, ereignis,
+                        None, 0.0, 0.5)
+    assert erg[0] is p_ and erg[1] == (1.0, 2.0, 3.0) and erg[2] is opt_jetzt
+    assert p_.s360_korrektur is None, "Korrektur der Optik ueberschreibt die Pipeline"
+    assert p_._cancel() is False
+    ereignis.set()
+    assert p_._cancel() is True, "Abbruch kommt nicht an"
+    bereit_machen(p_, args, (0, 0, 0), opt_jetzt, None, lambda: True, None, 0.0, 1.0)
+    assert p_._cancel() is True
+
+    # Ohne Pipeline: bauen, vorbereiten, ausrichten — mit Stellvertretern
+    gerufen, gemeldet, geloggt = [], [], []
+
+    class _Q(_P):
+        photo_dir = flug
+
+    def _bauen(a, log):
+        gerufen.append("bauen")
+        return _Q()
+
+    def _prepare(p, progress=None):
+        gerufen.append("prepare")
+        progress(0.5, "vor")
+        return {}
+
+    def _align(p, progress=None):
+        gerufen.append("align")
+        progress(1.0, "aus")
+        return dict(guete)
+
+    alt = (bauen, prepare, align)
+    bauen, prepare, align = _bauen, _prepare, _align
+    try:
+        save_thermal_zuschlag(args["work_dir"], (0.25, 0.0, -0.5))
+        from core import optik as optik_mod
+        optik_mod.speichern(args["work_dir"], {"rgb_faktor": 1.02, "thermal_faktor": 1.0,
+                                               "korrektur": {"M": "k"},
+                                               "rgb": {"auf_flaeche_nachher": 0.62}})
+        guete = {"anteil_auf_flaeche": 0.9}
+        p2, th2, opt2 = bereit_machen(None, args, (9, 9, 9), opt_jetzt,
+                                      lambda f, m: gemeldet.append((f, m)),
+                                      ereignis, geloggt.append, 0.02, 0.50)
+        assert gerufen == ["bauen", "prepare", "align"], gerufen
+        assert gemeldet == [(0.02 + 0.8 * 0.48 * 0.5, "vor"),
+                            (0.02 + 0.48 * (0.8 + 0.2 * 1.0), "aus")], gemeldet
+        assert th2 == (0.25, 0.0, -0.5) and opt2["rgb_faktor"] == 1.02
+        assert p2.s360_korrektur == {"M": "k"} and p2._cancel() is True
+        assert geloggt == []
+        # schlechte Guete, aber die eingemessene Optik liegt auf: nur Logzeile
+        guete = {"anteil_auf_flaeche": 0.02}
+        bereit_machen(None, args, None, None, None, None, geloggt.append, 0.0, 1.0)
+        assert geloggt == ["Ausrichtung mit eingemessener Optik: 62.0 % der "
+                           "Fotopunkte auf der Oberfläche."], geloggt
+        # ohne Einmessung: Abbruch mit der Meldung der Guetepruefung
+        optik_mod.speichern(args["work_dir"], {"rgb_faktor": 1.0, "thermal_faktor": 1.0})
+        try:
+            bereit_machen(None, args, None, None, None, None, geloggt.append, 0.0, 1.0)
+        except RuntimeError as exc:
+            assert str(exc) == pruefe_ausrichtung(guete)
+        else:
+            raise AssertionError("schlechte Ausrichtung nicht abgebrochen")
+    finally:
+        bauen, prepare, align = alt
+    print("  Pipeline gebaut, Zuschlag und Optik je nach Herkunft, beide Guete-Zweige")
+
+    print("== Test 10: Kameras und Affine zum Einfaerben ==")
+    cams_p = dict(cams, Rcw=np.asarray(cams["Rcw"], float),
+                  tcw=np.asarray(cams["tcw"], float))
+    th_roh = dict(cams_p, size=np.array([[32.0, 32.0]]),
+                  params=np.array([[30.0, 16.0, 16.0, 0.0]]))
+
+    class _K(_P):
+        thermal_versatz = (0.0, 0.0)
+        thermal_paare = {"a.png": os.path.join(tmp, "a.png")}
+
+        def rgb_cams(self):
+            return cams_p
+
+        def thermal_cams(self):
+            return th_roh
+
+    pk = _K()
+    pk.cams = cams_p
+    pk.s360_korrektur = {"M": kipp.tolist(), "v": [0.1, 0.0, 0.0]}
+    opt = {"rgb_faktor": 1.05, "thermal_faktor": 0.98, "thermal": None}
+    zus = (1.5, 0.5, -0.25)
+    k = kameras(pk, opt, zus)
+    yaw = float(np.degrees(pk.yaw))
+    A_, b_ = lage_affine(pk, yaw, pk.t)
+    assert k["yaw_deg"] == yaw and np.array_equal(k["A"], A_) and np.array_equal(k["b"], b_)
+    assert k["rgb_faktor"] == 1.05 and k["thermal_faktor"] == 0.98
+    assert np.array_equal(k["rgb"]["params"], optik_mod.rgb_cams(pk, 1.05)["params"])
+    assert np.array_equal(k["thermal"]["params"],
+                          optik_mod.thermal_cams(pk, None, 0.98, 1.05)["params"])
+    yaw_th, t_th = thermal_lage(yaw, pk.t, zus)
+    A_th, b_th = lage_affine(pk, yaw_th, t_th)
+    assert k["yaw_th"] == yaw_th and np.array_equal(k["A_th"], A_th) \
+        and np.array_equal(k["b_th"], b_th)
+    assert callable(k["temperatur"])
+    assert pk.yaw == 0.3 and pk.t.tolist() == [1.0, 2.0], "Basislage veraendert"
+    k = kameras(pk, opt, zus, thermal=False)
+    assert k["thermal"] is None and k["temperatur"] is None and k["A_th"] is None
+    pk.thermal_cams = lambda: None
+    pk.thermal_paare = {}
+    k = kameras(pk, opt, zus)
+    assert k["thermal"] is None and k["temperatur"] is None and k["yaw_th"] is None
+    print("  Lage mit Feinausrichtung, Thermal als Zuschlag, Basislage unberuehrt")
+
     shutil.rmtree(tmp, ignore_errors=True)
     print("meander SELFTEST OK")

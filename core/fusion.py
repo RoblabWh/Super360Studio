@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from core.gemeinsam import pruefe_abbruch
+
 MAX_PROBEN = 300_000      # so viele Ueberlappungspunkte gehen in die Schaetzung
 MIN_UEBERLAPPUNG = 2_000  # darunter ist keine Abbildung zu trauen
 HUBER_K = 1.345           # Huber-Schwelle in Einheiten der robusten Streuung
@@ -40,9 +42,18 @@ GRUND = 0.10
 _BLOCK = 2_000_000
 
 
-def _abbruch(cancel) -> None:
-    if cancel is not None and cancel():
-        raise RuntimeError("Abgebrochen")
+_abbruch = pruefe_abbruch
+
+
+def quellen(vorhandene) -> tuple[str, str] | None:
+    """(Onboard-Ebene, Maeander-Ebene) fuer die Fusion, oder None.
+
+    ``vorhandene`` sind die Namen der vorhandenen Farbebenen (alles, was
+    ``in`` kann). Eine Splat-Ebene geht der direkt gefaerbten vor.
+    """
+    onb = next((k for k in ("onboard_splat", "onboard") if k in vorhandene), None)
+    mea = next((k for k in ("meander_splat", "meander_rgb") if k in vorhandene), None)
+    return (onb, mea) if onb and mea else None
 
 
 def schaetze_abbildung(quelle: np.ndarray, ziel: np.ndarray,
@@ -230,4 +241,13 @@ if __name__ == "__main__":
         print(f"  ok: {str(e)[:60]} …")
     else:
         raise AssertionError("haette ablehnen muessen")
+
+    print("== Test 5: Quellen, Splat vor direkt ==")
+    assert quellen({"onboard", "meander_rgb"}) == ("onboard", "meander_rgb")
+    assert quellen(["onboard", "onboard_splat", "meander_rgb", "meander_splat"]) \
+        == ("onboard_splat", "meander_splat")
+    assert quellen({"onboard_splat": 1, "meander_rgb": 2}) == ("onboard_splat", "meander_rgb")
+    assert quellen({"onboard", "onboard_splat"}) is None
+    assert quellen(set()) is None
+    print("  OK")
     print("alle Tests bestanden")

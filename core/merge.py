@@ -39,6 +39,8 @@ import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+from core.gemeinsam import pruefe_abbruch as _check_cancel
+
 _REG_TARGET_PTS = 400_000   # so viele Punkte gehen hoechstens in die Ausrichtung
 _WRITE_CHUNK = 2_000_000    # Punkte je Schreibblock (~24 MB)
 _YAW_CANDIDATES = tuple(range(30, 360, 30))
@@ -46,11 +48,6 @@ _FGR_TRIALS = 10
 _FEIN_ZIEL = 0.10           # m, feinstes Voxel im Feinschliff
 _LOT_MIN_S = 10.0           # s Flug, darunter ist das Mittel keine Lotrechte
 _LOT_MAX_STREUUNG = 2.0     # Grad zwischen den Flughaelften, darueber unbrauchbar
-
-
-def _check_cancel(cancel) -> None:
-    if cancel is not None and cancel.is_set():
-        raise RuntimeError("Abgebrochen")
 
 
 def cloud_for_registration(rec, max_points: int = _REG_TARGET_PTS) -> np.ndarray:
@@ -356,6 +353,28 @@ def transform_poses(poses: np.ndarray, T: np.ndarray) -> np.ndarray:
     return out
 
 
+def lage_aus_reglern(yaw_deg: float, versatz_xyz, zentrum,
+                     basis: np.ndarray | None = None) -> np.ndarray:
+    """Lage aus der Handjustage: um die Mitte der zweiten Wolke gieren, dann schieben.
+
+    Die Regler sind ein Versatz zu ``basis`` (der Lage der letzten Ausrichtung,
+    ohne Angabe die Einheit). ``zentrum`` ist der Schwerpunkt der Wolke vor
+    ``basis``; gegiert wird um seinen Ort nach ``basis``. Ergebnis: 4x4.
+    """
+    basis = np.eye(4) if basis is None else np.asarray(basis, dtype=np.float64)
+    mitte = basis[:3, :3] @ np.asarray(zentrum) + basis[:3, 3]
+    yaw = np.radians(float(yaw_deg))
+    R = np.eye(4)
+    R[:3, :3] = Rotation.from_euler("z", yaw).as_matrix()
+    hin = np.eye(4)
+    hin[:3, 3] = mitte
+    weg = np.eye(4)
+    weg[:3, 3] = -mitte
+    D = hin @ R @ weg
+    D[:3, 3] += [float(v) for v in versatz_xyz]
+    return D @ basis
+
+
 def _append_binary(fh, arr, chunk: int = _WRITE_CHUNK) -> None:
     """Grosse memmap-Arrays blockweise anhaengen (haelt den Speicher klein)."""
     n = len(arr)
@@ -556,4 +575,35 @@ if __name__ == "__main__":
     else:
         raise AssertionError("Ueberlappung wurde nicht abgelehnt")
     shutil.rmtree(out, ignore_errors=True)
+
+    print("== Test 3: lage_aus_reglern rechnet wie die Handjustage ==")
+
+    def ui_formel(yaw_deg, versatz, zentrum, basis):
+        # Rechnung der Handregler im Fenster Zusammenfuehren, Schritt fuer Schritt
+        mitte = basis[:3, :3] @ zentrum + basis[:3, 3]
+        yaw = np.radians(float(yaw_deg))
+        R = np.eye(4)
+        R[:3, :3] = Rotation.from_euler("z", yaw).as_matrix()
+        hin = np.eye(4)
+        hin[:3, 3] = mitte
+        weg = np.eye(4)
+        weg[:3, 3] = -mitte
+        D = hin @ R @ weg
+        D[:3, 3] += [float(v) for v in versatz]
+        return D @ basis
+
+    c = np.array([3.2, -1.7, 0.45])
+    assert np.array_equal(lage_aus_reglern(0, (0, 0, 0), c), np.eye(4))
+    basis_b = np.eye(4)
+    basis_b[:3, :3] = Rotation.from_euler("zyx", [112.0, 1.5, -0.8],
+                                          degrees=True).as_matrix()
+    basis_b[:3, 3] = [-14.25, 6.5, 1.125]
+    faelle = [(37.5, (1.25, -0.4, 0.1)), (-120.0, (0.0, 3.05, -0.02)),
+              (359.9, (-7.5, 0.005, 2.0))]
+    for yaw_deg, versatz in faelle:
+        assert np.array_equal(lage_aus_reglern(yaw_deg, versatz, c),
+                              ui_formel(yaw_deg, versatz, c, np.eye(4))), yaw_deg
+        assert np.array_equal(lage_aus_reglern(yaw_deg, versatz, c, basis_b),
+                              ui_formel(yaw_deg, versatz, c, basis_b)), yaw_deg
+    print(f"  Einheit bei Nullreglern, {len(faelle)} Faelle je Basis bitgleich")
     print("merge SELFTEST OK")

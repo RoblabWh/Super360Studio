@@ -6,184 +6,209 @@ _temperatur_anzeigen.
 from __future__ import annotations
 
 import os
+from typing import NamedTuple
 
 from PyQt5.QtWidgets import QMessageBox
 
-_DEFAULT_SETTINGS: dict = {
-    "pano_width": 1920,
-    "config": "whs_dense.yaml",
-    "rate": 1.0,
-    "brightness_min": 20,
-    "brightness_max": 235,
-    "k_frames": 3,
-    "sky_grow": 4,
-    "lens_best": True,
-    "edge_r": 600,
-    "blue_filter": False,
-    "blue_hue_lo": 150,
-    "blue_hue_hi": 290,
-    "blue_sat": 5,
-    "blue_val": 10,
-    "blue_neutral": 100,
-    "mesh_voxel_cm": 4,
-    "mesh_depth": 12,
-    "mesh_trim": 0,
-    "mesh_hybrid": True,
-    "mesh_an": False,
-    "point_size": 2,
-    "color_mode": "rgb",
-    "layer": "onboard",
-    "only_colored": True,
-    "voxel": 0.0,
-    "background": "dunkel",
-    "edl": False,
-    "show_path": False,
+
+class _Einstellung(NamedTuple):
+    """Eine Zeile der Einstellungstabelle.
+
+    ``bindung`` ist das Widget- oder Zustandsattribut des Fensters, ``lesart``
+    sagt, wie Wert und Bindung ineinander uebergehen (``_SCHREIBEN``/``_LESEN``).
+    ``art``: ``vorbelegt`` steht in _DEFAULT_SETTINGS; ``rueckfall`` nicht, dann
+    gilt die Vorgabe, wenn der Schluessel fehlt; ``nur_vorhanden`` laesst den
+    Zustand stehen, wenn der Schluessel fehlt; ``fest`` wird immer mit der
+    Vorgabe gespeichert und nie angewandt.
+    """
+    schluessel: str
+    vorgabe: object
+    bindung: str
+    lesart: str
+    art: str = "vorbelegt"
+
+
+# In der Reihenfolge, in der die Einstellungen angewandt werden.
+_EINSTELLUNGEN: tuple = (
+    _Einstellung("pano_width", 1920, "_settings", "durchreichen"),
+    _Einstellung("config", "whs_dense.yaml", "_combo_config", "daten"),
+    _Einstellung("rate", 1.0, "_spin_rate", "komma"),
+    _Einstellung("brightness_min", 20, "_sld_bmin", "zahl"),
+    _Einstellung("brightness_max", 235, "_sld_bmax", "zahl"),
+    _Einstellung("k_frames", 3, "_spin_kframes", "zahl"),
+    _Einstellung("sky_grow", 4, "_spin_sky", "zahl"),
+    _Einstellung("lens_best", True, "_chk_lens", "haken"),
+    _Einstellung("edge_r", 600, "_spin_edge", "zahl"),
+    _Einstellung("blue_filter", False, "_chk_blue", "haken"),
+    _Einstellung("blue_hue_lo", 150, "_sld_blue_lo", "zahl"),
+    _Einstellung("blue_hue_hi", 290, "_sld_blue_hi", "zahl"),
+    _Einstellung("blue_sat", 5, "_sld_blue_sat", "zahl"),
+    _Einstellung("blue_val", 10, "_sld_blue_val", "zahl"),
+    _Einstellung("blue_neutral", 100, "_sld_blue_neutral", "zahl"),
+    _Einstellung("mesh_voxel_cm", 4, "_spin_mesh_voxel", "zahl"),
+    _Einstellung("mesh_depth", 12, "_spin_mesh_depth", "zahl"),
+    _Einstellung("mesh_trim", 0, "_spin_mesh_trim", "zahl"),
+    # Marke, ab der mesh_trim bewusst gesetzt ist (nicht in den
+    # Standardwerten, sonst griffe die Uebernahme in _mesh_altwerte nie)
+    _Einstellung("mesh_stand", 3, "", "", "fest"),
+    _Einstellung("mesh_hybrid", True, "_chk_mesh_hybrid", "haken"),
+    _Einstellung("mesh_an", False, "_cloud_view", "mesh_schalter"),
+    _Einstellung("point_size", 2, "_spin_pointsize", "komma"),
+    _Einstellung("temperatur_anzeigen", True, "_temperatur_anzeigen", "temperatur",
+                 "rueckfall"),
+    _Einstellung("color_mode", "rgb", "_combo_colormode", "daten"),
+    _Einstellung("only_colored", True, "_chk_only_colored", "haken"),
+    _Einstellung("voxel", 0.0, "_combo_voxel", "naeherung"),
+    _Einstellung("background", "dunkel", "_combo_bg", "daten"),
+    _Einstellung("edl", False, "_chk_edl", "haken_wenn_frei"),
+    _Einstellung("show_path", False, "_chk_path", "haken"),
+    _Einstellung("meander_thermal", False, "_chk_thermal", "haken", "rueckfall"),
+    _Einstellung("meander_sichtbar", True, "_chk_sichtbar", "haken", "rueckfall"),
+    _Einstellung("meander_solo", True, "_chk_solo", "haken", "rueckfall"),
+    _Einstellung("splat_raster", 0.05, "_combo_splat_raster", "naeherung", "rueckfall"),
+    _Einstellung("splat_anker_mio", 4.0, "_spin_splat_anker", "komma", "rueckfall"),
+    _Einstellung("splat_sh", 1, "_combo_splat_sh", "daten_ganz", "rueckfall"),
+    _Einstellung("splat_posen", True, "_chk_splat_posen", "haken", "rueckfall"),
+    _Einstellung("splat_pruefen", True, "_chk_splat_pruefen", "haken", "rueckfall"),
+    _Einstellung("splat_thermal", True, "_chk_splat_thermal", "haken", "rueckfall"),
+    _Einstellung("splat_schritte", 3000, "_spin_splat_schritte", "zahl", "rueckfall"),
+    _Einstellung("splat_frames", 300, "_spin_splat_frames", "zahl", "rueckfall"),
+    _Einstellung("splat_schritte_onboard", 15000, "_spin_splat_schritte_onboard", "zahl",
+                 "rueckfall"),
+    _Einstellung("rgb_versatz", [0.0, 0.0], "_spin_optik", "versatz", "rueckfall"),
+    _Einstellung("thermal_versatz", [0.0, 0.0], "_spin_optik", "versatz", "rueckfall"),
+    _Einstellung("meander_dir", "", "_meander_dir", "maeanderordner", "nur_vorhanden"),
+    _Einstellung("layer", "onboard", "_layer_key", "ebene"),
+    _Einstellung("sections", {}, "_sections", "abschnitte", "nur_vorhanden"),
+    _Einstellung("sidebar", True, "_sidebar_scroll", "seitenleiste", "rueckfall"),
+)
+
+_DEFAULT_SETTINGS: dict = {e.schluessel: e.vorgabe for e in _EINSTELLUNGEN
+                           if e.art == "vorbelegt"}
+
+
+def _auswahl_index(combo, wert: float, vorgabe: float) -> int:
+    """Eintrag mit diesem Wert, sonst der mit der Vorgabe, sonst der erste."""
+    for ziel in (float(wert), vorgabe):
+        idx = next((i for i in range(combo.count())
+                    if abs(combo.itemData(i) - ziel) < 1e-9), None)
+        if idx is not None:
+            return idx
+    return 0
+
+
+def _optik(e: _Einstellung) -> str:
+    return e.schluessel.split("_")[0]
+
+
+def _setze_temperatur(f, wert) -> None:
+    f._temperatur_anzeigen = bool(wert)
+    f._cloud_view.set_temperatur_anzeigen(f._temperatur_anzeigen)
+
+
+def _setze_versatz(f, e: _Einstellung, wert) -> None:
+    v = wert or [0.0, 0.0]
+    f._spin_optik[(_optik(e), "u")].setValue(float(v[0]))
+    f._spin_optik[(_optik(e), "v")].setValue(float(v[1]))
+
+
+def _setze_maeanderordner(f, wert) -> None:
+    d = wert or ""
+    if d and os.path.isdir(d):
+        f._meander_dir = d
+        f._lbl_meander.setText(f"{os.path.basename(d)} (aus den "
+                               f"Einstellungen)")
+
+
+def _setze_ebene(f, wert) -> None:
+    f._layer_key = wert
+
+
+# lesart -> (Fenster, Zeile, Wert) setzt die Bindung
+_SCHREIBEN: dict = {
+    "durchreichen": lambda f, e, w: None,
+    "zahl": lambda f, e, w: getattr(f, e.bindung).setValue(int(w)),
+    "komma": lambda f, e, w: getattr(f, e.bindung).setValue(float(w)),
+    "haken": lambda f, e, w: getattr(f, e.bindung).setChecked(bool(w)),
+    "haken_wenn_frei": lambda f, e, w: getattr(f, e.bindung).setChecked(
+        bool(w) and getattr(f, e.bindung).isEnabled()),
+    "daten": lambda f, e, w: getattr(f, e.bindung).setCurrentIndex(
+        max(0, getattr(f, e.bindung).findData(w))),
+    "daten_ganz": lambda f, e, w: getattr(f, e.bindung).setCurrentIndex(
+        max(0, getattr(f, e.bindung).findData(int(w)))),
+    "naeherung": lambda f, e, w: getattr(f, e.bindung).setCurrentIndex(
+        _auswahl_index(getattr(f, e.bindung), w, e.vorgabe)),
+    "mesh_schalter": lambda f, e, w: f._cloud_view.set_mesh_schalter(bool(w)),
+    "temperatur": lambda f, e, w: _setze_temperatur(f, w),
+    "versatz": _setze_versatz,
+    "maeanderordner": lambda f, e, w: _setze_maeanderordner(f, w),
+    "ebene": lambda f, e, w: _setze_ebene(f, w),
+    "abschnitte": lambda f, e, w: f._sections.set_states(w or {}),
+    "seitenleiste": lambda f, e, w: f._set_sidebar_visible(bool(w)),
 }
+
+# lesart -> (Fenster, Zeile) liefert den zu speichernden Wert
+_LESEN: dict = {
+    "durchreichen": lambda f, e: int(f._settings.get(e.schluessel, e.vorgabe)),
+    "zahl": lambda f, e: int(getattr(f, e.bindung).value()),
+    "komma": lambda f, e: float(getattr(f, e.bindung).value()),
+    "haken": lambda f, e: bool(getattr(f, e.bindung).isChecked()),
+    "haken_wenn_frei": lambda f, e: bool(getattr(f, e.bindung).isChecked()),
+    "daten": lambda f, e: getattr(f, e.bindung).currentData(),
+    "daten_ganz": lambda f, e: int(getattr(f, e.bindung).currentData()),
+    "naeherung": lambda f, e: float(getattr(f, e.bindung).currentData()),
+    "mesh_schalter": lambda f, e: bool(f._cloud_view.mesh_an()),
+    "temperatur": lambda f, e: bool(f._temperatur_anzeigen),
+    "versatz": lambda f, e: f._meander_versatz(_optik(e)),
+    "maeanderordner": lambda f, e: f._meander_dir or "",
+    "ebene": lambda f, e: f._layer_key,
+    "abschnitte": lambda f, e: f._sections.states(),
+    "seitenleiste": lambda f, e: bool(f._sidebar_scroll.isVisible()),
+}
+
+
+def _blaulicht_altwerte(werte: dict) -> None:
+    d = _DEFAULT_SETTINGS
+    keys = ("blue_hue_lo", "blue_hue_hi", "blue_sat", "blue_val")
+    if [werte.get(k, d[k]) for k in keys] in ([200, 240, 40, 60], [170, 250, 25, 40]):
+        # unveraenderte fruehere Standardwerte: liessen cyanblaues und
+        # blassblaues Blaulicht durch, daher auf die neuen
+        werte.update({k: d[k] for k in keys})
+
+
+def _mesh_altwerte(werte: dict) -> None:
+    d = _DEFAULT_SETTINGS
+    stand = int(werte.get("mesh_stand", 0) or 0)
+    if int(werte.get("mesh_trim", d["mesh_trim"])) == 5 and stand < 2:
+        werte["mesh_trim"] = 0      # frueherer Standard, stanzte kleine Loecher
+    if stand < 3 and (int(werte.get("mesh_voxel_cm", d["mesh_voxel_cm"])),
+                      int(werte.get("mesh_depth", d["mesh_depth"]))) == (5, 11):
+        # fruehere Standardwerte: zu grob (Poisson-Zelle ~12 cm)
+        werte["mesh_voxel_cm"] = int(d["mesh_voxel_cm"])
+        werte["mesh_depth"] = int(d["mesh_depth"])
 
 
 class EinstellungenMixin:
     # ========================================================== Einstellungen
 
     def _apply_settings_to_widgets(self) -> None:
-        s = self._settings
+        werte = dict(self._settings)
+        _blaulicht_altwerte(werte)
+        _mesh_altwerte(werte)
         self._loading_ui = True
         try:
-            idx = self._combo_config.findData(s.get("config", "whs_dense.yaml"))
-            self._combo_config.setCurrentIndex(max(0, idx))
-            self._spin_rate.setValue(float(s.get("rate", 1.0)))
-            self._sld_bmin.setValue(int(s.get("brightness_min", 20)))
-            self._sld_bmax.setValue(int(s.get("brightness_max", 235)))
-            self._spin_kframes.setValue(int(s.get("k_frames", 3)))
-            self._spin_sky.setValue(int(s.get("sky_grow", 4)))
-            self._chk_lens.setChecked(bool(s.get("lens_best", True)))
-            self._spin_edge.setValue(int(s.get("edge_r", 600)))
-            self._chk_blue.setChecked(bool(s.get("blue_filter", False)))
-            d = _DEFAULT_SETTINGS
-            blau = [s.get(k, d[k]) for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat",
-                                               "blue_val")]
-            if blau in ([200, 240, 40, 60], [170, 250, 25, 40]):
-                # unveraenderte fruehere Standardwerte: liessen cyanblaues und
-                # blassblaues Blaulicht durch, daher auf die neuen
-                blau = [d[k] for k in ("blue_hue_lo", "blue_hue_hi", "blue_sat", "blue_val")]
-            self._sld_blue_lo.setValue(int(blau[0]))
-            self._sld_blue_hi.setValue(int(blau[1]))
-            self._sld_blue_sat.setValue(int(blau[2]))
-            self._sld_blue_val.setValue(int(blau[3]))
-            self._sld_blue_neutral.setValue(int(s.get("blue_neutral", d["blue_neutral"])))
-            self._spin_mesh_voxel.setValue(int(s.get("mesh_voxel_cm", d["mesh_voxel_cm"])))
-            self._spin_mesh_depth.setValue(int(s.get("mesh_depth", d["mesh_depth"])))
-            stand = int(s.get("mesh_stand", 0) or 0)
-            trim = int(s.get("mesh_trim", d["mesh_trim"]))
-            if trim == 5 and stand < 2:
-                trim = 0      # frueherer Standard, stanzte kleine Loecher
-            self._spin_mesh_trim.setValue(trim)
-            if stand < 3 and (self._spin_mesh_voxel.value(), self._spin_mesh_depth.value()) \
-                    == (5, 11):
-                # fruehere Standardwerte: zu grob (Poisson-Zelle ~12 cm)
-                self._spin_mesh_voxel.setValue(int(d["mesh_voxel_cm"]))
-                self._spin_mesh_depth.setValue(int(d["mesh_depth"]))
-            self._chk_mesh_hybrid.setChecked(bool(s.get("mesh_hybrid", d["mesh_hybrid"])))
-            self._cloud_view.set_mesh_schalter(bool(s.get("mesh_an", False)))
-            self._spin_pointsize.setValue(float(s.get("point_size", 2.0)))
-            self._temperatur_anzeigen = bool(s.get("temperatur_anzeigen", True))
-            self._cloud_view.set_temperatur_anzeigen(self._temperatur_anzeigen)
-            idx = self._combo_colormode.findData(s.get("color_mode", "rgb"))
-            self._combo_colormode.setCurrentIndex(max(0, idx))
-            self._chk_only_colored.setChecked(bool(s.get("only_colored", False)))
-            voxel = float(s.get("voxel", 0.0))
-            idx = next((i for i in range(self._combo_voxel.count())
-                        if abs(self._combo_voxel.itemData(i) - voxel) < 1e-9), 0)
-            self._combo_voxel.setCurrentIndex(idx)
-            idx = self._combo_bg.findData(s.get("background", "dunkel"))
-            self._combo_bg.setCurrentIndex(max(0, idx))
-            self._chk_edl.setChecked(bool(s.get("edl", False)) and self._chk_edl.isEnabled())
-            self._chk_path.setChecked(bool(s.get("show_path", False)))
-            self._chk_thermal.setChecked(bool(s.get("meander_thermal", False)))
-            self._chk_sichtbar.setChecked(bool(s.get("meander_sichtbar", True)))
-            self._chk_solo.setChecked(bool(s.get("meander_solo", True)))
-            raster = float(s.get("splat_raster", 0.05))
-            idx = next((i for i in range(self._combo_splat_raster.count())
-                        if abs(self._combo_splat_raster.itemData(i) - raster) < 1e-9), 2)
-            self._combo_splat_raster.setCurrentIndex(idx)
-            self._spin_splat_anker.setValue(float(s.get("splat_anker_mio", 4.0)))
-            self._combo_splat_sh.setCurrentIndex(
-                max(0, self._combo_splat_sh.findData(int(s.get("splat_sh", 1)))))
-            self._chk_splat_posen.setChecked(bool(s.get("splat_posen", True)))
-            self._chk_splat_pruefen.setChecked(bool(s.get("splat_pruefen", True)))
-            self._chk_splat_thermal.setChecked(bool(s.get("splat_thermal", True)))
-            self._spin_splat_schritte.setValue(int(s.get("splat_schritte", 3000)))
-            self._spin_splat_frames.setValue(int(s.get("splat_frames", 300)))
-            self._spin_splat_schritte_onboard.setValue(
-                int(s.get("splat_schritte_onboard", 15000)))
-            for optik, key in (("rgb", "rgb_versatz"),
-                               ("thermal", "thermal_versatz")):
-                v = s.get(key) or [0.0, 0.0]
-                self._spin_optik[(optik, "u")].setValue(float(v[0]))
-                self._spin_optik[(optik, "v")].setValue(float(v[1]))
-            d = s.get("meander_dir") or ""
-            if d and os.path.isdir(d):
-                self._meander_dir = d
-                self._lbl_meander.setText(f"{os.path.basename(d)} (aus den "
-                                          f"Einstellungen)")
-            self._layer_key = s.get("layer", "onboard")
-            self._sections.set_states(s.get("sections") or {})
-            self._set_sidebar_visible(bool(s.get("sidebar", True)))
+            for e in _EINSTELLUNGEN:
+                if e.art == "fest" or (e.art == "nur_vorhanden"
+                                       and e.schluessel not in werte):
+                    continue
+                _SCHREIBEN[e.lesart](self, e, werte.get(e.schluessel, e.vorgabe))
         finally:
             self._loading_ui = False
         self._push_display_settings()
 
     def _collect_settings(self) -> dict:
-        return {
-            "pano_width": int(self._settings.get("pano_width", 1920)),
-            "config": self._combo_config.currentData(),
-            "rate": float(self._spin_rate.value()),
-            "brightness_min": int(self._sld_bmin.value()),
-            "brightness_max": int(self._sld_bmax.value()),
-            "k_frames": int(self._spin_kframes.value()),
-            "sky_grow": int(self._spin_sky.value()),
-            "lens_best": bool(self._chk_lens.isChecked()),
-            "edge_r": int(self._spin_edge.value()),
-            "blue_filter": bool(self._chk_blue.isChecked()),
-            "blue_hue_lo": int(self._sld_blue_lo.value()),
-            "blue_hue_hi": int(self._sld_blue_hi.value()),
-            "blue_sat": int(self._sld_blue_sat.value()),
-            "blue_val": int(self._sld_blue_val.value()),
-            "blue_neutral": int(self._sld_blue_neutral.value()),
-            "mesh_voxel_cm": int(self._spin_mesh_voxel.value()),
-            "mesh_depth": int(self._spin_mesh_depth.value()),
-            "mesh_trim": int(self._spin_mesh_trim.value()),
-            "mesh_an": bool(self._cloud_view.mesh_an()),
-            # Marke, ab der mesh_trim bewusst gesetzt ist (nicht in den
-            # Standardwerten, sonst griffe die Uebernahme oben nie)
-            "mesh_stand": 3,
-            "mesh_hybrid": bool(self._chk_mesh_hybrid.isChecked()),
-            "point_size": float(self._spin_pointsize.value()),
-            "temperatur_anzeigen": bool(self._temperatur_anzeigen),
-            "color_mode": self._combo_colormode.currentData(),
-            "layer": self._layer_key,
-            "meander_dir": self._meander_dir or "",
-            "meander_thermal": bool(self._chk_thermal.isChecked()),
-            "meander_sichtbar": bool(self._chk_sichtbar.isChecked()),
-            "meander_solo": bool(self._chk_solo.isChecked()),
-            "splat_raster": float(self._combo_splat_raster.currentData()),
-            "splat_anker_mio": float(self._spin_splat_anker.value()),
-            "splat_sh": int(self._combo_splat_sh.currentData()),
-            "splat_posen": bool(self._chk_splat_posen.isChecked()),
-            "splat_pruefen": bool(self._chk_splat_pruefen.isChecked()),
-            "splat_thermal": bool(self._chk_splat_thermal.isChecked()),
-            "splat_schritte": int(self._spin_splat_schritte.value()),
-            "splat_frames": int(self._spin_splat_frames.value()),
-            "splat_schritte_onboard": int(self._spin_splat_schritte_onboard.value()),
-            "rgb_versatz": self._meander_versatz("rgb"),
-            "thermal_versatz": self._meander_versatz("thermal"),
-            "only_colored": bool(self._chk_only_colored.isChecked()),
-            "voxel": float(self._combo_voxel.currentData()),
-            "background": self._combo_bg.currentData(),
-            "edl": bool(self._chk_edl.isChecked()),
-            "show_path": bool(self._chk_path.isChecked()),
-            "sections": self._sections.states(),
-            "sidebar": bool(self._sidebar_scroll.isVisible()),
-        }
+        return {e.schluessel: e.vorgabe if e.art == "fest" else _LESEN[e.lesart](self, e)
+                for e in _EINSTELLUNGEN}
 
     def _save_settings(self) -> None:
         if self._loading_ui or self._project is None:

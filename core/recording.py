@@ -28,6 +28,8 @@ import os
 import numpy as np
 from scipy.spatial.transform import Rotation, Slerp
 
+from core.gemeinsam import write_json_atomic
+
 _EDGE_TOL_S = 0.15  # Randtoleranz fuer interpolate_pose
 _PROGRESS_EVERY = 50  # Scans zwischen zwei progress_cb-Aufrufen
 
@@ -37,11 +39,7 @@ _PROGRESS_EVERY = 50  # Scans zwischen zwei progress_cb-Aufrufen
 LEVEL_MIN_TILT_DEG = 10.0
 
 
-def _write_json_atomic(path: str, obj) -> None:
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(obj, fh, indent=2)
-    os.replace(tmp, path)
+_write_json_atomic = write_json_atomic
 
 
 def level_rotation(up_world: np.ndarray) -> Rotation:
@@ -321,6 +319,15 @@ class Recording:
         return np.array(self.poses[:, 0:3], dtype=np.float64, copy=True)
 
 
+def lade_mit_hinweis(rec_dir: str, bag_path: str | None, log, praefix: str = "") -> Recording:
+    """Recording.load und die Zeile zur Kippkorrektur an ``log``, sofern es eine gibt."""
+    rec = Recording.load(rec_dir, bag_path=bag_path)
+    note = rec.level_note()
+    if note:
+        log(f"{praefix}{note}")
+    return rec
+
+
 if __name__ == "__main__":
     import threading
     import time
@@ -454,6 +461,20 @@ if __name__ == "__main__":
     # ohne "bag" in der meta.json wird nichts gemessen und nichts geaendert
     assert rec.gravity_level is None and Recording.load(REC_DIR).gravity_level is None
     print("ohne Bag-Pfad: keine Messung, Karte unveraendert")
+
+    # lade_mit_hinweis: ohne Kippkorrektur keine Zeile, mit gespeicherter eine mit Praefix
+    zeilen: list[str] = []
+    assert lade_mit_hinweis(REC_DIR, None, zeilen.append).n_scans == 3 and zeilen == []
+    with open(os.path.join(REC_DIR, "meta.json"), encoding="utf-8") as fh:
+        meta_alt = json.load(fh)
+    _write_json_atomic(os.path.join(REC_DIR, "meta.json"), dict(
+        meta_alt, gravity_level={"quat": [0.0, 0.0, 0.0, 1.0], "tilt_deg": 3.2,
+                                 "threshold_deg": LEVEL_MIN_TILT_DEG, "applied": False}))
+    rec_h = lade_mit_hinweis(REC_DIR, None, zeilen.append, praefix="Zweiter Flug — ")
+    assert zeilen == [f"Zweiter Flug — {rec_h.level_note()}"], zeilen
+    assert np.array_equal(rec_h.poses, poses)
+    _write_json_atomic(os.path.join(REC_DIR, "meta.json"), meta_alt)
+    print(f"lade_mit_hinweis OK: {zeilen[0]}")
 
     with open(os.path.join(OUT, "selftest_metrics.txt"), "w", encoding="utf-8") as fh:
         fh.write(f"n_scans=3 n_points=6 world_points_max_err={err:.3e}\n")

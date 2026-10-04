@@ -49,6 +49,10 @@ import sys
 
 import numpy as np
 
+from core.gemeinsam import (
+    GRAU_EBENE, kamera_modell as _modell, melde as _p, pruefe_abbruch as _abbruch,
+)
+
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKRIPT = os.path.join(_REPO, "scripts", "splat_train.py")
 
@@ -66,7 +70,7 @@ PYTHON_KANDIDATEN = (
 #: Punkte) landet damit bei 7,6 cm Raster, bei 5 cm sind es 7,2 Mio. Zellen.
 MAX_ANKER = 4_000_000
 ORDNER = "splat"          # Arbeitsordner im Projekt
-_FALLBACK = (107, 107, 107)
+_FALLBACK = (GRAU_EBENE,) * 3
 
 #: Wuerfelseiten je Fisheye: Drehung Seite -> Linse (dritte Spalte = Blickachse)
 _SEITEN = {
@@ -76,16 +80,6 @@ _SEITEN = {
     "+y": np.array([[1.0, 0, 0], [0, 0, 1], [0, -1, 0]]),
     "-y": np.array([[1.0, 0, 0], [0, 0, -1], [0, 1, 0]]),
 }
-
-
-def _abbruch(cancel) -> None:
-    if cancel is not None and (cancel() if callable(cancel) else cancel.is_set()):
-        raise RuntimeError("Abgebrochen")
-
-
-def _p(progress, f, m) -> None:
-    if progress is not None:
-        progress(float(f), m)
 
 
 # ------------------------------------------------------------ Interpreter
@@ -221,6 +215,15 @@ def hinweis(info: dict) -> str | None:
     return "PyTorch sieht keine CUDA-GPU, obwohl der Treiber geladen ist."
 
 
+def interpreter() -> tuple[str, dict]:
+    """(Interpreter, Auskunft) fuer das Training; RuntimeError mit dem Hinweis,
+    wenn es nicht laufen kann."""
+    py, info = find_splat_python()
+    if hinweis(info):
+        raise RuntimeError(hinweis(info))
+    return py, info
+
+
 # ------------------------------------------------------------------ Anker
 
 def anker(punkte: np.ndarray, voxel: float = 0.05, max_anker: int = MAX_ANKER,
@@ -305,11 +308,6 @@ def ansichten_aus_colmap(cams, A, b) -> tuple[np.ndarray, dict]:
     vm[:, :3, :3] = R
     vm[:, :3, 3] = s * tcw - np.einsum("nij,j->ni", R, b)
     return vm, {"massstab": s, "abweichung": float(np.abs(A / s - Q).max())}
-
-
-def _modell(cams) -> str:
-    m = cams["model"]
-    return m.item() if getattr(m, "shape", None) == () else str(m)
 
 
 def _lochkamera(model: str, params) -> tuple:
@@ -825,6 +823,51 @@ def trainieren(python: str, ordner: str, progress=None, cancel=None, log=None,
     return {"bericht": bericht, "pruefung": pruefung}
 
 
+def lauf(py, ordner, cfg, progress, cancel, log, von, bis, alle) -> dict:
+    """Ein Training (:func:`trainieren`) mit Fortschritt von ``von`` bis ``bis``.
+
+    ``cancel`` ist das Ereignis des Arbeiters, ``cfg`` die Einstellungen des
+    Laufs. Nachgefuehrte Posen und die Pruefbilder kommen ins Protokoll.
+    """
+    erg = trainieren(
+        py, ordner, progress=lambda f, m: progress(von + (bis - von) * f, m),
+        cancel=lambda: cancel.is_set(), log=log, alle_bilder=alle)
+    p = erg["bericht"].get("posen") or {}
+    if cfg["param"]["posen"] and p:
+        log(f"Splat-Posen nachgeführt: Drehung Median {p['dreh_grad_median']:.3f}° "
+            f"(max {p['dreh_grad_max']:.3f}°), Weg Median "
+            f"{p['weg_m_median'] * 100:.1f} cm (max {p['weg_m_max'] * 100:.1f} cm).")
+    if erg["pruefung"]:
+        psnr = np.mean([e["psnr_angepasst"] for e in erg["pruefung"]])
+        log(f"Splat an {len(erg['pruefung'])} Prüfbildern gerendert: "
+            f"PSNR {psnr:.1f} dB nach Belichtungsangleich.")
+    return erg
+
+
+def trainingsfolge(py, ordner, cfg, spannen, gegenprobe_cb, progress, cancel,
+                   log) -> tuple:
+    """Training mit oder ohne Gegenprobe: (Ergebnis des letzten Laufs, Gegenprobe).
+
+    ``spannen = (von, mitte, weiter, bis)`` sind Fortschrittswerte. Mit
+    ``cfg["pruefen"]`` erst ein Lauf ohne die Pruefbilder (``von`` bis
+    ``mitte``), dann ``gegenprobe_cb(erg)`` mit dessen Ergebnis, dann ein Lauf
+    mit allen Bildern fuer die Ebene (``weiter`` bis ``bis``). Sonst ein Lauf
+    von ``von`` bis ``bis``, die Gegenprobe ist dann None.
+    """
+    von, mitte, weiter, bis = spannen
+    if not cfg["pruefen"]:
+        return lauf(py, ordner, cfg, progress, cancel, log, von, bis, False), None
+    erg = lauf(py, ordner, cfg, progress, cancel, log, von, mitte, False)
+    stats = gegenprobe_cb(erg) if gegenprobe_cb is not None else None
+    return lauf(py, ordner, cfg, progress, cancel, log, weiter, bis, True), stats
+
+
+def splat_meta(ak: dict, cfg: dict, posen) -> dict:
+    """Eintrag ``splat`` in der meta.json einer Splat-Ebene."""
+    return {"anker": int(len(ak["pos"])), "raster_m": ak["voxel"], **cfg["param"],
+            "posen": posen}
+
+
 # -------------------------------------------------------- auf die Punkte
 
 def temperatur_farben(temp: np.ndarray, maske: np.ndarray) -> np.ndarray:
@@ -1015,6 +1058,27 @@ def urteil(stats: dict, splat: str, direkt: str, einheit: str) -> str:
             f"/ {stats['methoden'][direkt]['roh']:.2f}) — {wer} um {abs(rel):.1f} %.")
 
 
+def gegenprobe(ordner, ak, welt, pf, direkt_w, temp, cancel, log) -> dict:
+    """Splat und direkte Projektion an den Pruefbildern messen.
+
+    ``pf`` aus :func:`punkt_farben`, ``direkt_w(idx, P, nrm)`` liefert (Werte,
+    Maske) der direkten Projektion fuer die Punktprobe, ``temp``: verglichen
+    wird die Temperatur statt RGB.
+    """
+    idx = probe(ak)
+    P = welt[idx]
+    nrm = ak["normal"][ak["index"][idx]]
+    if temp:
+        s_w, einheit = pf["temperatur"][idx][:, None], "°C"
+    else:
+        s_w, einheit = pf["rgb"][idx], "(0–255)"
+    werte = {"splat": (s_w, pf["maske"][idx]), "direkt": direkt_w(idx, P, nrm)}
+    stats = vergleich(ordner, ak, P, nrm, werte,
+                      cancel=lambda: cancel.is_set())
+    log(urteil(stats, "splat", "direkt", einheit))
+    return stats
+
+
 if __name__ == "__main__":
     import tempfile
 
@@ -1099,7 +1163,7 @@ if __name__ == "__main__":
 
     wahr = muster(g[:, 0], g[:, 1])
     ak3 = anker(pos, voxel=0.05)
-    probe = pos
+    stichprobe = pos
     # Das Pruefbild dicht aus dem Bodenmuster, nicht aus den Punkten gerastert:
     # gerastert blieben durch Rundung Spalten leer, und wer ein Pixel daneben
     # abtastet, liest schwarz — eine echte Kamera hat keine Loecher.
@@ -1115,10 +1179,10 @@ if __name__ == "__main__":
         pj = json.load(fh)
     assert pj["schritte"] == 7 and pj["toleranz_m"] == 0.30, "Sichtregeln fehlen im Datensatz"
     assert len(np.load(os.path.join(tmp, "punkte.npy"))) == len(pos)
-    nrm = np.tile([0, 0, 1.0], (len(probe), 1))
-    gut = (wahr, np.ones(len(probe), bool))
-    schlecht = (np.clip(wahr + rng.normal(0, 25, wahr.shape), 0, 255), np.ones(len(probe), bool))
-    st = vergleich(tmp, ak3, probe, nrm, {"splat": gut, "direkt": schlecht})
+    nrm = np.tile([0, 0, 1.0], (len(stichprobe), 1))
+    gut = (wahr, np.ones(len(stichprobe), bool))
+    schlecht = (np.clip(wahr + rng.normal(0, 25, wahr.shape), 0, 255), np.ones(len(stichprobe), bool))
+    st = vergleich(tmp, ak3, stichprobe, nrm, {"splat": gut, "direkt": schlecht})
     print("  " + urteil(st, "splat", "direkt", "(0–255)"))
     assert st["methoden"]["splat"]["angepasst"] < 2.0 < st["methoden"]["direkt"]["angepasst"], st
     assert st["methoden"]["splat"]["roh"] > 5.0, "Belichtung des Pruefbilds nicht bemerkt"
@@ -1146,6 +1210,101 @@ if __name__ == "__main__":
     rgb = temperatur_farben(t, np.isfinite(t))
     assert tuple(rgb[3]) == _FALLBACK and rgb[2].sum() > rgb[0].sum()
     print("  kalt dunkel, warm hell, ungesehen grau")
+
+    print("== Test 6b: Trainingsfolge mit den Fortschrittsspannen der drei Jobs ==")
+    import threading
+    aufrufe = []
+
+    def trainieren_ersatz(python, ordner, progress=None, cancel=None, log=None,
+                          cpu=False, alle_bilder=False):
+        aufrufe.append(("trainieren", python, ordner, alle_bilder, cancel()))
+        for f in (0.0, 0.5, 1.0):
+            progress(f, f"Splat: {f}")
+        return {"bericht": {"posen": {"dreh_grad_median": 0.1, "dreh_grad_max": 0.5,
+                                      "weg_m_median": 0.02, "weg_m_max": 0.07}},
+                "pruefung": [] if alle_bilder else [{"psnr_angepasst": 30.0},
+                                                    {"psnr_angepasst": 32.0}]}
+
+    def stufen(von, bis):
+        # so rechnet lauf den Fortschritt des Trainers um
+        return [von + (bis - von) * f for f in (0.0, 0.5, 1.0)]
+
+    trainieren_echt = trainieren
+    trainieren = trainieren_ersatz
+    try:
+        # Maeander (eine Ebene), Onboard, gemeinsam
+        for spannen in ((0.1, 0.45, 0.6, 0.97), (0.25, 0.55, 0.6, 0.97),
+                        (0.3, 0.6, 0.62, 0.97)):
+            a, b, c, d = spannen
+            for pruefen in (True, False):
+                aufrufe.clear()
+                werte, zeilen = [], []
+                cfg_t = {"pruefen": pruefen,
+                         "param": {"schritte": 7, "sh_grad": 1, "posen": True}}
+
+                def mit_gegenprobe(erg):
+                    aufrufe.append(("gegenprobe", len(erg["pruefung"]), len(werte)))
+                    return {"bilder": 2}
+
+                erg, st6 = trainingsfolge("py", "ordner", cfg_t, spannen, mit_gegenprobe,
+                                          lambda f, m: werte.append(f), threading.Event(),
+                                          zeilen.append)
+                if pruefen:
+                    soll = stufen(a, b) + stufen(c, d)
+                    soll_aufrufe = [("trainieren", "py", "ordner", False, False),
+                                    ("gegenprobe", 2, 3),
+                                    ("trainieren", "py", "ordner", True, False)]
+                    assert st6 == {"bilder": 2} and erg["pruefung"] == [], st6
+                    assert len(zeilen) == 3 and "PSNR 31.0 dB" in zeilen[1], zeilen
+                else:
+                    soll = stufen(a, d)
+                    soll_aufrufe = [("trainieren", "py", "ordner", False, False)]
+                    assert st6 is None and len(zeilen) == 2, (st6, zeilen)
+                assert werte == soll, (spannen, pruefen, werte, soll)
+                assert np.allclose(werte[::3] + werte[2::3],
+                                   [a, c, b, d] if pruefen else [a, d], rtol=0, atol=1e-12)
+                assert aufrufe == soll_aufrufe, (spannen, pruefen, aufrufe)
+                assert zeilen[0].startswith("Splat-Posen nachgeführt: Drehung Median 0.100°")
+            print(f"  {a}/{b}/{c}/{d}: mit Gegenprobe "
+                  + " ".join(f"{w:.4f}" for w in stufen(a, b) + stufen(c, d)))
+        cfg_t = {"pruefen": True, "param": {"schritte": 7, "posen": False}}
+        zeilen = []
+        erg, st6 = trainingsfolge("py", "ordner", cfg_t, (0.0, 0.5, 0.5, 1.0), None,
+                                  lambda f, m: None, threading.Event(), zeilen.append)
+        assert st6 is None and len(zeilen) == 1 and "Prüfbildern" in zeilen[0], zeilen
+    finally:
+        trainieren = trainieren_echt
+
+    meta6 = splat_meta(ak3, {"param": {"schritte": 7, "sh_grad": 1, "posen": True}},
+                       {"weg_m_max": 0.07})
+    assert list(meta6) == ["anker", "raster_m", "schritte", "sh_grad", "posen"], meta6
+    assert meta6["anker"] == len(ak3["pos"]) and meta6["posen"] == {"weg_m_max": 0.07}
+
+    zeilen = []
+    pf6 = {"rgb": wahr, "maske": np.ones(len(pos), bool)}
+    st6 = gegenprobe(tmp, ak3, pos, pf6, lambda idx, P, nrm: (schlecht[0][idx],
+                                                               schlecht[1][idx]),
+                     False, threading.Event(), zeilen.append)
+    idx6 = probe(ak3)
+    st_direkt = vergleich(tmp, ak3, pos[idx6], ak3["normal"][ak3["index"][idx6]],
+                          {"splat": (wahr[idx6], pf6["maske"][idx6]),
+                           "direkt": (schlecht[0][idx6], schlecht[1][idx6])})
+    assert st6 == st_direkt and zeilen == [urteil(st_direkt, "splat", "direkt", "(0–255)")]
+
+    finde_echt = find_splat_python
+    try:
+        find_splat_python = lambda: (None, {"fehler": "keiner da"})  # noqa: E731
+        try:
+            interpreter()
+            raise AssertionError("fehlender Interpreter nicht bemerkt")
+        except RuntimeError as exc:
+            assert str(exc) == hinweis({"fehler": "keiner da"}), exc
+        bereit = {"torch": "2.7.0", "gsplat": True, "cuda": True, "gsplat_rechnet": True}
+        find_splat_python = lambda: ("py", bereit)  # noqa: E731
+        assert interpreter() == ("py", bereit)
+    finally:
+        find_splat_python = finde_echt
+    print("  Aufrufe und Fortschritt wie in den Jobs, Gegenprobe und Interpreter gleich")
 
     if "--mit-training" in sys.argv:
         print("== Test 7: Training im Splat-Interpreter (CPU-Selbsttest) ==")

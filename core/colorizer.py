@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import functools
 import itertools
-import json
 import os
 import time
 from collections import OrderedDict
@@ -36,6 +35,9 @@ from typing import Callable, Optional, Sequence
 import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
+
+from core.gemeinsam import pruefe_abbruch as _check_cancel
+from core.gemeinsam import write_json_atomic
 
 try:  # Paket-Import (App) vs. Direktstart des Selbsttests
     from .stitcher import SPLIT_X, DoubleSphereCamera, EquirectStitcher
@@ -56,11 +58,6 @@ ProgressCb = Optional[Callable[[float, str], None]]
 
 
 # ---------------------------------------------------------------- Basics
-
-def _check_cancel(cancel) -> None:
-    if cancel is not None and cancel.is_set():
-        raise RuntimeError("Abgebrochen")
-
 
 _EXPECTED_FRAME_SHAPE = (1520, 3040, 3)
 
@@ -110,14 +107,6 @@ def _inv_rigid(T: np.ndarray) -> np.ndarray:
     out[:3, :3] = R.T
     out[:3, 3] = -R.T @ T[:3, 3]
     return out
-
-
-def _pose_matrix(pose_row: np.ndarray) -> np.ndarray:
-    """poses.npy-Zeile (x y z qx qy qz qw) -> 4x4 T_world_imu."""
-    T = np.eye(4, dtype=np.float64)
-    T[:3, :3] = Rotation.from_quat(pose_row[3:7]).as_matrix()
-    T[:3, 3] = pose_row[0:3]
-    return T
 
 
 @functools.lru_cache(maxsize=4)
@@ -706,10 +695,7 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
         "runtime_s": round(time.time() - t_start, 2),
         "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
-    tmp = os.path.join(out_dir, "meta.json.tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(meta, fh, indent=2)
-    os.replace(tmp, os.path.join(out_dir, "meta.json"))
+    write_json_atomic(os.path.join(out_dir, "meta.json"), meta)
     if progress_cb is not None:
         progress_cb(1.0, f"Einfaerbung fertig: {n_valid}/{N} Punkte gueltig")
     return {"n_valid": int(n_valid), "frac_valid": frac, "out_dir": out_dir,
@@ -720,6 +706,27 @@ def colorize(rec, bag, calib_json: str, params: ColorizeParams,
             "n_blue_kept": int(n_blue_kept),
             "n_blue_neutral": int(n_blue_neutral),
             "gpu": gpu_name}
+
+
+def abschnittsquote(rec, valid, parts) -> list[tuple]:
+    """Anteil gueltiger Punkte je Abschnitt einer zusammengefuehrten Karte.
+
+    ``parts`` wie bei :func:`colorize`: ``(bag, von, bis)`` mit Scan-Grenzen.
+    Rueckgabe je nicht leerem Abschnitt ``(teil, bag, a, b, anteil)`` mit der
+    Abschnittsnummer ab 1, dem Punktbereich ``a:b`` und dem Anteil gueltiger
+    Punkte darin; leere Abschnitte fallen weg, ohne die Nummern zu verschieben.
+    Ohne ``parts`` oder ``valid`` eine leere Liste.
+    """
+    if not parts or valid is None:
+        return []
+    out = []
+    for teil, (proxy, von, bis) in enumerate(parts, start=1):
+        a = int(rec.offsets[von])
+        b = int(rec.offsets[min(bis, rec.n_scans)])
+        if b <= a:
+            continue
+        out.append((teil, proxy, a, b, float(valid[a:b].mean())))
+    return out
 
 
 # ========================================================== overlay_preview
@@ -1039,6 +1046,36 @@ class _PhotoScoreContext:
         return total / n_ok
 
 
+def _hillclimb(ctx, start_rot: Rotation, start_score: float, max_iter: int,
+               cancel, schritt_cb: Callable[[int, float], None] | None = None
+               ) -> tuple[float, Rotation]:
+    """Koordinaten-Hillclimb ueber Yaw/Pitch/Roll mit Schrittweiten 10/3/1 deg.
+
+    Je Runde werden alle 26 Nachbarn der laufend besten Rotation bewertet
+    (Reihenfolge von itertools.product); ein Kandidat gewinnt nur bei echt
+    hoeherem Score. Hoechstens ``max_iter`` Runden je Schrittweite.
+    ``schritt_cb(i, step)`` meldet den Beginn jeder Schrittweite.
+    """
+    best, best_rot = start_score, start_rot
+    for step_i, step in enumerate((10.0, 3.0, 1.0)):
+        if schritt_cb is not None:
+            schritt_cb(step_i, step)
+        for _ in range(max_iter):
+            _check_cancel(cancel)
+            improved = False
+            for dy, dp, dr in itertools.product((-step, 0.0, step), repeat=3):
+                if dy == dp == dr == 0.0:
+                    continue
+                cand = best_rot * Rotation.from_euler(
+                    "ZYX", [dy, dp, dr], degrees=True)
+                sc = ctx.score(cand.as_matrix())
+                if sc > best:
+                    best, best_rot, improved = sc, cand, True
+            if not improved:
+                break
+    return best, best_rot
+
+
 # Schwellen gemessen, nicht geraten: bei +0.044 ZNCC / 2.5 Grad Abstand sinkt die
 # Farbstreuung um 3 %, bei +0.143 / 15.7 Grad um 26 %. Nur der zweite Fall ist es
 # wert, einen laufenden Einfaerbe-Lauf dafuer abzubrechen; der erste wird
@@ -1072,21 +1109,7 @@ def check_extrinsic(rec, bag, calib_json: str, T: np.ndarray,
     ctx = _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
     cur = Rotation.from_matrix(T[:3, :3])
     score = ctx.score(cur.as_matrix())
-    best_rot, best = cur, score
-    for step in (10.0, 3.0, 1.0):
-        for _ in range(20):
-            _check_cancel(cancel)
-            improved = False
-            for dy, dp, dr in itertools.product((-step, 0.0, step), repeat=3):
-                if dy == dp == dr == 0.0:
-                    continue
-                cand = best_rot * Rotation.from_euler(
-                    "ZYX", [dy, dp, dr], degrees=True)
-                sc = ctx.score(cand.as_matrix())
-                if sc > best:
-                    best, best_rot, improved = sc, cand, True
-            if not improved:
-                break
+    best, best_rot = _hillclimb(ctx, cur, score, 20, cancel)
     dist = _rot_distance_deg(cur, best_rot)
     best_T = T.copy()
     best_T[:3, :3] = best_rot.as_matrix()
@@ -1170,27 +1193,15 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
     n_top = len(top)
     for ci, (sc, rot) in enumerate(top):
         _check_cancel(cancel)
-        cur_sc, cur_rot = sc, rot
-        for step_i, step in enumerate((10.0, 3.0, 1.0)):
+
+        def schritt(step_i: int, step: float, ci: int = ci) -> None:
             if progress_cb is not None:
                 frac = 0.5 + 0.45 * (ci * 3 + step_i) / (n_top * 3)
                 progress_cb(frac, (f"Auto-Kalibrierung: Verfeinerung "
                                    f"Kandidat {ci + 1}/{n_top}, {step:.0f} deg"))
-            for _ in range(40):          # Sicherheitslimit
-                _check_cancel(cancel)
-                improved = False
-                for dy, dp, dr in itertools.product((-step, 0.0, step), repeat=3):
-                    if dy == dp == dr == 0.0:
-                        continue
-                    cand = cur_rot * Rotation.from_euler(
-                        "ZYX", [dy, dp, dr], degrees=True)
-                    s = ctx.score(cand.as_matrix())
-                    if s > cur_sc:
-                        cur_sc, cur_rot = s, cand
-                        improved = True
-                if not improved:
-                    break
-        finalists.append((cur_sc, cur_rot))
+
+        # 40 Runden je Schrittweite als Sicherheitslimit
+        finalists.append(_hillclimb(ctx, rot, sc, 40, cancel, schritt_cb=schritt))
 
     # ---- Auswahl auf unabhaengigen Validierungs-Paaren (gegen Overfitting) ---
     if progress_cb is not None:

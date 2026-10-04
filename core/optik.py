@@ -48,6 +48,8 @@ import re
 
 import numpy as np
 
+from core.gemeinsam import kamera_modell, write_json_atomic
+
 DATEI = "optik_kalibrierung.json"
 
 _LRF = re.compile(rb'LRFTargetDistance="?\s*([-+0-9.]+)')
@@ -60,9 +62,7 @@ def _brennweiten_spalten(model: str) -> tuple:
     return (0, 1) if str(model) in ("PINHOLE", "OPENCV", "FULL_OPENCV") else (0,)
 
 
-def _modell(cams) -> str:
-    m = cams["model"]
-    return m.item() if getattr(m, "shape", None) == () else str(m)
+_modell = kamera_modell
 
 
 def cams_dict(cams) -> dict:
@@ -170,10 +170,7 @@ def vorhanden(work_dir: str) -> bool:
 
 def speichern(work_dir: str, d: dict) -> None:
     os.makedirs(work_dir, exist_ok=True)
-    tmp = os.path.join(work_dir, DATEI + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(d, fh, indent=2)
-    os.replace(tmp, os.path.join(work_dir, DATEI))
+    write_json_atomic(os.path.join(work_dir, DATEI), d)
 
 
 # ------------------------------------------------------------- Hoehe
@@ -305,6 +302,27 @@ class Farbkonsistenz:
         return float(np.sqrt(np.maximum(var, 0.0)).mean())
 
 
+def _fotopunkte(pipe, A, b):
+    """Kamerazentren ``C`` und Fotopunkte ``P`` in der Karte, oder None."""
+    try:
+        C = (A @ np.asarray(pipe.cams["C"], float).T).T + b
+        P = (A @ np.asarray(pipe.cams["xyz"], float).T).T + b
+    except (KeyError, TypeError):
+        return None
+    return C, P
+
+
+def _dsm_hoehe(dsm, x0, y0, res, P):
+    """Hoehe der Karte unter ``P``; ``ok``, wo die Karte dort etwas hat."""
+    jx = ((P[:, 0] - x0) / res).astype(np.int64)
+    jy = ((P[:, 1] - y0) / res).astype(np.int64)
+    ok = (jx >= 0) & (jx < dsm.shape[0]) & (jy >= 0) & (jy < dsm.shape[1])
+    z = np.full(len(P), -np.inf)
+    z[ok] = dsm[jx[ok], jy[ok]]
+    ok &= np.isfinite(z)
+    return z, ok
+
+
 def schaetze_rgb_faktor_tiefe(pipe, punkte: np.ndarray, A, b) -> dict | None:
     """Brennweitenfaktor aus der Tiefe der Fotopunkte.
 
@@ -316,18 +334,12 @@ def schaetze_rgb_faktor_tiefe(pipe, punkte: np.ndarray, A, b) -> dict | None:
     kaum unterscheidet. Setzt die richtige Hoehe voraus (``hoehe_aus_lrf``).
     """
     A, b = np.asarray(A, float), np.asarray(b, float)
-    try:
-        C = (A @ np.asarray(pipe.cams["C"], float).T).T + b
-        P = (A @ np.asarray(pipe.cams["xyz"], float).T).T + b
-    except (KeyError, TypeError):
+    fp = _fotopunkte(pipe, A, b)
+    if fp is None:
         return None
+    C, P = fp
     dsm, x0, y0, res = _dsm(np.asarray(punkte, float))
-    jx = ((P[:, 0] - x0) / res).astype(np.int64)
-    jy = ((P[:, 1] - y0) / res).astype(np.int64)
-    ok = (jx >= 0) & (jx < dsm.shape[0]) & (jy >= 0) & (jy < dsm.shape[1])
-    z = np.full(len(P), -np.inf)
-    z[ok] = dsm[jx[ok], jy[ok]]
-    ok &= np.isfinite(z)
+    z, ok = _dsm_hoehe(dsm, x0, y0, res, P)
     cz = float(np.mean(C[:, 2]))
     tiefe_foto = cz - P[ok, 2]
     tiefe_lidar = cz - z[ok]
@@ -351,19 +363,13 @@ def anteil_auf_flaeche(pipe, punkte: np.ndarray, A, b, faktor: float,
                        toleranz: float = 0.5) -> float | None:
     """Anteil der Fotopunkte, die hoechstens ``toleranz`` von der Karte liegen."""
     A, b = np.asarray(A, float), np.asarray(b, float)
-    try:
-        C = (A @ np.asarray(pipe.cams["C"], float).T).T + b
-        P = (A @ np.asarray(pipe.cams["xyz"], float).T).T + b
-    except (KeyError, TypeError):
+    fp = _fotopunkte(pipe, A, b)
+    if fp is None:
         return None
+    C, P = fp
     P = foto_hoehe(P, C, faktor)
     dsm, x0, y0, res = _dsm(np.asarray(punkte, float))
-    jx = ((P[:, 0] - x0) / res).astype(np.int64)
-    jy = ((P[:, 1] - y0) / res).astype(np.int64)
-    ok = (jx >= 0) & (jx < dsm.shape[0]) & (jy >= 0) & (jy < dsm.shape[1])
-    z = np.full(len(P), -np.inf)
-    z[ok] = dsm[jx[ok], jy[ok]]
-    ok &= np.isfinite(z)
+    z, ok = _dsm_hoehe(dsm, x0, y0, res, P)
     if ok.sum() < 50:
         return None
     return float((np.abs(P[ok, 2] - z[ok]) <= toleranz).mean())

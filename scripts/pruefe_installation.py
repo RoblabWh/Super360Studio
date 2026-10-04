@@ -69,7 +69,12 @@ print("\nOptional:")
 modul("qdarktheme", "pip install --user pyqtdarktheme", False, "dunkles Theme")
 
 print("\nMäander-Einfärbung (DJI-Kartierungsflug):")
-pcm = [os.path.join(HOME, "PointCloudMerger"), os.path.join(ROOT, "..", "PointCloudMerger")]
+sys.path.insert(0, ROOT)
+try:
+    from core import meander as meander_mod
+    pcm = meander_mod.PIPELINE_CANDIDATES
+except Exception:  # noqa: BLE001
+    pcm = (os.path.join(HOME, "PointCloudMerger"), os.path.join(ROOT, "..", "PointCloudMerger"))
 da = next((p for p in pcm if os.path.isdir(os.path.join(p, "colorize_pipeline"))), None)
 zeile(bool(da), f"PointCloudMerger/colorize_pipeline{' in ' + os.path.abspath(da) if da else ''}",
       "git clone git@github.com:LenaKremer98/PointCloudMerger.git ~/PointCloudMerger")
@@ -77,6 +82,8 @@ zeile(bool(shutil.which("exiftool")), "exiftool (Geotags schneller; ohne liest P
       "sudo apt install libimage-exiftool-perl", False)
 colmap = None
 if da:
+    # Nur sfm laden (reine Standardbibliothek): fehlt PIL oder scipy, soll
+    # diese Zeile trotzdem den pycolmap-Interpreter zeigen.
     sys.path.insert(0, os.path.abspath(da))
     try:
         from colorize_pipeline import sfm
@@ -88,7 +95,6 @@ zeile(bool(colmap), f"Interpreter mit pycolmap{': ' + colmap if colmap else ''} 
       "python3 -m venv ~/.venvs/colmap && ~/.venvs/colmap/bin/pip install pycolmap", False)
 
 print("\nGaussian Splat (Einfärbung über alle Bilder zugleich, braucht eine NVIDIA-GPU):")
-sys.path.insert(0, ROOT)
 try:
     from core import splat as splat_mod
     py, info = splat_mod.find_splat_python()

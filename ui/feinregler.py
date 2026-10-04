@@ -9,11 +9,41 @@ Zahlenfeld daneben zeigt die Summe und nimmt einen getippten Wert an.
 Nach aussen verhaelt sich der Regler wie ein ``QDoubleSpinBox`` — ``value``,
 ``setValue``, ``valueChanged``, ``blockSignals``, ``setEnabled`` — und kann ihn
 darum ersetzen, ohne dass die Stellen, die ihn lesen, etwas merken.
+
+Die Rasterfunktionen (``auf_raster``, ``raster_grad`` …) rechnen ohne Qt genau
+das, was der Regler nach ``setValue`` zeigt: Wer einen Wert ohne Regler haelt,
+legt ihn damit auf dasselbe Raster.
 """
 
 from __future__ import annotations
 
 from PyQt5 import QtCore, QtWidgets
+
+
+def _stufen(grob: float, grob_schritt: float, fein: float,
+            fein_schritt: float) -> tuple[float, int, float, int]:
+    """Schrittweiten und Stufenzahl je Schieber: (Grobschritt, Grobstufen, Feinschritt, Feinstufen)."""
+    return (float(grob_schritt), int(round(grob / grob_schritt)),
+            float(fein_schritt), int(round(fein / fein_schritt)))
+
+
+def _zerlegen(wert: float, gs: float, ng: int, fs: float, nf: int) -> tuple[int, int]:
+    """Wert auf die beiden Schieber verteilen; am Anschlag ±(ng*gs + nf*fs)."""
+    grenze = ng * gs + nf * fs
+    wert = max(-grenze, min(grenze, wert))
+    g = int(round(wert / gs))
+    g = max(-ng, min(ng, g))
+    f = int(round((wert - g * gs) / fs))
+    f = max(-nf, min(nf, f))
+    return g, f
+
+
+def auf_raster(wert: float, grob: float, grob_schritt: float, fein: float,
+               fein_schritt: float) -> float:
+    """Der Wert, den ein FeinRegler mit diesen Zahlen nach ``setValue(wert)`` zeigt."""
+    gs, ng, fs, nf = _stufen(grob, grob_schritt, fein, fein_schritt)
+    g, f = _zerlegen(float(wert), gs, ng, fs, nf)
+    return g * gs + f * fs
 
 
 class FeinRegler(QtWidgets.QWidget):
@@ -25,10 +55,8 @@ class FeinRegler(QtWidgets.QWidget):
                  fein_schritt: float, einheit: str = "", dezimalen: int = 2,
                  fein_text: str | None = None, parent=None):
         super().__init__(parent)
-        self._gs = float(grob_schritt)
-        self._fs = float(fein_schritt)
-        self._ng = int(round(grob / grob_schritt))
-        self._nf = int(round(fein / fein_schritt))
+        self._gs, self._ng, self._fs, self._nf = _stufen(grob, grob_schritt,
+                                                         fein, fein_schritt)
         self._max = self._ng * self._gs + self._nf * self._fs
         self._still = False
 
@@ -91,11 +119,7 @@ class FeinRegler(QtWidgets.QWidget):
         return self._max
 
     def _setzen(self, wert: float, melden: bool) -> None:
-        wert = max(-self._max, min(self._max, wert))
-        g = int(round(wert / self._gs))
-        g = max(-self._ng, min(self._ng, g))
-        f = int(round((wert - g * self._gs) / self._fs))
-        f = max(-self._nf, min(self._nf, f))
+        g, f = _zerlegen(wert, self._gs, self._ng, self._fs, self._nf)
         alt = self.value()
         self._still = True
         try:
@@ -123,24 +147,50 @@ class FeinRegler(QtWidgets.QWidget):
         self._setzen(float(wert), melden=True)
 
 
-def regler_meter(grob: float = 250.0) -> FeinRegler:
+# Raster der Regler: (grob, Grobschritt, fein, Feinschritt); grob ist die Vorgabe
+_METER = (250.0, 0.1, 1.0, 0.01)
+_GRAD = (180.0, 0.1, 1.0, 0.005)
+_PROZENT = (20.0, 0.1, 1.0, 0.01)
+
+
+def regler_meter(grob: float = _METER[0]) -> FeinRegler:
     """Verschiebung in Metern: grob in Dezimetern, fein in Zentimetern (±1 m)."""
-    return FeinRegler(grob, 0.1, 1.0, 0.01, " m", 2, "fein cm")
+    return FeinRegler(grob, *_METER[1:], " m", 2, "fein cm")
 
 
-def regler_grad(grob: float = 180.0) -> FeinRegler:
+def regler_grad(grob: float = _GRAD[0]) -> FeinRegler:
     """Winkel: grob in Zehntelgrad, fein in 0,005° (bei 50 m unter einem Zentimeter)."""
-    return FeinRegler(grob, 0.1, 1.0, 0.005, "°", 3)
+    return FeinRegler(grob, *_GRAD[1:], "°", 3)
 
 
-def regler_prozent(grob: float = 20.0) -> FeinRegler:
+def regler_prozent(grob: float = _PROZENT[0]) -> FeinRegler:
     """Massstab in Prozent: grob in 0,1 %, fein in 0,01 %."""
-    return FeinRegler(grob, 0.1, 1.0, 0.01, " %", 2)
+    return FeinRegler(grob, *_PROZENT[1:], " %", 2)
 
 
 def regler_pixel(grob: float = 400.0) -> FeinRegler:
     """Hauptpunkt in Pixeln: grob ganze Pixel, fein Zwanzigstel."""
     return FeinRegler(grob, 1.0, 5.0, 0.05, " px", 2)
+
+
+def regler_millimeter() -> FeinRegler:
+    """Kurze Strecke in Metern (±2 m): grob in Zentimetern, fein in Millimetern."""
+    return FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")
+
+
+def raster_meter(wert: float, grob: float = _METER[0]) -> float:
+    """Wert auf dem Raster von :func:`regler_meter`."""
+    return auf_raster(wert, grob, *_METER[1:])
+
+
+def raster_grad(wert: float, grob: float = _GRAD[0]) -> float:
+    """Wert auf dem Raster von :func:`regler_grad`."""
+    return auf_raster(wert, grob, *_GRAD[1:])
+
+
+def raster_prozent(wert: float, grob: float = _PROZENT[0]) -> float:
+    """Wert auf dem Raster von :func:`regler_prozent`."""
+    return auf_raster(wert, grob, *_PROZENT[1:])
 
 
 if __name__ == "__main__":
@@ -176,4 +226,29 @@ if __name__ == "__main__":
     assert abs(p.value() - 11.07) < 1e-9
     print(f"Meter {r.value():.2f}, Grad {g.value():.3f}, Prozent {p.value():.2f} — "
           f"grob+fein addieren sich, Zahlenfeld und blockSignals stimmen")
+
+    mm = regler_millimeter()
+    mm.setValue(0.1234)
+    assert abs(mm.value() - 0.123) < 1e-12 and abs(mm.maximum() - 2.05) < 1e-12, mm.value()
+
+    # Rasterfunktionen gegen den Regler: bitgleich, auch jenseits des Anschlags,
+    # genau am Anschlag und genau zwischen zwei Rasterpunkten
+    import random
+    zufall = random.Random(20261003)
+    for name, regler, raster in (
+            ("raster_grad", regler_grad(), raster_grad),
+            ("raster_meter", regler_meter(), raster_meter),
+            ("raster_meter(50)", regler_meter(50.0), lambda w: raster_meter(w, 50.0)),
+            ("raster_prozent", regler_prozent(), raster_prozent)):
+        m = regler.maximum()
+        werte = [zufall.uniform(-1.5 * m, 1.5 * m) for _ in range(1000)]
+        werte += [0.0, -0.0, m, -m, m + 1e-9, -m - 1e-9, 2 * m, -2 * m,
+                  0.5 * regler._gs, -0.5 * regler._gs, 0.5 * regler._fs,
+                  regler._gs + 0.5 * regler._fs, -regler._gs - 0.5 * regler._fs]
+        for w in werte:
+            regler.setValue(w)
+            soll = regler.value()
+            ist = raster(w)
+            assert ist.hex() == soll.hex(), (name, w, ist, soll)
+    print("Rasterfunktionen bitgleich zum Regler (je 1000 Zufallswerte und Ränder)")
     print("feinregler SELFTEST OK")

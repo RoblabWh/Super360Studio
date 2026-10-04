@@ -102,8 +102,9 @@ def quelle(pipe):
 
 
 def abtasten(bild: np.ndarray, u: np.ndarray, v: np.ndarray, W: float, H: float) -> np.ndarray:
-    """Temperatur an den Bildkoordinaten (u, v) eines W x H grossen Bildes."""
-    h, w = bild.shape
+    """Temperatur (oder Farbe, bei einem RGB-Bild) an den Bildkoordinaten (u, v)
+    eines W x H grossen Bildes."""
+    h, w = bild.shape[:2]
     ui = np.clip((u * (w / W)).astype(np.int64), 0, w - 1)
     vi = np.clip((v * (h / H)).astype(np.int64), 0, h - 1)
     return bild[vi, ui]
