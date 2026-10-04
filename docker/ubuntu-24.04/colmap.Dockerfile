@@ -8,8 +8,10 @@
 # Die Rekonstruktion laeuft als Unterprozess in einem eigenen Interpreter
 # (colorize_pipeline/_colmap_worker.py im Nachbarrepo PointCloudMerger), der
 # nur pycolmap, numpy und Pillow braucht. Gefunden wird er ueber
-# colorize_pipeline/sfm.py:find_python, und zwar unter ~/.venvs/colmap — HOME
-# ist in der Basis /home/super360, dort liegt ein Verweis auf die venv.
+# SUPER360_COLMAP_PYTHON (core/meander.py, find_colmap_python), das auch gilt,
+# wenn ein Lauf HOME umsetzt (pruefe_app.sh); sonst ueber
+# colorize_pipeline/sfm.py:find_python unter ~/.venvs/colmap — dort, im HOME
+# der Basis (/home/super360), liegt ein Verweis auf die venv.
 #
 # Das Nachbarrepo steckt nicht im Image. Es kommt lesend nach ~/PointCloudMerger,
 # den ersten Ort in PIPELINE_CANDIDATES (core/meander.py), wie in pruefe_app.sh:
@@ -51,8 +53,10 @@ ARG COLMAP_VENV=/opt/venvs/colmap
 # Die venv zeigt auf /usr/bin/python3 — in beiden Stufen das Python 3.12 von
 # Ubuntu 24.04, darum laesst sie sich so kopieren.
 COPY --from=colmap-bau ${COLMAP_VENV} ${COLMAP_VENV}
-# Der Ort, den sfm.py erwartet. Der Verweis haengt nicht am Benutzer: HOME ist
-# fuer jede --user-ID dasselbe Verzeichnis.
+# Erster Kandidat in core/meander.py; dazu der Ort, den sfm.py erwartet. Der
+# Verweis haengt nicht am Benutzer: HOME ist fuer jede --user-ID dasselbe
+# Verzeichnis.
+ENV SUPER360_COLMAP_PYTHON=${COLMAP_VENV}/bin/python
 RUN mkdir -p "$HOME/.venvs" \
  && ln -s ${COLMAP_VENV} "$HOME/.venvs/colmap" \
  && "$HOME/.venvs/colmap/bin/python" -c "import pycolmap"

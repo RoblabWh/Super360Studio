@@ -74,12 +74,20 @@ def find_pipeline():
 
 
 def find_colmap_python() -> str | None:
-    """Interpreter mit pycolmap, oder None. Ohne ihn geht nur ein fertiges Modell."""
+    """Interpreter mit pycolmap, oder None. Ohne ihn geht nur ein fertiges Modell.
+
+    ``SUPER360_COLMAP_PYTHON`` geht vor; sonst sucht ``sfm.find_python`` (unter
+    anderem ``~/.venvs/colmap``). Die Variable braucht es, wo die venv nicht
+    unter HOME liegt, etwa im Container mit umgesetztem HOME.
+    """
     try:
         find_pipeline()
         from colorize_pipeline import sfm  # noqa: PLC0415
     except Exception:  # noqa: BLE001
         return None
+    vorgabe = os.environ.get("SUPER360_COLMAP_PYTHON", "")
+    if vorgabe and sfm.has_pycolmap(vorgabe):
+        return vorgabe
     return sfm.find_python()
 
 

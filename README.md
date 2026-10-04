@@ -143,8 +143,9 @@ python3 -m venv ~/.venvs/colmap
 ~/.venvs/colmap/bin/pip install pycolmap==4.0.4 numpy==1.26.4 pillow==12.2.0
 ```
 
-Als Image (auf `super360-u2404-basis`, venv unter `/opt/venvs/colmap`, im
-Container als `~/.venvs/colmap` zu finden) samt Funktionstest auf der Kopie
+Liegt die venv woanders, zeigt `SUPER360_COLMAP_PYTHON` auf ihren Interpreter.
+Als Image (auf `super360-u2404-basis`, venv unter `/opt/venvs/colmap`, die
+Variable ist gesetzt) samt Funktionstest auf der Kopie
 eines Cache-Projekts — das Projekt und die Bilder bleiben unberührt:
 
 ```bash
