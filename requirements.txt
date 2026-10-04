@@ -1,5 +1,10 @@
-# Python-Pakete fuer Super360 Studio (Python 3.10, Ubuntu 22.04).
-#   pip install --user -r requirements.txt
+# Python-Pakete fuer Super360 Studio.
+#   Ubuntu 22.04 (Python 3.10):  pip install --user -r requirements.txt
+#   Ubuntu 24.04 (Python 3.12):  pip install --user ist dort gesperrt (PEP 668),
+#     deshalb eine venv, die PyQt5/VTK aus apt sieht (s. README):
+#       python3 -m venv --system-site-packages ~/.venvs/super360
+#       ~/.venvs/super360/bin/pip install -r requirements.txt
+#       ~/.venvs/super360/bin/pip install --ignore-requires-python pyqtdarktheme==2.1.0
 #
 # PyQt5 und VTK kommen NICHT von hier, sondern aus apt — die getestete
 # Kombination ist python3-pyqt5 5.15.6 mit python3-vtk9 9.1.0 (s. README,
@@ -10,13 +15,20 @@
 
 numpy>=1.24            # 2.2.6
 scipy>=1.10            # 1.14.1   cKDTree(workers=...), ndimage, optimize, Rotation
-opencv-python>=4.8     # 4.12.0   Remap, Canny, Bild-IO
+opencv-python>=4.8,<5  # 4.12.0   Remap, Canny, Bild-IO. Nicht 5.x: dort rechnet remap
+                       #          INTER_LINEAR exakt statt mit 1/32-Festkomma, die
+                       #          Farben weichen um bis zu 6 Stufen ab und die
+                       #          OpenCL-Einfaerbung (bildet das Festkomma nach) ist
+                       #          nicht mehr bitgleich zur CPU
 open3d>=0.17           # 0.19.0   Normalen, Voxelraster, ICP/FGR beim Zusammenfuehren
 rosbags>=0.10,<0.11    # 0.10.10  ROS2-Bags ohne ROS lesen (get_typestore, Stores)
 Pillow>=9.0            # 12.1.1   Bilder, EXIF/XMP
 laspy>=2.4             # 2.7.0    LAS-Export
 pyproj>=3.4            # 3.7.1    UTM-Projektion fuer den georeferenzierten Export
-pyqtdarktheme>=2.1     # 2.1.0    dunkles Theme; fehlt es, startet die App im Standard-Look
+pyqtdarktheme>=2.1; python_version < "3.12"
+                       # 2.1.0    dunkles Theme; fehlt es, startet die App im Standard-Look.
+                       #          2.1.0 verlangt Python <3.12 (Poetry-Grenze, kein echter
+                       #          Bruch); unter 3.12 von Hand mit --ignore-requires-python
 pyopencl>=2024.1       # 2026.1.4 Einfaerben auf der GPU per OpenCL (fertiges Wheel, kein
                        #          CUDA-Build); fehlt es, faerbt die CPU — gleiches Ergebnis
 
