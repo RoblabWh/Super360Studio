@@ -7,6 +7,7 @@ Qt-frei.
 
 from __future__ import annotations
 
+import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -468,6 +469,49 @@ class BagReader:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+
+class ThreadLocalBag:
+    """BagReader-Fassade mit einem echten Reader je Thread.
+
+    rosbags öffnet sqlite3-Verbindungen ohne ``check_same_thread=False`` —
+    ein Reader darf daher nur in seinem Erzeuger-Thread lesen. Worker- und
+    Prefetch-Threads bekommen hier je einen eigenen BagReader (Aufbau des
+    Kamera-Index dauert < 0,2 s).
+    """
+
+    def __init__(self, bag_path: str):
+        self.bag_path = str(bag_path)
+        self._local = threading.local()
+
+    def _bag(self) -> BagReader:
+        bag = getattr(self._local, "bag", None)
+        if bag is None:
+            bag = BagReader(self.bag_path)
+            self._local.bag = bag
+        return bag
+
+    def info(self) -> BagInfo:
+        return self._bag().info()
+
+    def camera_stamps(self) -> np.ndarray:
+        return self._bag().camera_stamps()
+
+    def read_camera(self, idx: int) -> np.ndarray:
+        return self._bag().read_camera(idx)
+
+    def read_camera_jpeg(self, idx: int) -> bytes:
+        return self._bag().read_camera_jpeg(idx)
+
+    def read_gps(self):
+        return self._bag().read_gps()
+
+    def close(self) -> None:
+        bag = getattr(self._local, "bag", None)
+        if bag is not None:
+            bag.close()
+            self._local.bag = None
 
 
 if __name__ == "__main__":

@@ -572,6 +572,60 @@ def berechne(bag_path: str, voxel: float = VOXEL_M,
     )
 
 
+
+# --------------------------------------------------------- Rechnen und Cache
+
+def rechnen_und_ablegen(bag_path: str, project, log_cb, progress_cb, cancel,
+                        von: float = 0.0, bis: float = 1.0):
+    """Explorationsgrad rechnen und im Projekt ablegen: (Grad|None, Hinweis).
+
+    Laeuft im Worker-Thread. Ein Bag ohne EPIC-Daten ist der Normalfall und
+    kein Fehler — dafuer kommt der Grund als Hinweistext zurueck, damit die
+    Kachel ihn zeigen kann. Auch ein echter Fehler beim Rechnen darf das
+    Oeffnen des Bags nicht umwerfen; er landet im Protokoll. Nur ein Abbruch
+    durch den Benutzer geht weiter nach oben.
+    """
+    def melde(frac: float, msg: str) -> None:
+        progress_cb(von + (bis - von) * frac, msg)
+
+    try:
+        grad = berechne(bag_path, progress=melde, cancel=cancel)
+    except KeineExplorationsdaten as exc:
+        # Negatives Ergebnis mitschreiben: beim naechsten Oeffnen genuegt der
+        # Blick in den Cache, das Bag muss nicht noch einmal gelesen werden.
+        try:
+            project.save_exploration({"keine_daten": str(exc)})
+        except OSError:
+            pass
+        return None, str(exc)
+    except Exception as exc:  # noqa: BLE001 — fremdes Bag, viele Fehlerquellen
+        if str(exc) == "Abgebrochen":
+            raise
+        log_cb(f"Explorationsgrad nicht berechnet: {exc}")
+        return None, f"Nicht berechnet: {exc}"
+    try:
+        project.save_exploration(grad.als_dict())
+    except OSError as exc:
+        log_cb(f"exploration.json nicht geschrieben: {exc}")
+    return grad, ""
+
+
+def holen(bag_path: str, project, log_cb, progress_cb, cancel,
+          von: float = 0.0, bis: float = 1.0):
+    """Wie :func:`_exploration_rechnen`, nimmt aber den Cache, wenn es ihn gibt."""
+    gespeichert = project.load_exploration()
+    if gespeichert:
+        if gespeichert.get("keine_daten"):
+            return None, str(gespeichert["keine_daten"])
+        try:
+            return Explorationsgrad.aus_dict(gespeichert), ""
+        except (TypeError, ValueError) as exc:
+            log_cb(f"Gespeicherter Explorationsgrad unbrauchbar ({exc}) — "
+                   "wird neu gerechnet.")
+    return rechnen_und_ablegen(bag_path, project, log_cb, progress_cb, cancel,
+                               von, bis)
+
+
 if __name__ == "__main__":
     import sys
 
