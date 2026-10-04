@@ -1,8 +1,8 @@
 {
- "_erklaerung": "Zuordnung von ui/main_window.py (Stand vor-umbau) auf die Zielmodule nach Plan Abschnitt 3. 'methoden' und 'klassenattribute': Name -> Modulschlüssel. 'modulnamen': Name -> Zieldatei und Name dort. 'bereiche' sind die Zeilen des Plans (für main_window abgeleitet: was in MainWindow bleibt). 'umbenennungen' gelten nur in der genannten Zieldatei; 'modul.' heißt: Präfix entfällt. 'vertragsstellen': Zeile im Vorher-Stand -> umgebende Methode -> Zieldatei.",
+ "_erklaerung": "Zuordnung von ui/main_window.py (Stand vor-umbau, nach der Zusammenführen-Reparatur 53e62cd) auf die Zielmodule nach Plan Abschnitt 3. 'methoden' und 'klassenattribute': Name -> Modulschlüssel. 'modulnamen': Name -> Zieldatei und Name dort. 'bereiche' sind die Zeilen des Plans (für main_window abgeleitet: was in MainWindow bleibt). 'umbenennungen' gelten nur in der genannten Zieldatei; 'modul.' heißt: Präfix entfällt. 'vertragsstellen': Zeile im Vorher-Stand -> umgebende Methode -> Zieldatei.",
  "quelle": "ui/main_window.py",
  "stand": "vor-umbau",
- "sha256": "54dcc48119152ef996f018cfae403299be7c09b2ef1a3c4bd1d969367ce027bf",
+ "sha256": "ba5d1f5205ead257fbc9115c4799353e85bc817984c22a2ef6a0fddb11d8a8cf",
  "module": {
   "grundgeruest": {
    "datei": "ui/fenster/grundgeruest.py",
@@ -10,8 +10,8 @@
    "titel": "Grundgerüst: Protokoll, Freigabe, Arbeiter",
    "bereiche": [
     [
-     1343,
-     1534
+     1348,
+     1539
     ]
    ],
    "angelegt_von": "Z1"
@@ -22,12 +22,12 @@
    "titel": "Einstellungen",
    "bereiche": [
     [
-     1538,
-     1689
+     1543,
+     1694
     ],
     [
-     4112,
-     4121
+     4117,
+     4126
     ]
    ],
    "angelegt_von": "Z1"
@@ -38,12 +38,12 @@
    "titel": "Aufnahme, Karte und Projekt",
    "bereiche": [
     [
-     614,
-     656
+     619,
+     661
     ],
     [
-     1804,
-     2351
+     1809,
+     2356
     ]
    ],
    "angelegt_von": "Z2"
@@ -54,12 +54,12 @@
    "titel": "Zusammenführen",
    "bereiche": [
     [
-     1115,
-     1167
+     1120,
+     1172
     ],
     [
-     4135,
-     4382
+     4140,
+     4439
     ]
    ],
    "angelegt_von": "Z4"
@@ -70,16 +70,16 @@
    "titel": "Kamera-Kalibrierung",
    "bereiche": [
     [
-     1773,
-     1800
+     1778,
+     1805
     ],
     [
-     4108,
-     4110
+     4113,
+     4115
     ],
     [
-     4518,
-     4575
+     4575,
+     4632
     ]
    ],
    "angelegt_von": "Z2"
@@ -90,12 +90,12 @@
    "titel": "360°-Einfärbung",
    "bereiche": [
     [
-     658,
-     859
+     663,
+     864
     ],
     [
-     4387,
-     4516
+     4444,
+     4573
     ]
    ],
    "angelegt_von": "Z2"
@@ -106,20 +106,20 @@
    "titel": "Mäander",
    "bereiche": [
     [
-     861,
-     998
+     866,
+     1003
     ],
     [
-     2355,
-     2552
+     2360,
+     2557
     ],
     [
-     2713,
-     2831
+     2718,
+     2836
     ],
     [
-     3100,
-     3240
+     3105,
+     3245
     ]
    ],
    "angelegt_von": "Z3"
@@ -130,12 +130,12 @@
    "titel": "Mäander-Justage und Live-Vorschau",
    "bereiche": [
     [
-     2554,
-     2711
+     2559,
+     2716
     ],
     [
-     2833,
-     3098
+     2838,
+     3103
     ]
    ],
    "angelegt_von": "Z3"
@@ -146,12 +146,12 @@
    "titel": "Gaussian Splat und Fusion",
    "bereiche": [
     [
-     1000,
-     1113
+     1005,
+     1118
     ],
     [
-     3244,
-     3681
+     3249,
+     3686
     ]
    ],
    "angelegt_von": "Z4"
@@ -162,12 +162,12 @@
    "titel": "Mesh",
    "bereiche": [
     [
-     3831,
-     3968
+     3836,
+     3973
     ],
     [
-     4663,
-     4700
+     4720,
+     4757
     ]
    ],
    "angelegt_von": "Z5"
@@ -178,16 +178,16 @@
    "titel": "Export",
    "bereiche": [
     [
-     1278,
-     1339
+     1283,
+     1344
     ],
     [
-     4579,
-     4661
+     4636,
+     4718
     ],
     [
-     4702,
-     4721
+     4759,
+     4778
     ]
    ],
    "angelegt_von": "Z5"
@@ -198,24 +198,24 @@
    "titel": "Anzeige, Farbebenen und Menü",
    "bereiche": [
     [
-     1169,
-     1212
+     1174,
+     1217
     ],
     [
-     1691,
-     1769
+     1696,
+     1774
     ],
     [
-     3685,
-     3827
+     3690,
+     3832
     ],
     [
-     3972,
-     4106
+     3977,
+     4111
     ],
     [
-     4123,
-     4131
+     4128,
+     4136
     ]
    ],
    "angelegt_von": "Z5"
@@ -226,8 +226,8 @@
    "titel": "Wiedergabe (RViz)",
    "bereiche": [
     [
-     1214,
-     1276
+     1219,
+     1281
     ]
    ],
    "angelegt_von": "Z1"
@@ -238,8 +238,8 @@
    "titel": "Autotest",
    "bereiche": [
     [
-     4725,
-     4808
+     4782,
+     4865
     ]
    ],
    "angelegt_von": "Z1"
@@ -251,11 +251,11 @@
    "bereiche": [
     [
      376,
-     612
+     617
     ],
     [
-     4809,
-     4832
+     4866,
+     4889
     ]
    ],
    "angelegt_von": "Z99"
@@ -834,10 +834,10 @@
   {
    "name": "_import_colorizer",
    "zeilen": [
-    4386,
-    4392
+    4443,
+    4449
    ],
-   "grund": "Dekoratorzeile 4386 (@staticmethod) liegt vor dem Bereich 4387-4516; die Methode geht samt Dekorator nach einfaerbung"
+   "grund": "Dekoratorzeile 4443 (@staticmethod) liegt vor dem Bereich 4444-4573; die Methode geht samt Dekorator nach einfaerbung"
   }
  ],
  "vertragsstellen": [
@@ -851,47 +851,47 @@
    ],
    "stellen": [
     {
-     "zeile": 1383,
+     "zeile": 1388,
      "name": "_update_enabled",
      "datei": "ui/fenster/grundgeruest.py"
     },
     {
-     "zeile": 2628,
+     "zeile": 2633,
      "name": "_meander_zustand_text",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2716,
+     "zeile": 2721,
      "name": "_on_meander_einmessen",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2766,
+     "zeile": 2771,
      "name": "_on_meander_fein",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2815,
+     "zeile": 2820,
      "name": "_on_meander_auto",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2917,
+     "zeile": 2922,
      "name": "_on_meander_fenster",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2981,
+     "zeile": 2986,
      "name": "_on_meander_manual",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 3000,
+     "zeile": 3005,
      "name": "_live_update",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 3073,
+     "zeile": 3078,
      "name": "_meander_apply_manual",
      "datei": "ui/fenster/maeander_justage.py"
     }
@@ -906,27 +906,27 @@
    ],
    "stellen": [
     {
-     "zeile": 3347,
+     "zeile": 3352,
      "name": "_on_splat_maeander",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3458,
+     "zeile": 3463,
      "name": "_on_splat_onboard",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3535,
+     "zeile": 3540,
      "name": "_on_splat_gemeinsam",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3295,
+     "zeile": 3300,
      "name": "_splat_lauf",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3312,
+     "zeile": 3317,
      "name": "_splat_gegenprobe",
      "datei": "ui/fenster/splat.py"
     }
@@ -944,62 +944,62 @@
    ],
    "stellen": [
     {
-     "zeile": 3101,
+     "zeile": 3106,
      "name": "_on_meander_run",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3119,
+     "zeile": 3124,
      "name": "_on_meander_run",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3329,
+     "zeile": 3334,
      "name": "_on_splat_maeander",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3345,
+     "zeile": 3350,
      "name": "_on_splat_maeander",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3512,
+     "zeile": 3517,
      "name": "_on_splat_gemeinsam",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3531,
+     "zeile": 3536,
      "name": "_on_splat_gemeinsam",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3127,
+     "zeile": 3132,
      "name": "_on_meander_run",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3183,
+     "zeile": 3188,
      "name": "_on_meander_run",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3217,
+     "zeile": 3222,
      "name": "_on_meander_done",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3240,
+     "zeile": 3245,
      "name": "_on_meander_done",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 3667,
+     "zeile": 3672,
      "name": "_on_splat_done",
      "datei": "ui/fenster/splat.py"
     },
     {
-     "zeile": 3681,
+     "zeile": 3686,
      "name": "_on_splat_done",
      "datei": "ui/fenster/splat.py"
     }
@@ -1014,22 +1014,22 @@
    ],
    "stellen": [
     {
-     "zeile": 2498,
+     "zeile": 2503,
      "name": "_on_meander_align",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2506,
+     "zeile": 2511,
      "name": "_on_meander_align",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2433,
+     "zeile": 2438,
      "name": "_meander_bereit",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2456,
+     "zeile": 2461,
      "name": "_meander_bereit",
      "datei": "ui/fenster/maeander.py"
     }
@@ -1047,32 +1047,32 @@
    ],
    "stellen": [
     {
-     "zeile": 2646,
+     "zeile": 2651,
      "name": "_meander_lage",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2673,
+     "zeile": 2678,
      "name": "_meander_cams",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 943,
+     "zeile": 948,
      "name": "_group_meander",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 970,
+     "zeile": 975,
      "name": "_group_meander",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2997,
+     "zeile": 3002,
      "name": "_live_update",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 3068,
+     "zeile": 3073,
      "name": "_live_update",
      "datei": "ui/fenster/maeander_justage.py"
     }
@@ -1088,42 +1088,42 @@
    ],
    "stellen": [
     {
-     "zeile": 2872,
+     "zeile": 2877,
      "name": "_meander_speichere_zuschlag",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2902,
+     "zeile": 2907,
      "name": "_meander_lade_zuschlag",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2374,
+     "zeile": 2379,
      "name": "_on_meander_pick",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2376,
+     "zeile": 2381,
      "name": "_on_meander_pick",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2477,
+     "zeile": 2482,
      "name": "_meander_ask_colmap",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2479,
+     "zeile": 2484,
      "name": "_meander_ask_colmap",
      "datei": "ui/fenster/maeander.py"
     },
     {
-     "zeile": 2561,
+     "zeile": 2566,
      "name": "_start_live_preview",
      "datei": "ui/fenster/maeander_justage.py"
     },
     {
-     "zeile": 2563,
+     "zeile": 2568,
      "name": "_start_live_preview",
      "datei": "ui/fenster/maeander_justage.py"
     }
@@ -1140,62 +1140,62 @@
    ],
    "stellen": [
     {
-     "zeile": 3897,
+     "zeile": 3902,
      "name": "_mesh_sicherstellen",
      "datei": "ui/fenster/mesh.py"
     },
     {
-     "zeile": 3910,
+     "zeile": 3915,
      "name": "_mesh_sicherstellen",
      "datei": "ui/fenster/mesh.py"
     },
     {
-     "zeile": 4678,
+     "zeile": 4735,
      "name": "_on_mesh_cloudcompare",
      "datei": "ui/fenster/mesh.py"
     },
     {
-     "zeile": 4686,
+     "zeile": 4743,
      "name": "_on_mesh_cloudcompare",
      "datei": "ui/fenster/mesh.py"
     },
     {
-     "zeile": 4588,
+     "zeile": 4645,
      "name": "_on_export_plypcd",
      "datei": "ui/fenster/export.py"
     },
     {
-     "zeile": 4638,
+     "zeile": 4695,
      "name": "_on_export_las",
      "datei": "ui/fenster/export.py"
     },
     {
-     "zeile": 4092,
+     "zeile": 4097,
      "name": "_on_screenshot",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 4106,
+     "zeile": 4111,
      "name": "_on_screenshot",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 4602,
+     "zeile": 4659,
      "name": "_on_export_plypcd",
      "datei": "ui/fenster/export.py"
     },
     {
-     "zeile": 4605,
+     "zeile": 4662,
      "name": "_on_export_plypcd",
      "datei": "ui/fenster/export.py"
     },
     {
-     "zeile": 4708,
+     "zeile": 4765,
      "name": "_on_cloud_cloudcompare",
      "datei": "ui/fenster/export.py"
     },
     {
-     "zeile": 4712,
+     "zeile": 4769,
      "name": "_on_cloud_cloudcompare",
      "datei": "ui/fenster/export.py"
     }
@@ -1211,52 +1211,52 @@
    ],
    "stellen": [
     {
-     "zeile": 2177,
+     "zeile": 2182,
      "name": "_on_fastlio_clicked",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2181,
+     "zeile": 2186,
      "name": "_on_fastlio_clicked",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 4223,
+     "zeile": 4239,
      "name": "_merge_run_fastlio",
      "datei": "ui/fenster/zusammenfuehren.py"
-    },
-    {
-     "zeile": 4227,
-     "name": "_merge_run_fastlio",
-     "datei": "ui/fenster/zusammenfuehren.py"
-    },
-    {
-     "zeile": 2056,
-     "name": "_start_recording_load",
-     "datei": "ui/fenster/projekt.py"
-    },
-    {
-     "zeile": 2060,
-     "name": "_start_recording_load",
-     "datei": "ui/fenster/projekt.py"
     },
     {
      "zeile": 4243,
+     "name": "_merge_run_fastlio",
+     "datei": "ui/fenster/zusammenfuehren.py"
+    },
+    {
+     "zeile": 2061,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 2065,
+     "name": "_start_recording_load",
+     "datei": "ui/fenster/projekt.py"
+    },
+    {
+     "zeile": 4262,
      "name": "_merge_load_second",
      "datei": "ui/fenster/zusammenfuehren.py"
     },
     {
-     "zeile": 4247,
+     "zeile": 4266,
      "name": "_merge_load_second",
      "datei": "ui/fenster/zusammenfuehren.py"
     },
     {
-     "zeile": 2141,
+     "zeile": 2146,
      "name": "_on_recording_loaded",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2191,
+     "zeile": 2196,
      "name": "_on_fastlio_done",
      "datei": "ui/fenster/projekt.py"
     }
@@ -1272,22 +1272,22 @@
    ],
    "stellen": [
     {
-     "zeile": 1900,
+     "zeile": 1905,
      "name": "_on_bag_opened",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 1912,
+     "zeile": 1917,
      "name": "_on_bag_opened",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2326,
+     "zeile": 2331,
      "name": "_open_project_only",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2337,
+     "zeile": 2342,
      "name": "_open_project_only",
      "datei": "ui/fenster/projekt.py"
     },
@@ -1302,32 +1302,32 @@
      "datei": "core/exploration.py"
     },
     {
-     "zeile": 2340,
+     "zeile": 2345,
      "name": "_open_project_only",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2346,
+     "zeile": 2351,
      "name": "_open_project_only",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2280,
+     "zeile": 2285,
      "name": "_on_open_project",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2284,
+     "zeile": 2289,
      "name": "_on_open_project",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2314,
+     "zeile": 2319,
      "name": "_on_import_project",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2318,
+     "zeile": 2323,
      "name": "_on_import_project",
      "datei": "ui/fenster/projekt.py"
     }
@@ -1342,32 +1342,32 @@
    ],
    "stellen": [
     {
-     "zeile": 2063,
+     "zeile": 2068,
      "name": "_start_recording_load",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2076,
+     "zeile": 2081,
      "name": "_start_recording_load",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2124,
+     "zeile": 2129,
      "name": "_on_recording_loaded",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 2132,
+     "zeile": 2137,
      "name": "_on_recording_loaded",
      "datei": "ui/fenster/projekt.py"
     },
     {
-     "zeile": 4363,
+     "zeile": 4420,
      "name": "_on_merge_applied",
      "datei": "ui/fenster/zusammenfuehren.py"
     },
     {
-     "zeile": 4364,
+     "zeile": 4421,
      "name": "_on_merge_applied",
      "datei": "ui/fenster/zusammenfuehren.py"
     }
@@ -1402,32 +1402,32 @@
    ],
    "stellen": [
     {
-     "zeile": 1729,
+     "zeile": 1734,
      "name": "_on_farbleiste",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 1752,
+     "zeile": 1757,
      "name": "_on_farbleiste",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 3773,
+     "zeile": 3778,
      "name": "_on_menu_layer",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 3784,
+     "zeile": 3789,
      "name": "_on_layer_changed",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 3988,
+     "zeile": 3993,
      "name": "_sync_menu_state",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 4001,
+     "zeile": 4006,
      "name": "_sync_menu_state",
      "datei": "ui/fenster/anzeige.py"
     }
@@ -1444,12 +1444,12 @@
    ],
    "stellen": [
     {
-     "zeile": 1363,
+     "zeile": 1368,
      "name": "_update_enabled",
      "datei": "ui/fenster/grundgeruest.py"
     },
     {
-     "zeile": 1441,
+     "zeile": 1446,
      "name": "_update_enabled",
      "datei": "ui/fenster/grundgeruest.py"
     },
@@ -1464,12 +1464,12 @@
      "datei": "ui/fenster/einstellungen.py"
     },
     {
-     "zeile": 1538,
+     "zeile": 1543,
      "name": "_apply_settings_to_widgets",
      "datei": "ui/fenster/einstellungen.py"
     },
     {
-     "zeile": 1677,
+     "zeile": 1682,
      "name": "_collect_settings",
      "datei": "ui/fenster/einstellungen.py"
     }
@@ -1485,32 +1485,32 @@
    ],
    "stellen": [
     {
-     "zeile": 710,
+     "zeile": 715,
      "name": "_on_blue_preview_clicked",
      "datei": "ui/fenster/einfaerbung.py"
     },
     {
-     "zeile": 730,
+     "zeile": 735,
      "name": "_on_blue_preview_clicked",
      "datei": "ui/fenster/einfaerbung.py"
     },
     {
-     "zeile": 4397,
+     "zeile": 4454,
      "name": "_on_colorize_clicked",
      "datei": "ui/fenster/einfaerbung.py"
     },
     {
-     "zeile": 4416,
+     "zeile": 4473,
      "name": "_on_colorize_clicked",
      "datei": "ui/fenster/einfaerbung.py"
     },
     {
-     "zeile": 4521,
+     "zeile": 4578,
      "name": "_on_overlay_clicked",
      "datei": "ui/fenster/kalibrierung.py"
     },
     {
-     "zeile": 4567,
+     "zeile": 4624,
      "name": "_on_autocal_clicked",
      "datei": "ui/fenster/kalibrierung.py"
     }
@@ -1525,12 +1525,12 @@
    ],
    "stellen": [
     {
-     "zeile": 413,
+     "zeile": 418,
      "name": "__init__",
      "datei": "ui/main_window.py"
     },
     {
-     "zeile": 464,
+     "zeile": 469,
      "name": "__init__",
      "datei": "ui/main_window.py"
     },
@@ -1555,12 +1555,12 @@
    ],
    "stellen": [
     {
-     "zeile": 4149,
+     "zeile": 4157,
      "name": "_merge_T_from_spins",
      "datei": "ui/fenster/zusammenfuehren.py"
     },
     {
-     "zeile": 4160,
+     "zeile": 4176,
      "name": "_merge_T_from_spins",
      "datei": "ui/fenster/zusammenfuehren.py"
     }
@@ -1576,17 +1576,17 @@
    ],
    "stellen": [
     {
-     "zeile": 4003,
+     "zeile": 4008,
      "name": "_on_menu_colormode",
      "datei": "ui/fenster/anzeige.py"
     },
     {
-     "zeile": 3946,
+     "zeile": 3951,
      "name": "_mesh_sicherstellen",
      "datei": "ui/fenster/mesh.py"
     },
     {
-     "zeile": 1811,
+     "zeile": 1816,
      "name": "_on_open_clicked",
      "datei": "ui/fenster/projekt.py"
     }

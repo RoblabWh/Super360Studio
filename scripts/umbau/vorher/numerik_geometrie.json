@@ -436,7 +436,7 @@
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "c031c6885031998349b43e66095475a4ec39701555d51b8290fada7226d84465",
+     "hash": "f915c35134c2e924633e6d9b7c0e145b9dee5ab8746796ae6c9917adf39d11fe",
      "shape": [
       4,
       4
@@ -453,14 +453,14 @@
      "abgelegt": true,
      "art": "zahl",
      "dtype": "<f8",
-     "hash": "49a29df3aa857c7f7cacad84bbb536653f2e8a71138deb6590fbc8f4f72f323e",
+     "hash": "0868a6e20c2ba9c0ea998f1298dee0e9141c5218cbe9ce93378d6a5d3112a964",
      "shape": []
     },
     "voxel": {
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "64fb5a5a9fbbb5e9e2c02358fc68d000bea8bea1d14d855c9201364e4cc5ba35",
+     "hash": "e064105f8a01ef874e96f13d372ce51ba15069e53d19107c9875393d3c6ef825",
      "shape": [
       3
      ]
@@ -474,7 +474,7 @@
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "ee84b1064c40aaf44bb23ec85c995c3149094544a45089ff791dea366ff57dd3",
+     "hash": "c1919d2002e83f9bc882a292c0204585eccd8b164c6ffab1455240da12d97caf",
      "shape": [
       4,
       4
@@ -491,14 +491,14 @@
      "abgelegt": true,
      "art": "zahl",
      "dtype": "<f8",
-     "hash": "e57fee076313a6f1fdd8a86acbf2f1ee9f4b6be088c481f903c61df89213982a",
+     "hash": "035f7a56879627f46f4b13d15850d1382730103fd41fba681f95eab6ab2c3391",
      "shape": []
     },
     "voxel": {
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "64fb5a5a9fbbb5e9e2c02358fc68d000bea8bea1d14d855c9201364e4cc5ba35",
+     "hash": "e064105f8a01ef874e96f13d372ce51ba15069e53d19107c9875393d3c6ef825",
      "shape": [
       3
      ]
@@ -729,7 +729,7 @@
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "784e6fdf4b7381096b484cf27d0f81e6511dcbf2f98e63b914e7a04c871c01bd",
+     "hash": "b8068314d9a392793945aaf3e0ac83dbeb7dd31084c0441784b315e2cc73fc78",
      "shape": [
       3,
       3
@@ -746,14 +746,14 @@
      "abgelegt": true,
      "art": "zahl",
      "dtype": "<f8",
-     "hash": "e131cae10209db6426b5fd55668b823a207b5dca74850b191069ddc456fd912a",
+     "hash": "629b50a6aea932cb10c30a70d71cb1a8369150035af57a4227d67de23354a5b2",
      "shape": []
     },
     "radius_quantile": {
      "abgelegt": true,
      "art": "ndarray",
      "dtype": "<f8",
-     "hash": "16c210cd0e782bae22cb6c00741f590becbfdbdbe87fcb6048f22b9882aaa7b1",
+     "hash": "2687e8657aa2fc8a85a88121d3b52bf6fd07a0e820a95c00d49631f3ea63ffc4",
      "shape": [
       5
      ]

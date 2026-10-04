@@ -3200,7 +3200,7 @@
     "_lbl_fastlio": "Scans: 4/4 · Punkte: 200 · Drops: 0",
     "_lbl_meander": "Kein Mäanderflug geladen.",
     "_lbl_meander_lage": "Noch kein Mäanderflug gewählt.",
-    "_lbl_merge": "Ausgerichtet über 'fgr-2': Trefferquote 0.82, Restfehler 0.045 m.",
+    "_lbl_merge": "Ausgerichtet über 'fgr-2': Trefferquote 0.82, Restfehler 0.045 m. Die Regler verschieben ab hier relativ zu dieser Lage.",
     "_lbl_rviz": "Gestoppt",
     "_lbl_splat": "GPU noch nicht geprüft.",
     "_mess_lbl": "",
@@ -3291,7 +3291,7 @@
     "_lbl_fastlio": "Scans: 4/4 · Punkte: 200 · Drops: 0",
     "_lbl_meander": "Kein Mäanderflug geladen.",
     "_lbl_meander_lage": "Noch kein Mäanderflug gewählt.",
-    "_lbl_merge": "Ausgerichtet über 'gier-90': Trefferquote 0.64, Restfehler 0.410 m.",
+    "_lbl_merge": "Ausgerichtet über 'gier-90': Trefferquote 0.64, Restfehler 0.410 m. Die Regler verschieben ab hier relativ zu dieser Lage.",
     "_lbl_rviz": "Gestoppt",
     "_lbl_splat": "GPU noch nicht geprüft.",
     "_mess_lbl": "",
@@ -3382,7 +3382,7 @@
     "_lbl_fastlio": "Scans: 4/4 · Punkte: 200 · Drops: 0",
     "_lbl_meander": "Kein Mäanderflug geladen.",
     "_lbl_meander_lage": "Noch kein Mäanderflug gewählt.",
-    "_lbl_merge": "Ausgerichtet über 'start': Trefferquote 0.21, Restfehler 0.120 m.",
+    "_lbl_merge": "Ausgerichtet über 'start': Trefferquote 0.21, Restfehler 0.120 m. Die Regler verschieben ab hier relativ zu dieser Lage.",
     "_lbl_rviz": "Gestoppt",
     "_lbl_splat": "GPU noch nicht geprüft.",
     "_mess_lbl": "",
@@ -10057,7 +10057,7 @@
     "_lbl_fastlio": "Scans: 4/4 · Punkte: 200 · Drops: 0",
     "_lbl_meander": "Kein Mäanderflug geladen.",
     "_lbl_meander_lage": "Noch kein Mäanderflug gewählt.",
-    "_lbl_merge": "Ausgerichtet über 'fgr-2': Trefferquote 0.82, Restfehler 0.045 m.",
+    "_lbl_merge": "Ausgerichtet über 'fgr-2': Trefferquote 0.82, Restfehler 0.045 m. Die Regler verschieben ab hier relativ zu dieser Lage.",
     "_lbl_rviz": "Gestoppt",
     "_lbl_splat": "GPU noch nicht geprüft.",
     "_mess_lbl": "",
@@ -15128,7 +15128,34 @@
          1.0
         ]
        ],
-       "fitness": null
+       "T_kipp_b": [
+        [
+         1.0,
+         0.0,
+         0.0,
+         0.0
+        ],
+        [
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        [
+         0.0,
+         0.0,
+         1.0,
+         0.0
+        ],
+        [
+         0.0,
+         0.0,
+         0.0,
+         1.0
+        ]
+       ],
+       "fitness": null,
+       "kipp_b_grad": null
       },
       "n_points": 400,
       "n_scans": 8,
@@ -15252,7 +15279,34 @@
      {
       "cancel": "<Event>",
       "info": {
-       "fitness": null
+       "T_kipp_b": [
+        [
+         1.0,
+         0.0,
+         0.0,
+         0.0
+        ],
+        [
+         0.0,
+         1.0,
+         0.0,
+         0.0
+        ],
+        [
+         0.0,
+         0.0,
+         1.0,
+         0.0
+        ],
+        [
+         0.0,
+         0.0,
+         0.0,
+         1.0
+        ]
+       ],
+       "fitness": null,
+       "kipp_b_grad": null
       },
       "progress_cb": "<aufrufbar>"
      }
@@ -15334,7 +15388,34 @@
           1.0
          ]
         ],
-        "fitness": null
+        "T_kipp_b": [
+         [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "fitness": null,
+        "kipp_b_grad": null
        },
        "n_points": 400,
        "n_scans": 8,
@@ -15811,7 +15892,7 @@
    }
   },
   "zweitflug_laden_mit_karte": {
-   "blattaufrufe": 3,
+   "blattaufrufe": 5,
    "dateien": {},
    "ereignisse": [
     [
@@ -15855,6 +15936,31 @@
     ],
     [
      "fortschritt",
+     0.3,
+     "Lotrechte beider Flüge aus der IMU …"
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_b"
+     ],
+     {}
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_a"
+     ],
+     {}
+    ],
+    [
+     "log",
+     "Zweiter Flug: Lotrechte nicht messbar — er bleibt, wie FAST-LIO ihn liefert. Steht er schief, findet Auto-Ausrichten ihn womöglich nicht."
+    ],
+    [
+     "fortschritt",
      0.6,
      "Dünne für die Vorschau aus …"
     ],
@@ -15878,7 +15984,9 @@
      "fertig",
      "Lade zweiten Flug …",
      {
+      "T_kipp": "ndarray <f8 (4, 4) #b77ca2b1f1f1",
       "cloud": "ndarray <f8 (200, 3) #6d403df10c61",
+      "kipp": null,
       "path": "<arbeit>/fall/flug_b",
       "proxy": "<StubBag flug_b>",
       "rec": "<Recording>"
@@ -15911,7 +16019,7 @@
    }
   },
   "zweitflug_laden_ohne_karte": {
-   "blattaufrufe": 5,
+   "blattaufrufe": 7,
    "dateien": {
     "cache/flug_b-<schlüssel>/recording/intensity.bin": {
      "bytes": 800,
@@ -16074,6 +16182,31 @@
     ],
     [
      "fortschritt",
+     0.3,
+     "Lotrechte beider Flüge aus der IMU …"
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_b"
+     ],
+     {}
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_a"
+     ],
+     {}
+    ],
+    [
+     "log",
+     "Zweiter Flug: Lotrechte nicht messbar — er bleibt, wie FAST-LIO ihn liefert. Steht er schief, findet Auto-Ausrichten ihn womöglich nicht."
+    ],
+    [
+     "fortschritt",
      0.6,
      "Dünne für die Vorschau aus …"
     ],
@@ -16097,7 +16230,9 @@
      "fertig",
      "Lade zweiten Flug …",
      {
+      "T_kipp": "ndarray <f8 (4, 4) #b77ca2b1f1f1",
       "cloud": "ndarray <f8 (200, 3) #bf57f7b002c9",
+      "kipp": null,
       "path": "<arbeit>/fall/flug_b",
       "proxy": "<StubBag flug_b>",
       "rec": "<Recording>"
@@ -16130,7 +16265,7 @@
    }
   },
   "zweitflug_laden_ohne_karte_regler": {
-   "blattaufrufe": 5,
+   "blattaufrufe": 7,
    "dateien": {
     "cache/flug_b-<schlüssel>/recording/intensity.bin": {
      "bytes": 800,
@@ -16293,6 +16428,31 @@
     ],
     [
      "fortschritt",
+     0.3,
+     "Lotrechte beider Flüge aus der IMU …"
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_b"
+     ],
+     {}
+    ],
+    [
+     "aufruf",
+     "BagReader",
+     [
+      "<arbeit>/fall/flug_a"
+     ],
+     {}
+    ],
+    [
+     "log",
+     "Zweiter Flug: Lotrechte nicht messbar — er bleibt, wie FAST-LIO ihn liefert. Steht er schief, findet Auto-Ausrichten ihn womöglich nicht."
+    ],
+    [
+     "fortschritt",
      0.6,
      "Dünne für die Vorschau aus …"
     ],
@@ -16316,7 +16476,9 @@
      "fertig",
      "Lade zweiten Flug …",
      {
+      "T_kipp": "ndarray <f8 (4, 4) #b77ca2b1f1f1",
       "cloud": "ndarray <f8 (200, 3) #bf57f7b002c9",
+      "kipp": null,
       "path": "<arbeit>/fall/flug_b",
       "proxy": "<StubBag flug_b>",
       "rec": "<Recording>"
