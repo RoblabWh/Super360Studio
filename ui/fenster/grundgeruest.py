@@ -93,33 +93,31 @@ class GrundgeruestMixin:
                               "ausrichten.")
             else:
                 sp.setToolTip("Erst 'Ausrichten' laufen lassen.")
-        if hasattr(self, "_lbl_meander_lage"):
-            self._lbl_meander_lage.setText(self._meander_zustand_text())
-        if hasattr(self, "_actions"):
-            for key, an in (("project_export", not busy and has_rec),
-                            ("project_import", not busy),
-                            ("measure", not busy and has_world),
-                            ("fastlio", not busy and has_bag),
-                            ("exploration", not busy and has_bag),
-                            ("colorize", not busy and has_bag and has_rec
-                             and bool(self._calib)),
-                            ("meander_run", not busy and has_rec),
-                            ("splat_meander", not busy and has_rec
-                             and bool(self._meander_dir)),
-                            ("splat_onboard", not busy and has_bag and has_rec
-                             and bool(self._calib)),
-                            ("splat_gemeinsam", not busy and has_bag and has_rec
-                             and bool(self._meander_dir) and bool(self._calib)),
-                            ("fusion", not busy and has_world
-                             and self._fusion_quellen() is not None),
-                            ("meander", not busy and has_rec),
-                            ("merge", not busy and has_rec),
-                            ("merge_apply", not busy and has_rec),
-                            ("export_ply", not busy and has_world),
-                            ("export_las", not busy and has_world)):
-                act = self._actions.get(key)
-                if act is not None:
-                    act.setEnabled(bool(an))
+        self._lbl_meander_lage.setText(self._meander_zustand_text())
+        for key, an in (("project_export", not busy and has_rec),
+                        ("project_import", not busy),
+                        ("measure", not busy and has_world),
+                        ("fastlio", not busy and has_bag),
+                        ("exploration", not busy and has_bag),
+                        ("colorize", not busy and has_bag and has_rec
+                         and bool(self._calib)),
+                        ("meander_run", not busy and has_rec),
+                        ("splat_meander", not busy and has_rec
+                         and bool(self._meander_dir)),
+                        ("splat_onboard", not busy and has_bag and has_rec
+                         and bool(self._calib)),
+                        ("splat_gemeinsam", not busy and has_bag and has_rec
+                         and bool(self._meander_dir) and bool(self._calib)),
+                        ("fusion", not busy and has_world
+                         and self._fusion_quellen() is not None),
+                        ("meander", not busy and has_rec),
+                        ("merge", not busy and has_rec),
+                        ("merge_apply", not busy and has_rec),
+                        ("export_ply", not busy and has_world),
+                        ("export_las", not busy and has_world)):
+            act = self._actions.get(key)
+            if act is not None:
+                act.setEnabled(bool(an))
         can_cancel = busy and (self._worker is None or self._worker.cancellable)
         self._btn_cancel.setEnabled(can_cancel)
         self._btn_cancel.setToolTip(

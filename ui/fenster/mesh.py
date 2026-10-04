@@ -1,17 +1,78 @@
 """Mesh (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _mesh_farbcache, _mesh_geom, _mesh_geom_dir,
-_mesh_laeuft, _mesh_wartet, _settings.
+Schreibt am Hauptfenster: _btn_mesh_cc, _chk_mesh_hybrid, _mesh_farbcache,
+_mesh_geom, _mesh_geom_dir, _mesh_laeuft, _mesh_wartet, _settings,
+_spin_mesh_depth, _spin_mesh_trim, _spin_mesh_voxel.
 """
 from __future__ import annotations
 
 import os
 from typing import Optional
 
+from PyQt5.QtWidgets import (
+    QCheckBox, QFormLayout, QLabel, QPushButton, QSpinBox, QVBoxLayout, QWidget,
+)
+
 from core.gemeinsam import fmt_int as _fmt_int
+
+from ui.bausteine import _wrappable
+from ui.fenster.einstellungen import _DEFAULT_SETTINGS
 
 
 class MeshMixin:
+    def _abschnitt_mesh(self) -> QWidget:
+        box = QWidget()
+        lay = QVBoxLayout(box)
+        # Mesh fuer CloudCompare (s. core/mesh.py)
+        lay.addWidget(QLabel("<b>CloudCompare</b>"))
+        form = _wrappable(QFormLayout())
+        d = _DEFAULT_SETTINGS
+        self._spin_mesh_voxel = QSpinBox()
+        self._spin_mesh_voxel.setRange(1, 50)
+        self._spin_mesh_voxel.setValue(d["mesh_voxel_cm"])
+        self._spin_mesh_voxel.setSuffix(" cm")
+        self._spin_mesh_voxel.setToolTip(
+            "Je Rasterzelle ein Punkt, bevor das Netz entsteht. Kleiner = feiner,\n"
+            "aber deutlich langsamer (5 cm: ganzer Flug ~1,5 min).")
+        self._spin_mesh_depth = QSpinBox()
+        self._spin_mesh_depth.setRange(8, 13)
+        self._spin_mesh_depth.setValue(d["mesh_depth"])
+        self._spin_mesh_depth.setToolTip(
+            "Poisson-Tiefe: 2^Tiefe Zellen über die größte Ausdehnung der Karte.\n"
+            "12 bei ~250 m sind ~6 cm; jede Stufe mehr halbiert die Zellen und\n"
+            "kostet etwa das Vierfache an Zeit und Speicher.")
+        self._chk_mesh_hybrid = QCheckBox("Laub als Punkte (Hybrid)")
+        self._chk_mesh_hybrid.setChecked(bool(d["mesh_hybrid"]))
+        self._chk_mesh_hybrid.setToolTip(
+            "Nur Flächen vernetzen — Boden, Wände, Dächer, Fahrzeuge. Laub, Masten\n"
+            "und Rohre bleiben Punkte: als Mesh würden sie zu Klumpen und Wülsten.\n"
+            "Aus: alles wird vernetzt.")
+        self._spin_mesh_trim = QSpinBox()
+        self._spin_mesh_trim.setRange(0, 30)
+        self._spin_mesh_trim.setValue(d["mesh_trim"])
+        self._spin_mesh_trim.setSuffix(" %")
+        self._spin_mesh_trim.setToolTip(
+            "Zusätzlich die Ecken mit der geringsten Punktdichte entfernen. Flächen\n"
+            "ohne Messung in der Nähe fallen ohnehin weg; mehr als 0 stanzt kleine\n"
+            "Löcher in gleichmäßig abgetastete Wände.")
+        for w in (self._spin_mesh_voxel, self._spin_mesh_depth, self._spin_mesh_trim):
+            w.valueChanged.connect(self._on_setting_changed)
+            w.valueChanged.connect(self._on_mesh_param_changed)
+        self._chk_mesh_hybrid.toggled.connect(self._on_setting_changed)
+        self._chk_mesh_hybrid.toggled.connect(self._on_mesh_param_changed)
+        form.addRow("Mesh-Raster:", self._spin_mesh_voxel)
+        form.addRow("Detail (Tiefe):", self._spin_mesh_depth)
+        form.addRow("Ränder kürzen:", self._spin_mesh_trim)
+        form.addRow(self._chk_mesh_hybrid)
+        lay.addLayout(form)
+        self._btn_mesh_cc = QPushButton("Mesh erzeugen und in CloudCompare zeigen")
+        self._btn_mesh_cc.setToolTip(
+            "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\n"
+            "Projektordner unter mesh/.")
+        self._btn_mesh_cc.clicked.connect(self._on_mesh_cloudcompare)
+        lay.addWidget(self._btn_mesh_cc)
+        return box
+
     # =============================================================== Mesh
 
     def _on_leiste_mesh(self, an: bool) -> None:

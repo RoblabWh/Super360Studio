@@ -1,18 +1,47 @@
 """Kamera-Kalibrierung (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _loading_ui.
+Schreibt am Hauptfenster: _btn_autocal, _btn_overlay, _ext_spins, _loading_ui.
 """
 from __future__ import annotations
 
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QFormLayout, QLabel, QMessageBox, QPushButton, QWidget
+
+from ui.bausteine import _wrappable
 
 _AUTOCAL_WEAK_SCORE = 0.30
 
 
 class KalibrierungMixin:
+    def _abschnitt_extrinsik(self) -> QWidget:
+        box = QWidget()
+        form = _wrappable(QFormLayout(box))
+        # Extrinsik: grob und fein je Wert — Winkel bis 0,005°, Versatz bis
+        # auf den Millimeter.
+        from ui.feinregler import FeinRegler, regler_grad
+        self._ext_spins: dict = {}
+        form.addRow(QLabel("<b>Extrinsik Kamera↔IMU</b>"))
+        for key, label, spin in (
+                ("yaw", "Yaw", regler_grad()),
+                ("pitch", "Pitch", regler_grad()),
+                ("roll", "Roll", regler_grad()),
+                ("x", "x", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
+                ("y", "y", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
+                ("z", "z", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm"))):
+            spin.valueChanged.connect(self._on_extrinsic_changed)
+            self._ext_spins[key] = spin
+            form.addRow(label, spin)
+
+        self._btn_autocal = QPushButton("Auto-Kalibrierung (grob)")
+        self._btn_autocal.clicked.connect(self._on_autocal_clicked)
+        self._btn_overlay = QPushButton("Overlay-Vorschau")
+        self._btn_overlay.clicked.connect(self._on_overlay_clicked)
+        form.addRow(self._btn_autocal)
+        form.addRow(self._btn_overlay)
+        return box
+
     # ============================================================== Extrinsik
 
     def _extrinsic_from_spins(self) -> np.ndarray:

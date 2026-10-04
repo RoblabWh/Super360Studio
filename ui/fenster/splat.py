@@ -36,7 +36,7 @@ def _splat_anker(welt, cfg, progress_cb, cancel, log_cb, von, bis) -> dict:
 
 
 class SplatMixin:
-    def _group_splat(self) -> QWidget:
+    def _abschnitt_splat(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         info = QLabel(

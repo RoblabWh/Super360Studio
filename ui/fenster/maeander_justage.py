@@ -88,8 +88,7 @@ class MaeanderJustageMixin:
 
     def _on_solo_changed(self) -> None:
         self._cloud_view.set_preview_solo(bool(self._chk_solo.isChecked()))
-        if hasattr(self, "_lbl_meander_lage"):
-            self._lbl_meander_lage.setText(self._meander_zustand_text())
+        self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._save_settings()
 
     def _meander_zustand_text(self) -> str:
@@ -308,8 +307,7 @@ class MaeanderJustageMixin:
                       f"Maßstab {e['thermal_faktor']:.4f}.")
         if self._cloud_view.has_color_preview():
             self._live_timer.start()     # sichtbare Vorschau auf die neue Lage
-        if hasattr(self, "_lbl_meander_lage"):
-            self._lbl_meander_lage.setText(self._meander_zustand_text())
+        self._lbl_meander_lage.setText(self._meander_zustand_text())
 
     def _on_meander_manual(self, optik: str = "rgb") -> None:
         """Handjustage anwenden und die Vorschau nachziehen.
@@ -401,8 +399,7 @@ class MaeanderJustageMixin:
                                 "an der Ausrichtung — Gier grob durchdrehen und "
                                 "auf die Trefferquote schauen.")
             self._log("WARNUNG: " + hinweis)
-        if hasattr(self, "_lbl_meander_lage"):
-            self._lbl_meander_lage.setText(self._meander_zustand_text())
+        self._lbl_meander_lage.setText(self._meander_zustand_text())
         self._status_lbl.setText(
             f"Vorschau {'Thermal' if thermal else 'RGB'}: Gier {yaw:.2f}°, "
             f"Versatz {t[0]:+.1f}/{t[1]:+.1f} m — "

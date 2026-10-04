@@ -1,10 +1,10 @@
 """360°-Einfärbung (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _blue_widgets, _btn_autocal, _btn_blue_defaults,
-_btn_blue_preview, _btn_colorize, _btn_overlay, _chk_blue, _chk_lens, _colors,
-_ext_spins, _lbl_blue_band, _loading_ui, _overlay_dialogs, _sld_blue_hi,
-_sld_blue_lo, _sld_blue_neutral, _sld_blue_sat, _sld_blue_val, _sld_bmax,
-_sld_bmin, _spin_edge, _spin_kframes, _spin_sky, _valid.
+Schreibt am Hauptfenster: _blue_widgets, _btn_blue_defaults, _btn_blue_preview,
+_btn_colorize, _chk_blue, _chk_lens, _colors, _lbl_blue_band, _loading_ui,
+_overlay_dialogs, _sld_blue_hi, _sld_blue_lo, _sld_blue_neutral, _sld_blue_sat,
+_sld_blue_val, _sld_bmax, _sld_bmin, _spin_edge, _spin_kframes, _spin_sky,
+_valid.
 """
 from __future__ import annotations
 
@@ -94,7 +94,7 @@ class EinfaerbungMixin:
         self._zeige_bild(f"Blaumaske — Frame {frame_idx}: {100.0 * anteil:.1f} % "
                          f"der Pixel gelten als Blaulicht", bild)
 
-    def _group_colorize(self) -> QWidget:
+    def _abschnitt_einfaerbung(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._sld_bmin, _, row_min = self._slider_row(0, 255, 20)
@@ -196,30 +196,8 @@ class EinfaerbungMixin:
                               self._btn_blue_preview)
         self._update_blue_widgets()
 
-        # Extrinsik: grob und fein je Wert — Winkel bis 0,005°, Versatz bis
-        # auf den Millimeter.
-        from ui.feinregler import FeinRegler, regler_grad
-        self._ext_spins: dict = {}
-        form.addRow(QLabel("<b>Extrinsik Kamera↔IMU</b>"))
-        for key, label, spin in (
-                ("yaw", "Yaw", regler_grad()),
-                ("pitch", "Pitch", regler_grad()),
-                ("roll", "Roll", regler_grad()),
-                ("x", "x", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
-                ("y", "y", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
-                ("z", "z", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm"))):
-            spin.valueChanged.connect(self._on_extrinsic_changed)
-            self._ext_spins[key] = spin
-            form.addRow(label, spin)
-
-        self._btn_autocal = QPushButton("Auto-Kalibrierung (grob)")
-        self._btn_autocal.clicked.connect(self._on_autocal_clicked)
-        self._btn_overlay = QPushButton("Overlay-Vorschau")
-        self._btn_overlay.clicked.connect(self._on_overlay_clicked)
         self._btn_colorize = QPushButton("Einfärben")
         self._btn_colorize.clicked.connect(self._on_colorize_clicked)
-        form.addRow(self._btn_autocal)
-        form.addRow(self._btn_overlay)
         form.addRow(self._btn_colorize)
         return box
 

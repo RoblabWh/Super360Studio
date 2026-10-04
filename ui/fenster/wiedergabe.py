@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 
 class WiedergabeMixin:
-    def _group_rviz(self) -> QWidget:
+    def _abschnitt_wiedergabe(self) -> QWidget:
         box = QWidget()
         lay = QVBoxLayout(box)
         lay.addWidget(QLabel("Spielt den geöffneten Bag in RViz ab."))
@@ -31,10 +31,10 @@ class WiedergabeMixin:
         self._lbl_rviz = QLabel("Gestoppt")
         lay.addWidget(self._lbl_rviz)
         # Knopfzustand an der echten Prozesslage ausrichten (der Player kann
-        # auch von selbst enden, wenn der Bag durchgelaufen ist).
+        # auch von selbst enden, wenn der Bag durchgelaufen ist). Gestartet
+        # wird der Takt am Ende von _build_ui.
         self._rviz_timer = QTimer(self)
         self._rviz_timer.timeout.connect(self._refresh_rviz_state)
-        self._rviz_timer.start(700)
         return box
 
     def _refresh_rviz_state(self) -> None:

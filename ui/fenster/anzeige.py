@@ -49,7 +49,7 @@ _BG_ITEMS = (("Dunkel", "dunkel"), ("Hell", "hell"))
 
 
 class AnzeigeMixin:
-    def _group_display(self) -> QWidget:
+    def _abschnitt_anzeige(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._spin_pointsize = QDoubleSpinBox()
@@ -87,7 +87,10 @@ class AnzeigeMixin:
         form.addRow("Hintergrund:", self._combo_bg)
         self._chk_edl = QCheckBox("EDL (Eye-Dome Lighting)")
         self._chk_edl.toggled.connect(self._on_display_changed)
-        # Verfügbarkeit wird nach dem Bau der CloudView geprüft (s. _build_ui).
+        if not self._cloud_view.edl_available:
+            self._chk_edl.setEnabled(False)
+            self._chk_edl.setToolTip(
+                "EDL wird von dieser VTK-Installation nicht unterstützt.")
         form.addRow(self._chk_edl)
         self._chk_path = QCheckBox("Trajektorie zeigen")
         self._chk_path.toggled.connect(self._on_display_changed)
@@ -95,8 +98,7 @@ class AnzeigeMixin:
         return box
 
     def _sync_after_display(self) -> None:
-        if hasattr(self, "_actions"):
-            self._sync_menu_state()
+        self._sync_menu_state()
 
     def _push_display_settings(self) -> None:
         cv = self._cloud_view
@@ -144,8 +146,7 @@ class AnzeigeMixin:
                     self._loading_ui = False
                     self._layer_key = ebene
                     self._apply_layer()
-                    if hasattr(self, "_actions"):
-                        self._fill_layer_menu()
+                    self._fill_layer_menu()
             modus = "rgb"
         else:
             modus = key
@@ -277,8 +278,7 @@ class AnzeigeMixin:
         finally:
             self._loading_ui = False
         self._apply_layer()
-        if hasattr(self, "_actions"):
-            self._fill_layer_menu()
+        self._fill_layer_menu()
 
     def _fill_layer_menu(self) -> None:
         menubar_mod.fill_radio_menu(
@@ -371,6 +371,11 @@ class AnzeigeMixin:
         if edl is not None:
             still_setzen(edl, self._chk_edl.isChecked())
 
+    def _sync_tab_menu(self, index: int) -> None:
+        """Haken unter Ansicht ▸ Bereich auf den gezeigten Reiter setzen."""
+        for act in self._actions["menu_tab"].actions():
+            act.setChecked(act.data() == index)
+
     def _on_menu_background(self, data) -> None:
         self._waehle(self._combo_bg, data)
 
@@ -380,7 +385,7 @@ class AnzeigeMixin:
 
     def _set_sidebar_visible(self, on: bool) -> None:
         self._sidebar_scroll.setVisible(bool(on))
-        act = self._actions.get("sidebar") if hasattr(self, "_actions") else None
+        act = self._actions.get("sidebar")
         if act is not None:
             still_setzen(act, bool(on))
 
@@ -435,7 +440,7 @@ class AnzeigeMixin:
         self._sync_preview_action()
 
     def _sync_preview_action(self) -> None:
-        act = self._actions.get("preview") if hasattr(self, "_actions") else None
+        act = self._actions.get("preview")
         if act is None:
             return
         still_setzen(act, self._cloud_view.preview_visible())

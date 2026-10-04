@@ -46,7 +46,7 @@ def _karten_zeile(n_scans, erwartet, n_points, drops) -> str:
 
 
 class ProjektMixin:
-    def _group_rosbag(self) -> QWidget:
+    def _abschnitt_aufnahme(self) -> QWidget:
         box = QWidget()
         lay = QVBoxLayout(box)
         self._btn_open = QPushButton("Bag öffnen…")
@@ -64,7 +64,7 @@ class ProjektMixin:
         lay.addWidget(self._info_table)
         return box
 
-    def _group_fastlio(self) -> QWidget:
+    def _abschnitt_karte(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._combo_config = _compact_combo(QComboBox())

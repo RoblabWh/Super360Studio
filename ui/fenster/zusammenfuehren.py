@@ -28,7 +28,7 @@ from ui.bausteine import _wrappable, still_setzen
 
 
 class ZusammenfuehrenMixin:
-    def _group_merge(self) -> QWidget:
+    def _abschnitt_zusammen(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._btn_merge_pick = QPushButton("Zweiten Flug wählen …")
@@ -94,9 +94,8 @@ class ZusammenfuehrenMixin:
         self._merge_T_kipp = np.eye(4)
         self._merge_kipp_grad = None
         self._cloud_view.set_preview_cloud(None)
-        if hasattr(self, "_lbl_merge"):
-            self._lbl_merge.setText("Kein zweiter Flug geladen.")
-            self._merge_spins_null()
+        self._lbl_merge.setText("Kein zweiter Flug geladen.")
+        self._merge_spins_null()
 
     def _merge_T_from_spins(self) -> np.ndarray:
         """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben.

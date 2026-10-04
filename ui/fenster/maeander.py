@@ -21,7 +21,7 @@ from ui.bausteine import _wrappable, still_setzen
 
 
 class MaeanderMixin:
-    def _group_meander(self) -> QWidget:
+    def _abschnitt_maeander(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
         self._btn_meander_pick = QPushButton("Mäanderflug wählen …")

@@ -22,7 +22,7 @@ import numpy as np
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
-    QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit, QProgressBar,
+    QFormLayout, QHBoxLayout, QLabel, QMainWindow, QPlainTextEdit, QProgressBar,
     QPushButton, QScrollArea, QSplitter, QTabWidget, QVBoxLayout, QWidget,
     QApplication,
 )
@@ -41,7 +41,7 @@ except ImportError:  # direkter Skript-Start: Paketwurzel nachrüsten
     from core.recording import Recording
     from core.rviz_player import RvizPlayer
 
-from ui.bausteine import _ImageDialog
+from ui.bausteine import _ImageDialog, einmal_timer
 from ui.cloud_view import CloudView
 from ui.collapsible import SectionStack
 from ui.explorationsgrad import ExplorationsgradAnzeige
@@ -114,8 +114,13 @@ class MainWindow(GrundgeruestMixin,
         # 360-Kamera, die beiden anderen aus dem Maeanderflug.
         self._layers: dict = {}
         self._layer_key = "onboard"
+        # Farbmodus und Punktgroesse der 3D-Ansicht
+        self._color_mode = "rgb"
+        self._point_size = 2.0
         self._meander_pipe = None
         self._meander_dir: Optional[str] = None
+        # Ausrichtfenster des Maeanderflugs, zuletzt geoeffnet (s. _on_meander_fenster)
+        self._meander_fenster = None
         # Live-Vorschau der Handjustage: verkleinerte Bilder im Speicher
         # plus eine Stichprobe der Wolke. Ein Durchlauf kostet damit rund
         # 80 ms statt Minuten, die Wolke folgt dem Regler.
@@ -124,10 +129,7 @@ class MainWindow(GrundgeruestMixin,
         self._live_optik = "rgb"       # welche Optik die Vorschau gerade zeigt
         self._live_pts: Optional[np.ndarray] = None
         self._live_gemeckert = False   # Warnung bei 0 % nur einmal je Sitzung
-        self._live_timer = QTimer(self)
-        self._live_timer.setSingleShot(True)
-        self._live_timer.setInterval(120)
-        self._live_timer.timeout.connect(self._live_update)
+        self._live_timer = einmal_timer(self, 120, self._live_update)
         # Optik der Maeanderkameras: Massstab je Optik, Thermal-Einmessung
         self._optik: dict = {"rgb_faktor": 1.0, "thermal_faktor": 1.0, "thermal": None}
         # Temperatur je Punkt aus der Thermal-Mäanderebene (°C, NaN wo keine)
@@ -138,15 +140,10 @@ class MainWindow(GrundgeruestMixin,
         self._auto_kette = False
         self._optik_neu_messen = False   # frisch ausgerichtet: Hoehe gilt nicht mehr
         # Schieber am zweiten Flug: erst nach kurzer Ruhe neu transformieren
-        self._merge_timer = QTimer(self)
-        self._merge_timer.setSingleShot(True)
-        self._merge_timer.setInterval(60)
-        self._merge_timer.timeout.connect(self._on_merge_manual)
+        self._merge_timer = einmal_timer(self, 60, self._on_merge_manual)
         # RGB-Handzuschlag: kurz nach dem letzten Zug ins Projekt schreiben
-        self._zuschlag_timer = QTimer(self)
-        self._zuschlag_timer.setSingleShot(True)
-        self._zuschlag_timer.setInterval(400)
-        self._zuschlag_timer.timeout.connect(lambda: self._meander_speichere_zuschlag())
+        self._zuschlag_timer = einmal_timer(
+            self, 400, lambda: self._meander_speichere_zuschlag())
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)
@@ -173,9 +170,7 @@ class MainWindow(GrundgeruestMixin,
         self._mesh_farbcache: dict = {}
         self._mesh_wartet = False
         self._mesh_laeuft = False
-        self._mesh_timer = QTimer(self)
-        self._mesh_timer.setSingleShot(True)
-        self._mesh_timer.setInterval(1500)
+        self._mesh_timer = einmal_timer(self, 1500)
         self._overlay_dialogs: list[_ImageDialog] = []
         self.rvizLog.connect(self._log)
         self._rviz_player = RvizPlayer(log_cb=self.rvizLog.emit)
@@ -203,6 +198,39 @@ class MainWindow(GrundgeruestMixin,
     # ================================================================== UI-Bau
 
     def _build_ui(self) -> None:
+        # ------------------------------------------------- Aktionen und Menü
+        # Zuerst: so steht jede Aktion schon, wenn die Seitenleiste entsteht.
+        self._actions = menubar_mod.build(self)
+        # Explorationsgrad ganz oben rechts: in der Ecke der Menueleiste steht
+        # er ueber allen Bereichen und bleibt beim Tabwechsel stehen.
+        self._grad_anzeige = ExplorationsgradAnzeige(self)
+        self._grad_anzeige.angeklickt.connect(self._on_exploration_zeigen)
+        self.menuBar().setCornerWidget(self._grad_anzeige, Qt.TopRightCorner)
+
+        # -------------------------------------------------------------- Tabs
+        self._tabs = QTabWidget(self)
+        self._cloud_view = CloudView(self)
+        # 3D-Ansicht plus Auslese-Zeile fuers Messen darunter
+        karte = QWidget(self)
+        karte_lay = QVBoxLayout(karte)
+        karte_lay.setContentsMargins(0, 0, 0, 0)
+        karte_lay.setSpacing(2)
+        karte_lay.addWidget(self._cloud_view, 1)
+        self._mess_lbl = QLabel("", self)
+        self._mess_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self._mess_lbl.setStyleSheet("padding: 2px 6px;")
+        karte_lay.addWidget(self._mess_lbl, 0)
+        self._pano_view = PanoView(self)
+        self._gps_panel = GpsPanel(self)
+        self._log_edit = QPlainTextEdit(self)
+        self._log_edit.setReadOnly(True)
+        self._log_edit.setMaximumBlockCount(20000)
+        self._tabs.addTab(karte, "3D-Karte")
+        self._tabs.addTab(self._pano_view, "360°-Video")
+        self._tabs.addTab(self._gps_panel, "GPS")
+        self._tabs.addTab(self._log_edit, "Protokoll")
+
+        # ------------------------------------------------------ Seitenleiste
         central = QWidget(self)
         root = QHBoxLayout(central)
         root.setContentsMargins(6, 6, 6, 6)
@@ -217,43 +245,28 @@ class MainWindow(GrundgeruestMixin,
         # Breite am BREITESTEN Abschnitt messen, nicht am Stapel: dessen
         # sizeHint bleibt hinter seinen Kindern zurueck (die Kopfzeilen duerfen
         # sich dehnen), und die Leiste waere dann zu schmal. Zugeklappte
-        # Abschnitte zaehlen mit, sonst haengt die Breite davon ab, was beim
-        # Start zufaellig offen ist.
-        need = 0
-        for sec in self._sections._sections.values():
+        # Abschnitte und Unterbloecke zaehlen mit, sonst haengt die Breite davon
+        # ab, was beim Start zufaellig offen ist. Dazu muessen die breiteste
+        # Beschriftung und das breiteste Feld der Formulare nebeneinander
+        # passen, gleich in welchem Abschnitt sie stehen: sonst haengt die
+        # Breite davon ab, wie die Zeilen auf die Abschnitte verteilt sind.
+        need = kopf = feld = rand = 0
+        for sec in self._sections.sections(mit_unterbloecken=True):
             need = max(need, sec.content().sizeHint().width())
+            for form in sec.content().findChildren(QFormLayout):
+                m = form.contentsMargins()
+                rand = max(rand, m.left() + max(0, form.horizontalSpacing()) + m.right())
+                for zeile in range(form.rowCount()):
+                    k = form.itemAt(zeile, QFormLayout.LabelRole)
+                    f = form.itemAt(zeile, QFormLayout.FieldRole)
+                    if k is not None and f is not None:
+                        kopf = max(kopf, k.sizeHint().width())
+                        feld = max(feld, f.sizeHint().width())
+        need = max(need, kopf + feld + rand)
         need += self._sidebar_scroll.verticalScrollBar().sizeHint().width() + 26
         self._sidebar_breite = max(400, min(720, need))
         self._sidebar_scroll.setMinimumWidth(300)
         self._sidebar_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self._tabs = QTabWidget(self)
-        self._cloud_view = CloudView(self)
-        # 3D-Ansicht plus Auslese-Zeile fuers Messen darunter
-        karte = QWidget(self)
-        karte_lay = QVBoxLayout(karte)
-        karte_lay.setContentsMargins(0, 0, 0, 0)
-        karte_lay.setSpacing(2)
-        karte_lay.addWidget(self._cloud_view, 1)
-        self._mess_lbl = QLabel("", self)
-        self._mess_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self._mess_lbl.setStyleSheet("padding: 2px 6px;")
-        karte_lay.addWidget(self._mess_lbl, 0)
-        # EDL-Verfügbarkeit lässt sich erst mit existierender CloudView bestimmen
-        # (die Sidebar samt Checkbox wird oben vor der CloudView gebaut).
-        if not self._cloud_view.edl_available:
-            self._chk_edl.setEnabled(False)
-            self._chk_edl.setToolTip(
-                "EDL wird von dieser VTK-Installation nicht unterstützt.")
-        self._pano_view = PanoView(self)
-        self._gps_panel = GpsPanel(self)
-        self._log_edit = QPlainTextEdit(self)
-        self._log_edit.setReadOnly(True)
-        self._log_edit.setMaximumBlockCount(20000)
-        self._tabs.addTab(karte, "3D-Karte")
-        self._tabs.addTab(self._pano_view, "360°-Video")
-        self._tabs.addTab(self._gps_panel, "GPS")
-        self._tabs.addTab(self._log_edit, "Protokoll")
         # Arbeitsfläche links, Bedienung rechts — der Splitter lässt die
         # Seitenleiste in der Breite ziehen, Ctrl+B blendet sie ganz aus.
         self._splitter = QSplitter(Qt.Horizontal, self)
@@ -265,17 +278,9 @@ class MainWindow(GrundgeruestMixin,
         self._splitter.setSizes([1200, self._sidebar_breite])
         root.addWidget(self._splitter, 1)
         self.setCentralWidget(central)
-
-        # ------------------------------------------------------- Menüleiste
-        self._actions = menubar_mod.build(self)
-        # Explorationsgrad ganz oben rechts: in der Ecke der Menueleiste steht
-        # er ueber allen Bereichen und bleibt beim Tabwechsel stehen.
-        self._grad_anzeige = ExplorationsgradAnzeige(self)
-        self._grad_anzeige.angeklickt.connect(self._on_exploration_zeigen)
-        self.menuBar().setCornerWidget(self._grad_anzeige, Qt.TopRightCorner)
-        self._fill_view_menus()
-        self._refresh_layer_combo()   # ohne Projekt: 'keine Einfärbung'
-        self._sync_preview_action()
+        # Die Fokuskette folgt der Bauordnung, darin stehen die Reiter vorn;
+        # den Tastaturfokus beim Start bekommt trotzdem die Seitenleiste.
+        self._sidebar_scroll.setFocus()
 
         # ------------------------------------------------------ Statusleiste
         sb = self.statusBar()
@@ -292,6 +297,13 @@ class MainWindow(GrundgeruestMixin,
         self._btn_cancel.clicked.connect(self._on_cancel)
         sb.addPermanentWidget(self._btn_cancel)
 
+        # ------------------------------------------------- Signalverdrahtung
+        # Menue mit der Seitenleiste gleichziehen; der Haken unter
+        # Ansicht ▸ Bereich folgt dem gezeigten Reiter.
+        self._fill_view_menus()
+        self._refresh_layer_combo()   # ohne Projekt: 'keine Einfärbung'
+        self._sync_preview_action()
+        self._tabs.currentChanged.connect(self._sync_tab_menu)
         self._cloud_view.measured.connect(self._on_measured)
         # Leiste ueber der 3D-Ansicht: gleiche Wirkung wie Seitenleiste und Menue
         self._cloud_view.farbmodus_gewaehlt.connect(self._on_farbleiste)
@@ -303,18 +315,25 @@ class MainWindow(GrundgeruestMixin,
         self._pano_view.frameChanged.connect(self._on_pano_frame)
         self._gps_panel.georefReady.connect(self._on_georef_ready)
 
+        # -------------------------------------------------------- Timerstart
+        # Die RViz-Knoepfe folgen der Prozesslage erst, wenn alles steht.
+        self._rviz_timer.start(700)
+
     # Reihenfolge der Seitenleiste: der Arbeitsablauf von oben nach unten,
-    # nicht die Reihenfolge, in der die Teile entstanden sind.
+    # nicht die Reihenfolge, in der die Teile entstanden sind. Nummern tragen
+    # nur die Schritte des Ablaufs; Anzeige und Wiedergabe folgen ohne.
     _SECTIONS = (
-        ("aufnahme", "1 · Aufnahme", "_group_rosbag", True),
-        ("karte", "2 · Karte (FAST-LIO2)", "_group_fastlio", True),
-        ("einfaerbung", "3 · Einfärbung (360°-Kamera)", "_group_colorize", True),
-        ("maeander", "4 · Mäander-Einfärbung", "_group_meander", False),
-        ("splat", "5 · Gaussian Splat (GPU)", "_group_splat", False),
-        ("zusammen", "6 · Zusammenführen", "_group_merge", False),
-        ("anzeige", "7 · Anzeige", "_group_display", True),
-        ("wiedergabe", "8 · Wiedergabe (RViz)", "_group_rviz", False),
-        ("export", "9 · Export", "_group_export", True),
+        ("aufnahme", "1 · Aufnahme", "_abschnitt_aufnahme", True),
+        ("karte", "2 · Karte (FAST-LIO2)", "_abschnitt_karte", True),
+        ("extrinsik", "3 · Kamera-Kalibrierung", "_abschnitt_extrinsik", False),
+        ("zusammen", "4 · Zusammenführen (optional)", "_abschnitt_zusammen", False),
+        ("einfaerbung", "5 · Einfärbung (360°-Kamera)", "_abschnitt_einfaerbung", True),
+        ("maeander", "6 · Mäander-Einfärbung", "_abschnitt_maeander", False),
+        ("splat", "7 · Gaussian Splat und Fusion", "_abschnitt_splat", False),
+        ("mesh", "8 · Mesh", "_abschnitt_mesh", False),
+        ("export", "9 · Export", "_abschnitt_export", True),
+        ("anzeige", "Anzeige", "_abschnitt_anzeige", True),
+        ("wiedergabe", "Wiedergabe (RViz)", "_abschnitt_wiedergabe", False),
     )
 
     def _build_sidebar(self) -> QWidget:
