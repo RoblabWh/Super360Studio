@@ -14,10 +14,12 @@ Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
    Double-Sphere-Kalibrierung aus `Super360_Stitcher_rosbag`) und spielt sie ab
    (Zoom aufs Mausrad, Pan, Frame-genaues Springen, 180°-Drehung).
 3. **Einfärbung** — färbt die Punktwolke aus den 360°-Bildern ein; zu dunkle /
-   zu helle Pixel (Sliders „Helligkeit min/max") werden ausgefiltert, nicht
-   eingefärbte Punkte lassen sich ausblenden („Nur eingefärbte Punkte").
-   Kamera-Extrinsik: grobe Auto-Kalibrierung + manuelle Feinjustage
-   (Yaw/Pitch/Roll/x/y/z) mit Overlay-Vorschau.
+   zu helle Pixel (Schieber „Helligkeit von“ / „Helligkeit bis“) werden
+   ausgefiltert, nicht eingefärbte Punkte lassen sich ausblenden („Nur eingefärbte
+   Punkte").
+   Kamera-Extrinsik: grobe Kamera-Kalibrierung („Automatisch kalibrieren (grob)“)
+   + manuelle Feinjustage (Gier/Nick/Roll/X/Y/Z), Sichtprüfung mit
+   „Überlagerung prüfen“.
 4. **GPS** — prüft IMMER die Signalqualität (fix_type, Satelliten, eph/HDOP,
    Kovarianz, Bewegungs-Baseline; Sentinel-Werte werden erkannt). Nur bei
    brauchbarem Signal wird die LIO-Trajektorie per gewichteter
@@ -28,17 +30,26 @@ Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
 
 ## Bedienung im Überblick
 
-Oben die Menüleiste (**Datei**, **Ändern**, **Ansicht**, **Werkzeuge**, **Hilfe**),
+Oben die Menüleiste (**Datei**, **Ablauf**, **Ansicht**, **Werkzeuge**, **Hilfe**),
 rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
-klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. `Strg+B`
-blendet die Leiste ganz aus, der Trenner dazwischen lässt sich ziehen. Welche
+klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. Welche
 Abschnitte offen sind, merkt sich das Projekt.
+
+Die Seitenleiste ist frei in der Breite: am Trenner zur 3D-Ansicht ziehen, die
+gezogene Breite bleibt erhalten (für alle Projekte). Breitere Leiste, breitere
+Felder; wird sie schmal, rücken Knöpfe untereinander, und was dann noch nicht
+passt, erreicht eine waagerechte Scrollleiste. `Strg+B` (**Ansicht → Seitenleiste**)
+blendet sie ganz aus.
 
 Ganz oben rechts steht der **Explorationsgrad** des offenen Fluges — wie viel des
 Zielgebiets die Drohne im Explorationsmodus gesehen hat (s. unten).
 
-Kurzbefehle: `Strg+O` öffnen, `Strg+I` Projektordner öffnen, `F5` Karte,
-`F6` einfärben, `F7` Mäander, `M` messen, `R` Kamera zurück, `Esc` Messung weg, `Strg+H` Höhenschnitt aufheben, `Strg+E` Export.
+Kurzbefehle: `Strg+O` Rosbag öffnen, `Strg+Umschalt+P` Projekt aus dem Cache,
+`Strg+I` exportiertes Projekt öffnen, `Strg+Umschalt+O` zweiten Flug laden,
+`F5` Karte berechnen, `F6` einfärben (360°-Kamera), `F7` Mäander einfärben,
+`M` messen, `R` Ansicht zurücksetzen, `Esc` Messung weg, `Strg+H` Höhenschnitt
+aufheben, `Strg+E` PLY/PCD speichern, `Strg+Umschalt+E` Projekt exportieren,
+`Strg+P` 3D-Ansicht als Bild, `Strg+B` Seitenleiste, `Strg+Q` beenden.
 
 ## Vor dem ersten Start
 
@@ -149,6 +160,9 @@ python3 -m core.meander        # jedes Modul in core/ und ui/ hat einen Selbstte
 ./run_gui.sh          # oder: python3 app.py
 ```
 
+Nur so startet die App; das Modul des Hauptfensters lässt sich nicht mehr
+direkt aufrufen.
+
 Kein ROS-Sourcing nötig — die GUI liest Bags über die `rosbags`-Bibliothek;
 nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 (`/opt/ros/humble`, `~/ws_livox`, `~/fastlio2_ws`).
@@ -156,19 +170,29 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 Projekte liegen im Cache unter `~/RosBagSuper_Gui/rosbag_suite/cache`, umzuhängen
 mit der Umgebungsvariable `SUPER360_CACHE_ROOT`.
 
-## Bedienung (Pipeline in der Sidebar)
+## Bedienung (Ablauf in der Seitenleiste)
 
-1. **Bag öffnen…** — Bag-Ordner wählen (z. B.
+Die Abschnitte der Seitenleiste stehen in dieser Reihenfolge; dieselben Befehle
+liegen im Menü **Ablauf** (Öffnen und Export unter **Datei**).
+
+1. **Aufnahme** — **Rosbag öffnen …**: Bag-Ordner wählen (z. B.
    `rosbag_2026-07-11_15-37-07_seg0`). Vorhandene Cache-Artefakte
    (Karte/Farben/Panoramen) werden automatisch geladen.
-2. **Karte berechnen** — FAST-LIO2-Lauf (Dauer ≈ Bag-Länge / Abspielrate).
-   Es darf nur eine Instanz laufen (Instanz-Sperre); alte FAST-LIO-Prozesse
-   werden vorher beendet.
-3. **Einfärben** — erst ggf. „Auto-Kalibrierung (grob)", Overlay-Vorschau
-   prüfen, dann „Einfärben".
-4. **Zusammenführen** — zweiten Flug dazuladen und beide Karten zu einer machen.
-5. **GPS-Tab** — Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
-6. **Export** — berücksichtigt „Nur eingefärbte Punkte".
+2. **Karte (FAST-LIO2)** — **Karte berechnen**: FAST-LIO2-Lauf (Dauer ≈
+   Bag-Länge / Abspielrate). Es darf nur eine Instanz laufen (Instanz-Sperre);
+   alte FAST-LIO-Prozesse werden vorher beendet.
+3. **Kamera-Kalibrierung** — ggf. „Automatisch kalibrieren (grob)“, mit
+   „Überlagerung prüfen“ nachsehen.
+4. **Zusammenführen (optional)** — zweiten Flug dazuladen und beide Karten zu
+   einer machen.
+5. **Einfärbung (360°-Kamera)** — „Einfärben“.
+6. **Mäander-Einfärbung** — aus den Bildern eines DJI-Kartierungsfluges, s. unten.
+7. **Gaussian Splat und Fusion** — s. unten.
+8. **Mesh** — Dreiecksnetz der Wolke für CloudCompare.
+9. **Export** — berücksichtigt „Nur eingefärbte Punkte".
+
+Dazu die Abschnitte **Anzeige** und **Wiedergabe (RViz)**. Der Reiter **GPS**
+zeigt Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 
 ## Explorationsgrad
 
@@ -244,13 +268,16 @@ Oben liegt die **Leiste** wie dort:
 
 * **Farbe** — Einheitsfarbe, Intensität, Höhe, RGB Onboard, RGB Mäander,
   Thermal Mäander, dazu dieselben Quellen aus dem Gaussian Splat. Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
-  ist ausgegraut. Seitenleiste und Menü ziehen mit.
+  ist ausgegraut. Das Menü **Ansicht → Farbe** zieht mit.
 * **Punkte** — 0,5 bis 10 px in Viertelschritten. Gebrochene Größen wirken
   wirklich (bei 1 / 1,5 / 2 px gemessen 18,6 / 22,2 / 23,4 % bedeckte Pixel).
 * **Messen** und **Ansicht zurücksetzen**.
 * **Temperatur anzeigen** (Standard an) — über einem Punkt zeigt die Maus
   seine Temperatur, **in jedem Farbmodus**, sobald es eine Thermal-Mäander-Ebene
   mit Temperaturen gibt.
+
+Ist die 3D-Ansicht schmal, bricht die Leiste in weitere Reihen um; der
+Bedienhinweis am rechten Ende kürzt sich und verschwindet zuletzt ganz.
 
 ### Temperaturen
 
@@ -335,40 +362,29 @@ Bild fällt.
 
 Die Bewertung der Kandidaten liegt eng beieinander — in einem gemessenen Fall
 gewann 154,53° mit 0,291 gegen die richtigen 92,35° mit 0,289. Wenn das
-passiert: den Gierwinkel von Hand auf den Wert der Grobsuche ziehen (der steht
-mit im Protokoll) und erneut ausrichten.
+passiert: unter **Im Fenster justieren …** den Gierwinkel von Hand auf den Wert
+der Grobsuche ziehen (der steht mit im Protokoll), **Lage übernehmen** und
+danach **Feinausrichten** – es setzt bei der übernommenen Lage an. Ein erneutes
+**Ausrichten** liest die gespeicherte Lage nur wieder ein; neu gesucht wird erst,
+wenn die gespeicherte Lage (`align.json`) fehlt.
 
 **Thermal** braucht keine zweite Rekonstruktion: beide Optiken sitzen auf
 derselben Gimbal und lösen zusammen aus, nur die Brennweite ist eine andere.
 
-**Die Handjustage wirkt erst nach dem Ausrichten.** Die Regler sind ein Zuschlag
-auf die gefundene Lage — solange es keine gibt, sind sie ausgegraut, und unter
-ihnen steht, was fehlt. Reihenfolge also: Flug wählen → **Ausrichten** →
-justieren → **Einfärben**.
+**Die Handjustage wirkt erst nach dem Ausrichten.** Sie ist ein Zuschlag auf
+die gefundene Lage — solange es keine gibt, ist der Knopf **Im Fenster
+justieren …** ausgegraut, und darunter sagt der Lagetext, was fehlt. Reihenfolge
+also: Flug wählen → **Ausrichten** → justieren → **Einfärben**.
 
-**Die Handjustage wirkt live.** Nach dem Ausrichten lädt das Programm die
-Bilder einmal stark verkleinert in den Speicher (255 Stück in gut drei
-Sekunden, rund 40 MB) und färbt damit eine Stichprobe von 50.000 Punkten. Jeder
-Zug an Gier, X oder Y färbt diese Stichprobe neu ein und legt sie über die
-Karte — ein Durchlauf dauert etwa 90 ms, die Wolke folgt dem Regler also ohne
-Verzögerung. In der Statuszeile stehen dabei Winkel, Versatz und wie viel
-Prozent der Stichprobe getroffen wurde. Beim Einfärben wird die eingestellte
-Lage übernommen und die Vorschau geräumt.
+Nach dem Ausrichten lädt das Programm die Bilder einmal stark verkleinert in den
+Speicher (255 Stück in gut drei Sekunden, rund 40 MB) — für die Farbvorschau im
+Ausrichtfenster. Die Karte im Hauptfenster bleibt beim Justieren unverändert.
 
-**Während der Justage ist die volle Karte ausgeblendet** und nur die Stichprobe
-zu sehen. Das ist Absicht: 50.000 Punkte sind bei einer Karte aus 24 Millionen
-zwei Promille — als Staub darüber gestreut wäre von einer Farbänderung nichts zu
-erkennen. Allein gezeigt ist die Stichprobe die ganze Ansicht, und jeder
-Reglerzug ist sofort sichtbar.
+### Im Fenster justieren (Ausrichtfenster)
 
-Der Haken **„Während der Justage nur die Vorschau zeigen"** schaltet das ab;
-dann liegen beide übereinander.
-
-### Überlagern und justieren (eigenes Fenster)
-
-**„Überlagern und justieren …"** öffnet ein eigenes Fenster, in dem beide Wolken
-übereinander liegen — so wie in der Pipeline. Das Hauptfenster bleibt dabei
-unberührt.
+**„Im Fenster justieren …"** öffnet ein eigenes Fenster, in dem beide Wolken
+übereinander liegen — so wie in der Pipeline. Nur hier wird von Hand
+justiert; das Hauptfenster bleibt dabei unberührt.
 
 | Ansicht | was zu sehen ist |
 |---|---|
@@ -388,8 +404,7 @@ wirken sofort. Unter dem Bild stehen Winkel, Versatz und — je nach Ansicht —
 Abstand der Schwerpunkte oder die Trefferquote. Wer an einem Thermalregler
 dreht, bekommt die Thermal-Farbvorschau. **Lage übernehmen** schreibt beide
 Lagen zurück ins Hauptfenster, **zurücksetzen** stellt die Lage beim Öffnen
-wieder her. Ein Handzuschlag aus dem Hauptfenster wird beim Öffnen verrechnet,
-das Fenster setzt auf der Lage auf, die man gerade sieht.
+wieder her.
 
 Gezeichnet wird als **Bild**, nicht mit einem zweiten 3D-Fenster. Zwei
 OpenGL-Kontexte in einer Anwendung sind je nach Grafiktreiber und Sitzung eine
@@ -427,8 +442,9 @@ Minute) misst das nacheinander ein, siehe `core/optik.py`:
    Hauptpunkt, Verzeichnung und Schielwinkel, über die Transinformation der
    Grauwerte. Geprüft an Bildpaaren, die nicht zum Einmessen dienten.
 
-Das Ergebnis liegt in `meander/optik_kalibrierung.json`, die Maßstab-Regler
-zeigen es, Einfärben und Vorschau benutzen es. ODM/WebODM wurde erwogen und
+Das Ergebnis liegt in `meander/optik_kalibrierung.json`; der Maßstab steht im
+Lagetext der Seitenleiste und an den Maßstab-Reglern im Ausrichtfenster,
+Einfärben und Farbvorschau benutzen es. ODM/WebODM wurde erwogen und
 verworfen: die M30T ist dort nicht unterstützt, eine gekoppelte Verarbeitung von
 Weitwinkel und Thermal gibt es nicht, und SfM auf reinen Thermalbildern scheitert
 an texturarmen Dächern.
@@ -463,7 +479,7 @@ Bisher bekam jeder Punkt die Farbe aus dem Bild, in dem er am nächsten zur
 Bildmitte lag. Von einer Wand sieht dieses Bild aber nichts — davor liegt das
 Dach. Das Dachmuster lief die Wände hinunter.
 
-Mit **„Beim Einfärben Sichtbarkeit prüfen“** (Standard, `core/sichtbar.py`):
+Mit **„Beim Einfärben Sichtbarkeit prüfen (Wände)“** (Standard, `core/sichtbar.py`):
 
 1. Je Kamera wird aus der Karte eine Tiefenkarte gerechnet; ein Punkt bekommt
    nur Farbe aus Bildern, in denen er nicht verdeckt ist.
@@ -477,53 +493,51 @@ Dachschicht. Am DRZ-Flug rund 30 % der Punkte; von oben fehlt dadurch nichts
 (0,2 %). Mit „Nur eingefärbte Punkte“ sind sie ausgeblendet. Ein Auffüllen vom
 Nachbarn wurde ausprobiert und verworfen — es verteilte die Farbe weniger
 zufällig sichtbarer Punkte zu Klecksen. Die Einfärbung dauert etwa dreimal so
-lang; Live-Vorschau und Ausrichtfenster rechnen weiter ohne Sichtprüfung.
+lang; die Farbvorschau im Ausrichtfenster rechnet weiter ohne Sichtprüfung.
 
 ### Schieber statt Zahlenfelder
 
-Jeder Versatz — Lage des Mäanderfluges (RGB und Thermal), Maßstab, Hauptpunkt
-der Optiken, Zusammenführen, Extrinsik — hat **zwei Schieber**: einen groben für
+Jeder Versatz — Lage und Maßstab des Mäanderfluges (RGB und Thermal, im
+Ausrichtfenster), Hauptpunkt der Optiken, Zusammenführen, Extrinsik — hat
+**zwei Schieber**: einen groben für
 den Weg und einen feinen für das letzte Stück (Meter bis auf den Zentimeter,
 Winkel bis 0,005°, Maßstab bis 0,01 %). Der Wert ist die Summe; das Feld daneben
 zeigt sie und nimmt einen getippten Wert an, „0“ setzt zurück.
 
 ### Eigene Lage für Thermal
 
-Die Thermalbilder haben eigene Regler für Gier, X und Y — im Hauptfenster unter
-**Lage von Hand** in der Zeile **Thermal**, im Ausrichtfenster ebenso. Sie sind
+Die Thermalbilder haben eigene Regler für Gier, X und Y — im Ausrichtfenster im
+Kasten **Thermal — Zuschlag auf die RGB-Lage**. Sie sind
 ein **Zuschlag auf die RGB-Lage**, keine zweite Lage daneben: beide Optiken
 hängen an derselben Gimbal. Wird RGB neu ausgerichtet oder nachgezogen, zieht
 Thermal mit, und in den Thermalreglern steht nur, was zwischen den Optiken
-nicht passt. Der Wert bleibt im Projekt (`meander/thermal_lage.json`) und wird
+nicht passt. Mit **Lage übernehmen** bleibt der Wert im Projekt
+(`meander/thermal_lage.json`) und wird
 beim Einfärben für die Thermalebene verwendet; ihre `meta.json` hält ihn fest.
 
 Das ist der Weg, wenn die automatische Ausrichtung danebenliegt: erst in der
 Überlagerung grob schieben, bis Magenta auf Grau liegt, dann in der Farbvorschau
 feinjustieren.
 
-In der Vorschau bedeutet **Grau: von keinem Bild getroffen**, und **Magenta** sind
-die Kamerastandorte des Fluges. Sieht man nur Grau, beantwortet ein Blick auf die
-magentafarbenen Punkte die erste Frage sofort — liegen sie weit neben der Wolke,
-deckt der Mäanderflug dieses Gebiet nicht ab; liegen sie darüber, stimmt die
-Ausrichtung nicht. Unter 5 % Trefferquote schreibt das Protokoll beides mit
-Zahlen hin: Abstand der Kameras zur Wolkenmitte gegen die Ausdehnung der Wolke.
+Im Ausrichtfenster bedeutet in der Farbvorschau **Grau: von keinem Bild
+getroffen**, in der Überlagerung sind **Magenta** die Fotopunkte des Fluges.
+Sieht man nur Grau, beantwortet ein Blick auf die magentafarbenen Punkte die
+erste Frage sofort — liegen sie weit neben der Wolke, deckt der Mäanderflug
+dieses Gebiet nicht ab; liegen sie darüber, stimmt die Ausrichtung nicht.
 
-Die Vorschau erscheint **erst beim ersten Zug an einem Regler**, nicht schon
-nach dem Ausrichten — wer nichts justiert, soll seine Karte sehen. Und sie
-verschwindet wieder bei jedem Fehlschlag, jedem Abbruch, jedem Wechsel der
-Farbquelle und nach dem Einfärben. Eine ausgeblendete Karte bleibt nie zurück.
-
-Die Regler sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
+Die Regler im Ausrichtfenster sind ein **Zuschlag** auf die gefundene Lage, nicht die Lage selbst —
 sonst würde jeder Zug auf dem vorigen aufbauen und man käme nie zurück. X, Y
 und Z sind Meter; der grobe Schieber geht in Dezimetern, der feine in
 Zentimetern. Beim DRZ-Datensatz deckt ein RGB-Pixel rund 5 cm Boden ab — der
 feine Schieber bewegt also um Bruchteile eines Pixels. Die Maßstab-Regler sind
-kein Zuschlag, sondern der Wert selbst; sie bleiben im Projekt gespeichert.
+kein Zuschlag, sondern der Wert selbst; mit **Lage übernehmen** bleiben sie im
+Projekt gespeichert.
 
-Die beiden Kästen **RGB-Optik** und **Thermal-Optik** verschieben den
+In der Seitenleiste verschieben die Regler unter **RGB** und **Thermal** im
+Unterblock **Hauptpunkt (wirkt beim nächsten Ausrichten)** den
 Bildhauptpunkt in Pixeln. Das wirkt wie eine Verkippung der Kamera gegen die
 Achse, die COLMAP angenommen hat, und die Verschiebung am Boden wächst mit dem
-Abstand — anders als die Regler für Gier, X und Y darüber, die starr schieben. Getrennt
+Abstand — anders als die Regler für Gier, X und Y im Ausrichtfenster, die starr schieben. Getrennt
 je Optik, weil es zwei Objektive sind. Bewusst ohne Automatik: eine
 Kennzahl dafür ist nicht zu finden, ein sonnenwarmes Dach ist thermisch
 gleichmäßig und optisch strukturiert, ein Schatten umgekehrt.
@@ -532,8 +546,9 @@ gleichmäßig und optisch strukturiert, ein Schatten umgekehrt.
 
 Zweiter Weg zur Farbe, für beide Kameras: statt jeden Punkt aus einem Bild (Mäander)
 oder dem Median weniger Frames (Onboard) zu holen, werden die Farben so gelernt, dass
-**alle Bilder zugleich** erklärt sind. Abschnitt **5 · Gaussian Splat (GPU)** in der
-Seitenleiste, oder **Werkzeuge → Mäander/Onboard per Gaussian Splat**. Die Ergebnisse
+**alle Bilder zugleich** erklärt sind. Abschnitt **Gaussian Splat und Fusion** in der
+Seitenleiste, oder **Ablauf → Gaussian Splat und Fusion** (**Mäanderflug per Splat
+einfärben**, **360°-Kamera per Splat einfärben**, **Beide in einem Splat einfärben**). Die Ergebnisse
 sind eigene Ebenen neben der direkten Einfärbung, beide lassen sich umschalten und
 vergleichen.
 
@@ -552,9 +567,7 @@ Die direkte Projektion übernimmt alles, was im einzelnen Bild steckt:
 Nicht besser wird, was in keinem Bild steht: ausgebrannter Himmel und Gegenlicht,
 Unterholz, das Innere einer Halle, bewegte Autos zwischen Lidar- und Fotoflug. Und
 **das Splat ist nicht feiner als sein Ankerraster**: bei 24 Mio. Punkten und 4 Mio.
-Gaussians sind das rund 7 cm, der Mäanderflug löst am Boden 5 cm auf. Dafür ist
-**„Feinstruktur aus der direkten Einfärbung“** da (Vorgabe an): der Mittelwert jeder
-Zelle kommt aus dem Splat, die Abweichung der Punkte darin aus der direkten Ebene.
+Gaussians sind das rund 7 cm, der Mäanderflug löst am Boden 5 cm auf.
 
 ### Kein freies Splat
 
@@ -573,7 +586,8 @@ die Geometrie die Karte selbst:
    zu 90°, jede aus dem Zentrum ihrer Linse — kein Stitching, keine Parallaxe zwischen
    den Linsen. Frames werden nach Bewegung gewählt (0,3 m oder 8°).
 3. **Maske je Bild**: nur Pixel, hinter denen die Karte eine Oberfläche hat; Onboard
-   zusätzlich Bildkreis, Helligkeitsfenster und Himmelssaum aus Abschnitt 3 und die
+   zusätzlich Bildkreis, Helligkeitsfenster und Himmelssaum aus dem Abschnitt
+   **Einfärbung (360°-Kamera)** und die
    **Drohnenteile** — Motoren und Arme stehen fest im Bild und streuen zeitlich kaum
    (gemessen 2,0 % und 2,6 % des Bildkreises).
 4. **Training** in einem eigenen Interpreter mit torch und gsplat
@@ -585,9 +599,8 @@ die Geometrie die Karte selbst:
 
 Mit **„Gegenprobe mit zurückgehaltenen Bildern“** (Vorgabe an) wird zuerst ohne jedes
 achte Bild trainiert (Onboard: jeden zehnten Frame). An diesen Bildern werden dann das
-Splat, die direkte Projektion ohne dieselben Bilder und die Kombination mit Feinstruktur
-gemessen — nur an Punkten, die dort sichtbar sind und in allen drei Varianten eine
-Farbe haben, und nach einem Belichtungsangleich je Bild, weil kein Verfahren die
+Splat und die direkte Projektion ohne dieselben Bilder gemessen — nur an Punkten, die
+dort sichtbar sind und in beiden eine Farbe haben, und nach einem Belichtungsangleich je Bild, weil kein Verfahren die
 Belichtung eines unbekannten Bildes kennen kann. Das Ergebnis steht im Protokoll und in
 der `meta.json` der Ebene („Gegenprobe an … Bildern, … Punkte: Splat …, direkt …
 (0–255) Abweichung nach Belichtungsangleich … — … besser um … %“). Danach wird mit allen
@@ -611,7 +624,7 @@ Nachgeprüft ohne GPU:
 * Das Training auf einer synthetischen Szene (CPU, eigener dichter Renderer): die
   Farben kommen trotz Belichtung 0,7 bis 1,3 je Bild auf 0,029 zurück (ohne Ausgleich
   0,045); der Boden unter einem Dach bekommt Gewicht 0,02 gegen 2,4 frei.
-* Datensätze, Gegenprobe, Feinstruktur und Ebenen auf dem Projekt 09-08 12-53-52 mit
+* Datensätze, Gegenprobe und Ebenen auf dem Projekt 09-08 12-53-52 mit
   einem Ersatz für das Training.
 
 **Gemessen am is7-Projekt** (RTX 3060 Ti, 3,9 Mio. Gaussians, 4,4 GB auf der Karte),
@@ -649,7 +662,9 @@ Teilen sich Rechner die venv, für alle bauen:
 TORCH_CUDA_ARCH_LIST="8.6;12.0" CUDA_HOME=~/.venvs/splat/cuda PATH=~/.venvs/splat/cuda/bin:$PATH \
   ~/.venvs/splat/bin/pip install --no-build-isolation --no-deps --force-reinstall \
   --no-binary gsplat gsplat==1.5.3        # rund 15 Minuten
-``` Sieht PyTorch keine GPU, weil kein `/dev/nvidiactl` da ist, und Secure Boot
+```
+
+Sieht PyTorch keine GPU, weil kein `/dev/nvidiactl` da ist, und Secure Boot
 ist an: das DKMS-Modul ist mit dem lokalen MOK-Schlüssel signiert, der eingeschrieben
 sein muss —
 
@@ -670,17 +685,17 @@ der Karte).
 
 ## Farbquellen
 
-Drei Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
-**Ansicht → Farbquelle** oder in der Seitenleiste sofort umschalten:
+Mehrere Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
+**Ansicht → Farbe** oder in der Leiste über der 3D-Ansicht sofort umschalten:
 
 | Quelle | woher |
 |---|---|
-| **Onboard RGB** | 360°-Kamera an der Super-Drohne, `colors/` |
-| **Mäander RGB** | `_V.JPG` des DJI-Fluges, `colors_meander_rgb/` |
-| **Mäander Thermal** | `_T.JPG` desselben Fluges, `colors_meander_thermal/` |
-| **Onboard RGB, Gaussian Splat** | dieselben Frames, gemeinsam gelernt, `colors_onboard_splat/` |
-| **Mäander RGB, Gaussian Splat** | dieselben `_V.JPG`, gemeinsam gelernt, `colors_meander_splat/` |
-| **Mäander Temperatur, Gaussian Splat** | Temperaturen der R-JPEGs, `colors_meander_thermal_splat/` |
+| **RGB Onboard** | 360°-Kamera an der Super-Drohne, `colors/` |
+| **RGB Mäander** | `_V.JPG` des DJI-Fluges, `colors_meander_rgb/` |
+| **Thermal Mäander** | `_T.JPG` desselben Fluges, `colors_meander_thermal/` |
+| **RGB Onboard (Splat)** | dieselben Frames, gemeinsam gelernt, `colors_onboard_splat/` |
+| **RGB Mäander (Splat)** | dieselben `_V.JPG`, gemeinsam gelernt, `colors_meander_splat/` |
+| **Temperatur Mäander (Splat)** | Temperaturen der R-JPEGs, `colors_meander_thermal_splat/` |
 
 Nach dem Einfärben einer zusammengeführten Karte steht im Protokoll die Quote je
 Abschnitt, nicht nur eine Gesamtzahl — sonst merkt man nicht, wenn ein ganzer
@@ -693,35 +708,36 @@ Angeboten wird nur, was berechnet ist. Der Export schreibt die angezeigte Ebene.
 
 Jeder Flug bekommt von FAST-LIO ein eigenes Weltsystem, verankert im ersten
 Scan. Zwei Karten liegen darum beliebig zueinander, auch wenn sie dasselbe
-Gebäude zeigen. Der Ablauf in der Sidebar:
+Gebäude zeigen. Der Ablauf im Abschnitt **Zusammenführen (optional)** der
+Seitenleiste (oder unter **Ablauf → Zusammenführen**):
 
-1. **Zweiten Flug wählen** — dessen Karte muss berechnet sein; ist sie es nicht,
+1. **Zweiten Flug laden …** — dessen Karte muss berechnet sein; ist sie es nicht,
    wird mit der zu erwartenden Dauer gefragt und FAST-LIO läuft direkt hier.
    Die zweite Wolke erscheint orange im Viewer.
-2. **Auto-Ausrichten** — globale Suche (FGR über FPFH) plus ICP von grob nach
-   fein. Dauert Sekunden bis Minuten. **Nur ICP** verfeinert stattdessen die
-   aktuelle Lage, was nach einer Handjustage reicht.
+2. **Automatisch ausrichten** — globale Suche (FGR über FPFH) plus ICP von grob nach
+   fein. Dauert Sekunden bis Minuten. **Nur fein ausrichten (ICP)** verfeinert
+   stattdessen die aktuelle Lage, was nach einer Handjustage reicht.
 3. **X/Y/Z/Gier** schieben und drehen die zweite Wolke von Hand, mit sofortiger
    Vorschau. Gedreht wird um ihren eigenen Schwerpunkt.
 
 Die zweite Wolke ist **orange und halbdurchsichtig** dargestellt. Orange heißt:
-Vorschau, noch nicht übernommen. Sie gehört erst nach **Übernehmen** zur Karte,
+Vorschau, noch nicht übernommen. Sie gehört erst nach **Zusammenführen** zur Karte,
 und bis dahin ändert kein anderer Schritt etwas an ihr — färbst du in diesem
 Zustand ein, wird nur der offene Flug eingefärbt, und das Programm fragt vorher
-nach. Über **Ansicht → Zweiten Flug anzeigen** lässt sie sich ausblenden, ohne
+nach. Über **Ansicht → Zweiten Flug (orange) zeigen** lässt sie sich ausblenden, ohne
 sie zu verwerfen.
-4. **Übernehmen** schreibt eine gemeinsame Aufzeichnung und öffnet sie als
+4. **Zusammenführen** schreibt eine gemeinsame Aufzeichnung und öffnet sie als
    Arbeitswolke. Sie lässt sich danach als Ganzes einfärben und exportieren;
    jeder Abschnitt wird mit der Kamera seines eigenen Bags eingefärbt.
 
 Nach dem Ausrichten stehen Trefferquote und Restfehler im Protokoll. Unter 0,3
 Trefferquote überlappen die Wolken zu wenig — dann von Hand grob zusammenschieben
-und „Nur ICP" nachlaufen lassen. Ein Restfehler über 0,3 m heißt: die Lage stimmt
+und „Nur fein ausrichten (ICP)" nachlaufen lassen. Ein Restfehler über 0,3 m heißt: die Lage stimmt
 grob, sitzt aber nicht sauber.
 
 Ein zusammengeführtes Projekt hat keinen einzelnen Bagpfad, unter dem man es
 wiederfände — sein Schlüssel ist ein erfundenes „A+B". Es lässt sich deshalb nur
-über **Datei → Berechnetes Projekt öffnen …** (`Strg+Umschalt+P`) wieder öffnen;
+über **Datei → Projekt aus dem Cache öffnen …** (`Strg+Umschalt+P`) wieder öffnen;
 die Liste zeigt alle Projekte des Caches und markiert die zusammengeführten.
 
 Beim Laden liest das Programm die Abschnitte aus der `meta.json` der
@@ -748,11 +764,10 @@ Weltsystem, Einfärbung und Farb-Cache sind davon nicht betroffen.
 
 ## Kalibrierung
 
-Die Double-Sphere-Kalibrierungen liegen als Kopie in `calib/`
-(`calib_result_new2.json`, `calib_new_vign.json`, `calib_new_refined.json`),
-damit das Repo ohne das Stitcher-Projekt lauffähig ist. Gefunden wird die
-erste existierende Datei der Kandidatenliste; danach folgen die Originale in
-`Super360_Stitcher_rosbag/work/` als Fallback.
+Die Double-Sphere-Kalibrierung liegt als Kopie in `calib/calib_result_new2.json`,
+damit das Repo ohne das Stitcher-Projekt lauffähig ist. Benutzt wird nur diese
+Datei; fehlt sie, warnt das Protokoll beim Start, und Panorama und Einfärbung
+aus der 360°-Kamera sind nicht verfügbar.
 
 ## Extrinsik prüfen
 
@@ -779,9 +794,9 @@ den Himmel, denn der Himmel liefert keine Lidar-Punkte — jede Farbe von dort i
 ein Fehlgriff:
 
 * **Himmelssaum** (Standard 4 px) sperrt den Rand um ausgebrannte Flächen. Reines
-  Weiß fängt „Helligkeit max" schon ab; was Baumkronen weiß überzieht, ist der Saum
+  Weiß fängt „Helligkeit bis" schon ab; was Baumkronen weiß überzieht, ist der Saum
   daneben, wo Unschärfe und Farbsaum Himmel und Blattwerk zu Grauweiß mischen. Der
-  Wert steht in der Sidebar, 0 schaltet die Sperre ab.
+  Wert steht in der Seitenleiste, 0 schaltet die Sperre ab.
 * **Vorrang für echte Oberflächen**: hat ein Punkt neben hellen, flauen Proben auch
   eine normale, bestimmen nur die normalen den Median. Punkte, für die es nur helle
   flaue Proben gibt (weiße Wand), bleiben unberührt.
@@ -798,7 +813,7 @@ weil der Unterschied zwischen mit und ohne Rosbag schnell 24 GB ausmacht:
 ```
 <ziel>/
   super360.json      Manifest: was drin ist, woher es kommt, Kennzahlen
-  projekt/           recording/, colors*/, pano_*/, meander/, gps/extrinsic/settings
+  projekt/           recording/, colors*/, pano_*/, meander/, extrinsic/settings
   bags/              nur wenn angehakt
   kalibrierung/      die verwendete calibration.json
 ```
@@ -808,7 +823,7 @@ per Vorgabe nicht dabei** — es ist der Eingang, nicht das Ergebnis. Ohne Bag
 bleiben Karte, Farben, Messen, Höhenschnitt und Export erhalten; das 360°-Video
 und ein erneutes Einfärben brauchen es.
 
-**Datei → Projektordner öffnen …** (`Strg+I`) öffnet so einen Ordner **an Ort
+**Datei → Exportiertes Projekt öffnen …** (`Strg+I`) öffnet so einen Ordner **an Ort
 und Stelle** — ohne Kopie in den Cache und ohne Rückfrage. Gearbeitet wird im
 Ordner selbst, jede Änderung landet sofort dort: Einstellungen, Ausrichtung,
 Handzuschlag, Optik, Einfärbungen. Mitgenommene Bags werden aus dem Ordner
@@ -823,13 +838,14 @@ zugeschüttet.
 ## Cache
 
 Der Cache liegt **außerhalb** des Repos, per Default unter
-`/home/lena/RosBagSuper_Gui/rosbag_suite/cache`. Ein anderer Ort geht über
+`~/RosBagSuper_Gui/rosbag_suite/cache`. Ein anderer Ort geht über
 die Umgebungsvariable `SUPER360_CACHE_ROOT`.
 
 `<cache_root>/<bagname>-<pfad-hash>/` enthält `recording/` (Punkte/Posen),
-`colors/`, `pano_<Breite>/` (gestitchte JPEGs), `extrinsic.json`,
+`colors/`, `pano_1920/` (gestitchte JPEGs, Breite fest 1920 px), `extrinsic.json`,
 `settings.json` und `exploration.json` (Explorationsgrad). Löschen ist jederzeit
-erlaubt (wird neu berechnet).
+erlaubt (wird neu berechnet). Direkt in `<cache_root>` steht `seitenleiste.json`
+mit der gezogenen Breite der Seitenleiste.
 
 Ein fehlgeschlagener/abgebrochener FAST-LIO-Lauf lässt eine vorhandene
 Aufzeichnung unangetastet (Schreiben in `recording.tmp`, Promotion nur bei
@@ -845,9 +861,9 @@ Erfolg).
   erkannt** — es ist also kein Empfangsproblem, sondern der Empfänger meldet
   sich beim Autopiloten gar nicht. Die GUI zeigt das als „GPS unbrauchbar" mit
   Gründen; Georeferenzierung und LAS-Export in UTM sind damit nicht möglich.
-- Kamera↔Lidar-Extrinsik ist nicht werksseitig kalibriert; die
-  Auto-Kalibrierung ist grob (Rotation, ±wenige Grad) — Feinjustage über die
-  Spinboxen, Ergebnis wird pro Bag gespeichert.
+- Kamera↔Lidar-Extrinsik ist nicht werksseitig kalibriert; „Automatisch
+  kalibrieren (grob)“ ist grob (Rotation, ±wenige Grad) — Feinjustage über die
+  Schieber im Abschnitt **Kamera-Kalibrierung**, Ergebnis wird pro Bag gespeichert.
 - Colorization hat keine Occlusion-Behandlung; bewegte Objekte können
   Farbschlieren bekommen.
 - Der obere Polbereich (~5 %) des Panos ist physikalisch von keiner Linse

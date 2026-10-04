@@ -12,40 +12,82 @@ dokumentiert es in seinem Abschlussbericht.
 
 ```
 Super360Studio/
-  app.py                 # Einstieg: QApplication, qdarktheme.setup_theme("dark"), MainWindow
+  app.py                 # Einstieg (einziger Start): QApplication, qdarktheme.setup_theme("dark"), MainWindow
+  run_gui.sh             # Launcher: python3 app.py
   ARCHITECTURE.md
   core/                  # KOMPLETT Qt-frei (import PyQt5 verboten). Fortschritt via Callbacks.
     __init__.py
-    bag_reader.py        # rosbags-basiert (kein ROS-Sourcing nötig)
-    recording.py         # Datenformat der FAST-LIO-Aufzeichnung
+    gemeinsam.py         # Kleinhelfer aller core-Module (atomares JSON, Abbruch, Fortschritt, Grau …)
+    kalibrierung.py      # welche Kamera-Kalibrierung gilt: CALIB_CANDIDATES, default_calib
+    bag_reader.py        # rosbags-basiert (kein ROS-Sourcing nötig), ThreadLocalBag
+    recording.py         # Datenformat der FAST-LIO-Aufzeichnung, Kippkorrektur
     fastlio_runner.py    # Subprozess-Orchestrierung fast_lio + bag play + Recorder
     stitcher.py          # Double-Sphere-Kamera + Equirect-Stitcher (cv2.remap)
-    colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye, Helligkeits- und Himmelsfilter
-    georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU
-    merge.py             # zwei Aufzeichnungen ausrichten (FGR+ICP) und zusammenschreiben
+    colorizer.py         # Punktwolken-Einfärbung aus Dual-Fisheye, Helligkeits- und Himmelsfilter,
+                         # Extrinsik prüfen und grob kalibrieren
+    colorizer_gpu.py     # dieselbe Einfärbung auf der Grafikkarte (OpenCL), bitgleich zur CPU
+    ebenen.py            # Farbebenen-Dateien: lesen, schreiben, Temperatur, prüfen
+    georef.py            # GPS-Qualitätsprüfung + Ausrichtung LIO-Trajektorie ↔ ENU, Export
+    merge.py             # zwei Aufzeichnungen ausrichten (Lotausgleich, FGR+ICP) und zusammenschreiben
     meander.py           # Hülle um colorize_pipeline: DJI-Mäanderflug → Farbebene
+    optik.py             # Optik der Mäanderkameras einmessen: Höhe, Brennweite, Thermalkamera
+    sichtbar.py          # Mäander-Einfärbung mit Verdeckung und Blickwinkel
+    temperatur.py        # Temperaturen aus den R-JPEGs der DJI-Thermalkamera
     splat.py             # Einfärben über ein Gaussian Splat auf den Ankern der Karte
     fusion.py            # Onboard an Mäander angleichen und nach Flächenlage mischen
+    mesh.py              # Dreiecksnetz aus der Punktwolke, Farben je Ebene, CloudCompare
     exploration.py       # Explorationsgrad: beobachteter Anteil des Zielgebiets
     project.py           # Session/Cache-Verwaltung pro Bag
+    bundle.py            # Projekt als Ordner exportieren und an Ort und Stelle öffnen
+    rviz_player.py       # RViz-Wiedergabe: rviz2 + ros2 bag play als Subprozesse
   scripts/
     record_fastlio.py    # Standalone rclpy-Recorder (läuft in ROS-Umgebung als Subprozess)
     splat_train.py       # Splat-Training (torch + gsplat, eigener Interpreter, Subprozess)
+    pano_publisher.py    # stitcht das Pano live und sendet es für RViz (Subprozess der Wiedergabe)
+    rviz_clear.py        # leert die RViz-Anzeigen vor dem Wiederholen (Subprozess der Wiedergabe)
+    pruefe_installation.py         # prüft, ob alles für die App da ist, und sagt, was fehlt
+    test_cloud_view_steuerung.py   # Test der 3D-Ansicht (Steuerung, Leiste, Temperatur), X-Server/xvfb
+    umbau/               # Prüfwerkzeuge des Umbaus und Vorher-Stand (s. Teststrategie)
+    versuche/            # Versuchsskripte zu den Nachtbildern des Mäanders, nicht Teil der App
   ui/                    # PyQt5
     __init__.py
-    main_window.py       # MainWindow: Sidebar (Pipeline+Einstellungen) + Tabs
-    cloud_view.py        # CloudView(QWidget): VTK-Punktwolken-Viewer
+    main_window.py       # MainWindow: Zustand, Aufbau, Seitenleiste, Schließen (s. u.)
+    fenster/             # Mixins des Hauptfensters, je Fachbereich ein Modul (s. u.):
+      __init__.py        #   Regeln der Mixins
+      grundgeruest.py    #   Protokoll, Freigabe, Arbeiter starten, Befehlsknöpfe
+      einstellungen.py   #   Einstellungstabelle, Laden und Speichern
+      projekt.py         #   Abschnitte Aufnahme und Karte; Bag/Projekt öffnen und exportieren
+      kalibrierung.py    #   Abschnitt Kamera-Kalibrierung
+      zusammenfuehren.py #   Abschnitt Zusammenführen
+      einfaerbung.py     #   Abschnitt Einfärbung (360°-Kamera), Blaulicht
+      maeander.py        #   Abschnitt Mäander-Einfärbung: Schritte, Automatik, Einfärben
+      maeander_justage.py #  Lage und Optik des Mäanderflugs, Ausrichtfenster öffnen
+      splat.py           #   Abschnitt Gaussian Splat und Fusion
+      mesh.py            #   Abschnitt Mesh, Mesh in der 3D-Ansicht
+      export.py          #   Abschnitt Export, Statuszeile Georeferenz
+      anzeige.py         #   Abschnitt Anzeige, Farbebenen, Farbe und Punktgröße, Menü Ansicht
+      wiedergabe.py      #   Abschnitt Wiedergabe (RViz), eigener RViz-Arbeiter
+      autotest.py        #   Autotest-Haken (SUPER360_AUTOTEST)
+    jobs.py              # Worker: der QThread-Arbeiter aller langen Schritte
+    menubar.py           # Befehlstabelle BEFEHLE, baue(win), schalte(actions, zustand, busy)
+    bausteine.py         # Bausteine der Seitenleiste (Knöpfe, Felder, Unterblock, still_setzen …)
+    collapsible.py       # Section/SectionStack: einklappbare Abschnitte und Unterblöcke
+    feinregler.py        # FeinRegler (grober + feiner Schieber) und Rasterfunktionen
+    cloud_view.py        # CloudView(QWidget): VTK-Punktwolken-Viewer mit Leiste
     pano_view.py         # PanoView(QWidget): 360°-Player mit Zoom
     gps_panel.py         # GpsPanel(QWidget): Qualitätsbericht + Georeferenzierung
     explorationsgrad.py  # Kachel oben rechts in der Menüleiste: Explorationsgrad
-  calib/                 # Double-Sphere-Kalibrierungen (Kopien aus dem Stitcher-Projekt)
-  config/                # playback.rviz
-  assets/                # Anwendungs-Icon
-  run_gui.sh             # Launcher
+    meander_align_window.py  # Ausrichtfenster des Mäanderflugs: Handjustage, Farbvorschau
+    bundle_dialog.py     # Dialog für den Projekt-Export
+  calib/                 # Double-Sphere-Kalibrierung calib_result_new2.json (die einzige, die gilt;
+                         # s. core/kalibrierung.py) und zwei ältere, die der Code nicht liest
+  config/                # playback.rviz, fastlio/whs_dense.yaml
+  assets/                # Anwendungs-Icon, Bilder der README
 
 <cache_root>/<bag_name>-<hash>/   # ausserhalb des Repos, s.u.
-                         # Default: /home/lena/RosBagSuper_Gui/rosbag_suite/cache
+                         # Default: ~/RosBagSuper_Gui/rosbag_suite/cache
                          # ueberschreibbar via SUPER360_CACHE_ROOT
+<cache_root>/seitenleiste.json    # gezogene Breite der Seitenleiste, app-weit
 ```
 
 ## Fakten (verifiziert, nicht neu recherchieren)
@@ -56,15 +98,17 @@ Super360Studio/
   je 1520×1520, Kreis Ø≈1520 zentriert bei x≈760/2280.
   `/mavros/global_position/raw/fix` NavSatFix 5 Hz; `/mavros/gpsstatus/gps1/raw`
   mavros_msgs/GPSRAW 5 Hz; `/livox/lidar` livox CustomMsg 10 Hz; `/livox/imu` 200 Hz.
-- Referenz-Bag: `/home/lena/RosBagSuper_Gui/rosbag_2026-07-11_15-37-07_seg0`
+- Referenz-Bag: `~/RosBagSuper_Gui/rosbag_2026-07-11_15-37-07_seg0`
   (46 s, 944 Kamera-Frames, 463 Scans). GPS darin TOT (fix_type=0, 0 Sats, lat/lon=0).
-- Kalibrierung (Double-Sphere "ds", Basalt-JSON):
-  `/home/lena/RosBagSuper_Gui/Super360_Stitcher_rosbag/work/calib_new_vign/calibration.json` (Default)
-  `.../work/calib_new_refined/calibration.json` (Fallback ohne Vignette).
+- Kalibrierung (Double-Sphere "ds", Basalt-JSON): nur `calib/calib_result_new2.json`
+  im Repo (`core.kalibrierung.CALIB_CANDIDATES`, `default_calib()`; fehlt sie, wirft
+  `default_calib` einen RuntimeError, das Fenster startet ohne Pano und Einfärbung).
+  Basalt-Kalibrierung vom 2026-07-25 mit photometrisch verfeinerter Extrinsik und
+  Vignette-Profil (`value0.vignette`).
   JSON: `value0.T_imu_cam` (Liste, [0]=Identität⇒"imu"-Frame==cam0, [1]=Pose cam0→cam1,
   px..qw), `value0.intrinsics[i].intrinsics` = {fx,fy,cx,cy,xi,alpha}. Referenz-Numpy-Code:
   `Super360_Stitcher_rosbag/work/refine_extrinsic.py` (ds_project, rays) und `work/panoviewer.py`.
-- FAST-LIO2: ws `/home/lena/fastlio2_ws`, Livox-Typen `/home/lena/ws_livox`.
+- FAST-LIO2: ws `~/fastlio2_ws`, Livox-Typen `~/ws_livox`.
   Start: `ros2 launch fast_lio mapping.launch.py config_file:=whs_dense.yaml rviz:=false`.
   Dichteste Daten: `/cloud_registered_body` (PointCloud2 XYZI, IMU-Frame, volle
   unverdünnte Scans, unabhängig von dense_pub_en) + `/Odometry` (nav_msgs, Pose des
@@ -84,6 +128,9 @@ Super360Studio/
   Farben aller 24 Mio. Punkte sind 576 MB, ein Onboard-Splat-Datensatz als Tensoren
   bis 5 GB. Der NVIDIA-Treiber lädt zurzeit nicht (Secure Boot, MOK-Schlüssel nicht
   eingeschrieben), CUDA ist also nicht verfügbar.
+  **Offen:** Stand der Messung vom 2026-09-16, seither nicht neu geprüft. Ob Treiber
+  und CUDA inzwischen laden, steht nicht fest; `core.splat.hinweis` und
+  `core.colorizer_gpu.available` sagen zur Laufzeit, was geht.
 
 ## Konventionen
 
@@ -92,25 +139,45 @@ Super360Studio/
   `scipy.spatial.transform.Rotation` verwenden.
 - Bilder: BGR uint8 (cv2-Konvention) überall in core/. Erst die UI konvertiert zu RGB/QImage.
 - Fortschritt: `progress_cb(frac: float, msg: str)` (frac 0..1, msg deutsch),
-  Abbruch: `cancel: threading.Event` — jede lange Schleife prüft `cancel.is_set()`
-  und bricht mit `RuntimeError("Abgebrochen")` ab. Beide Parameter optional (None-safe).
+  weitergereicht über `core.gemeinsam.melde(progress, f, m)` (None-safe).
+  Abbruch: `cancel` ist ein `threading.Event` oder ein Callable ohne Argumente
+  (z. B. `lambda: cancel.is_set()`); jede lange Schleife ruft
+  `core.gemeinsam.pruefe_abbruch(cancel)`, das beide Formen und None annimmt und mit
+  `RuntimeError("Abgebrochen")` abbricht. Beide Parameter optional (None-safe).
+  Ausnahmen: `recording`, `exploration` und `fastlio_runner` prüfen ein Event
+  direkt; `splat.lauf` und `splat.gegenprobe` verlangen das Event des Arbeiters.
+  Die UI reicht das Event ihres `Worker` hinein, wo nötig als `lambda: cancel.is_set()`.
 - Fehler: Exceptions mit deutscher Message werfen; UI fängt und zeigt QMessageBox.
 - Kein `print` in core/ (außer scripts/record_fastlio.py, dessen stdout Protokoll ist).
+- Importe absolut (`from core.gemeinsam import write_json_atomic`), kein
+  `sys.path`-Eingriff am Modulkopf und keine try/except-Rückfälle beim Import. In
+  der Funktion importiert wird, wo sonst ein Kreis entstünde (`core.meander` ↔
+  `core.optik`) oder ein Modul nur auf einem Weg gebraucht wird (`colorize_pipeline`
+  aus dem Nachbarrepo, `core.sichtbar` im Splat, Selbsttests).
+- Gemeinsame Kleinhelfer stehen einmal in `core/gemeinsam.py`, nicht je Modul neu.
+  Unter ihrem früheren Modulnamen stehen sie noch als Weiterleitung (Alias):
+  `project._write_json_atomic`, `recording._write_json_atomic`, `exploration._de`,
+  `optik._modell`, `mesh._p`/`_check`, `fusion._abbruch`, `merge._check_cancel`,
+  `colorizer._check_cancel`.
 
 ## Cache-Layout (`project.py` verwaltet)
 
 ```
-cache/<bag_dir_name>/
+cache/<bag_dir_name>-<md5(abspath)[:8]>/
   recording/            # s. recording.py
   colors/colors.bin     # uint8, N×3, RGB (LEDIGLICH RGB, nicht BGR!)
   colors/valid.bin      # uint8 (0/1), N
   colors/meta.json      # {extrinsic, brightness_min, brightness_max, k_frames, ...}
-  pano_<W>/index.json   # {"stamps": [...], "width": W}
+  pano_<W>/index.json   # {"stamps": [...], "width": W}; W ist fest 1920
   pano_<W>/%06d.jpg     # gestitchte Panos (Cache, lazy)
-  gps.json              # Liste der Fixe + Merge GPSRAW (s. bag_reader)
+  gps.json              # nur in älteren Projekten: wird nicht mehr geschrieben und nie
+                        # gelesen (Project.gps_json bleibt, der Projektexport nimmt sie mit)
   extrinsic.json        # {"T_imu_cam0": [[4x4]]} Kamera-Extrinsik (cam0 im IMU/Body-Frame)
-  settings.json         # zuletzt genutzte Einstellungen
+  settings.json         # zuletzt genutzte Einstellungen (47 Schlüssel, s. ui/fenster/einstellungen.py)
   exploration.json      # Explorationsgrad des Bags (s. core/exploration.py)
+  meander/              # Arbeitsordner der Mäander-Pipeline (COLMAP-Modell, Bilder, Lage;
+                        # s. core/meander.py, Dateien der Lage)
+  mesh/geometrie/<…>/   # Mesh-Geometrie je Aufzeichnung und Parameter (core.mesh.geometry_dir)
   colors_*_splat/       # Farbebenen aus dem Gaussian Splat, Format wie colors/
   colors_fusion/        # Onboard + Mäander verschmolzen (core/fusion.py), Format wie colors/
   colors_fusion_splat/  # Onboard + Mäander aus einem gemeinsamen Splat, Farbe im Mäander
@@ -142,13 +209,24 @@ class BagReader:
     def camera_stamps(self) -> np.ndarray: ... # float64 (F,), Header-Stamps, sortiert
     def read_camera(self, idx: int) -> np.ndarray: ...       # BGR (1520,3040,3); LRU-Cache 32
     def read_camera_jpeg(self, idx: int) -> bytes: ...
-    def iter_camera(self, start=0, stop=None): ...           # yield (idx, stamp, bgr)
+    def read_imu_accel(self, t_from=None, t_to=None) -> tuple[np.ndarray, np.ndarray]: ...
+                                               # Stempel (N,), Beschleunigung (N,3)
+    def read_imu_up(self, max_window_s=3.0) -> ImuUp | None: ...   # s. Kippkorrektur
     def read_gps(self) -> list[GpsFix]: ...
-    def close(self): ...
+    def close(self): ...                       # auch als Kontextmanager
+
+class ThreadLocalBag:                          # Fassade: ein echter BagReader je Thread
+    def __init__(self, bag_path: str): ...     # info, camera_stamps, read_camera,
+                                               # read_camera_jpeg, read_gps wie oben
+
+def baue_typestore(zusatz=()):                 # ros2_humble + Typen aus .msg-Dateien
 ```
 Implementierung mit `rosbags.highlevel.AnyReader` + `rosbags.typesys` (Store ros2_humble,
-GPSRAW aus .msg-Text registrieren). Kamera-Index (Verbindung→Offsets) beim ersten Zugriff
-aufbauen. Nur lesen, nie schreiben.
+GPSRAW aus .msg-Text registrieren; `baue_typestore` nimmt dafür
+`(msg_pfad, typname, ersatz)`, auch `core.exploration` baut ihren Store damit). Kamera-Index
+(Verbindung→Offsets) beim ersten Zugriff aufbauen. Nur lesen, nie schreiben.
+rosbags öffnet sqlite3 nur für den Erzeuger-Thread; die UI hält das Bag deshalb als
+`ThreadLocalBag`, und jeder Arbeiter- oder Prefetch-Thread bekommt seinen eigenen Reader.
 
 ## core/recording.py
 
@@ -206,12 +284,17 @@ class Recording:
     stamps: np.ndarray; poses: np.ndarray; meta: dict
     gravity_level: dict | None
     @staticmethod
-    def load(dir_path: str) -> "Recording": ...      # np.memmap für points/intensity
+    def load(dir_path: str, level: bool = True, bag_path: str | None = None
+             ) -> "Recording": ...                    # np.memmap für points/intensity
     def world_points(self, progress_cb=None, cancel=None) -> np.ndarray: ...  # float32 N×3
     def interpolate_pose(self, t: float) -> np.ndarray | None:
         # 4×4 T_world_imu; SLERP(rot)+linear(trans) zwischen Nachbar-Scans,
         # None wenn t außerhalb (Toleranz 0.15 s an den Rändern: Randpose halten)
+    def level_note(self) -> str | None: ...           # Protokollzeile zur Kippkorrektur
     def path_positions(self) -> np.ndarray: ...       # (S,3) Trajektorie
+
+def lade_mit_hinweis(rec_dir, bag_path, log, praefix="") -> Recording
+    # Recording.load und, falls es eine gibt, die Zeile level_note() an log
 ```
 
 ## core/fastlio_runner.py + scripts/record_fastlio.py
@@ -223,8 +306,8 @@ class FastLioResult:
     expected_scans: int; dropped_scans: int; duration_s: float; log_tail: str
 
 class FastLioRunner:
-    def __init__(self, fastlio_ws="/home/lena/fastlio2_ws",
-                 livox_ws="/home/lena/ws_livox", ros_setup="/opt/ros/humble/setup.bash"): ...
+    def __init__(self, fastlio_ws="~/fastlio2_ws",
+                 livox_ws="~/ws_livox", ros_setup="/opt/ros/humble/setup.bash"): ...
     def kill_stale(self) -> list[str]: ...  # tötet fremde fastlio_mapping/rviz per PID (SIGINT→KILL)
     def run(self, bag_path: str, out_dir: str, config: str = "whs_dense.yaml",
             rate: float = 1.0, expected_scans: int | None = None,
@@ -292,10 +375,19 @@ class ColorizeParams:
     sky_prefer: bool = True       # himmelsartige Proben nur, wenn keine andere da ist
     sky_luma: int = 200           # ab hier gilt eine Probe als himmelsartig hell …
     sky_sat: float = 0.15         # … und muss zugleich so flau sein
+    lens_best: bool = True        # je Frame die Linse, die den Punkt näher am Zentrum sieht
+    edge_r: float = 600.0         # px; Proben weiter vom Fisheye-Zentrum zurückstellen
+    blue_filter: bool = False     # Blaulicht-Proben zurückstellen; Bereich in
+                                  # blue_hue_lo/_hi, blue_sat, blue_val, blue_least,
+                                  # blue_neutral (Restblau Richtung Grau ziehen)
     T_imu_cam0: np.ndarray = ...  # 4×4, Default aus extrinsic.json bzw. Identität
 
 def colorize(rec: Recording, bag: BagReader, calib_json: str, params: ColorizeParams,
-             out_dir: str, progress_cb=None, cancel=None) -> dict:
+             out_dir: str, progress_cb=None, cancel=None,
+             parts=None, backend="auto") -> dict:
+    # parts: [(bag, scan_von, scan_bis)] einer zusammengeführten Aufzeichnung, je
+    # Abschnitt die Kamera seines Bags; backend "auto" | "cpu" | "gpu"
+    # (core/colorizer_gpu.py, OpenCL, bitgleich zur CPU).
     # je Scan: Kandidaten-Frames nach |dt| sortiert (<=max_dt, max K);
     # p_cam = T_cam0_imu @ inv(T_world_imu(t_frame)) @ p_world   (Posen-Interpolation!)
     # cam0 projizieren, wo invalid → in cam1 (T_cam1_cam0) projizieren;
@@ -308,6 +400,9 @@ def colorize(rec: Recording, bag: BagReader, calib_json: str, params: ColorizePa
 
 def _blown_mask(img_half, clip: int, grow: int) -> np.ndarray | None:
     # Pixel mit min(B,G,R) >= clip sind ausgebrannt, um `grow` px geweitet.
+
+def abschnittsquote(rec, valid, parts) -> list[tuple]:
+    # je nicht leerem Abschnitt (teil ab 1, bag, a, b, Anteil gültiger Punkte in a:b)
 ```
 
 ### Himmelssaum-Sperre
@@ -396,10 +491,17 @@ def check_extrinsic(rec, bag, calib_json, T, frames=None, cancel=None) -> dict:
 
 def auto_calibrate(rec, bag, calib_json, T_init=None, frames: list[int] = None,
                    progress_cb=None, cancel=None) -> tuple[np.ndarray, float]:
-    # Grobe Rotationssuche (Yaw/Pitch/Roll-Gitter 10° → Verfeinerung 3°/1°, Translation 0):
-    # Score = Korrelation Kantenbild(Pano) ↔ Kantenbild(projizierte Punktdichte/-tiefe)
-    # über ~5 gleichverteilte Frames. Rückgabe (T_imu_cam0, score). Ehrlich bleiben:
-    # score mitliefern, UI zeigt Warnung bei schwachem Score.
+    # Grobe Rotationssuche (Translation 0): volles Gitter (30°, dazu Startwerte für die
+    # kopfüber montierte Kamera) → beste 5 → _hillclimb mit 10°/3°/1°.
+    # Score = Foto-Konsistenz (_PhotoScoreContext): ZNCC der Grauwerte derselben
+    # Lidar-Punkte in Frame-Paaren mit Relativbewegung, Anker ~10 gleichverteilte
+    # Frames; bewertet wird auf einem eigenen Validierungs-Paarsatz.
+    # Rückgabe (T_imu_cam0, score). Ehrlich bleiben: score mitliefern, UI warnt
+    # unter 0,30 (_AUTOCAL_WEAK_SCORE in ui/fenster/kalibrierung.py).
+
+def _hillclimb(ctx, start_rot, start_score, max_iter, cancel, schritt_cb=None)
+    # Koordinaten-Hillclimb über Gier/Nick/Roll mit 10/3/1°, gemeinsam für
+    # check_extrinsic und auto_calibrate -> (score, Rotation)
 ```
 
 ## core/merge.py
@@ -412,18 +514,38 @@ zu suchen und die zweite Aufzeichnung umzuhängen.
 def cloud_for_registration(rec, max_points=400_000) -> np.ndarray:
     # gleichmäßig über alle Scans gegriffene Weltpunkte, float64 (N,3)
 
+def lotrechte_aus_flug(rec, teile) -> np.ndarray | None:
+    # Lotrechte im Weltsystem von rec: IMU-Beschleunigung über den ganzen Flug
+    # (BagReader.read_imu_accel), je Sample mit der Pose gedreht und gemittelt
+def kippausgleich(oben_a, oben_b) -> tuple[np.ndarray, float]:
+    # kürzeste Drehung (4×4), die oben_b auf oben_a legt, und ihr Winkel in Grad
+
 def register(points_a, points_b, T_init=None, mode="auto"|"icp",
              progress_cb=None, cancel=None) -> dict:
-    # auto: Identität + Schwerpunkt + 7 Gier-Startlagen + 10× FGR über FPFH,
+    # auto: Identität + Schwerpunkt + Gier in 30°-Schritten + 10× FGR über FPFH,
     #       jede mit ICP grob→mittel verfeinert (Punkt zu Ebene), Bewertung
-    #       fitness - rmse/voxel; Sieger bekommt einen Feinschliff auf der
-    #       dichten Wolke. icp: verfeinert nur T_init.
-    # {"T", "fitness", "rmse", "kandidat", "voxel"}; fitness < 0.3 ⇒ nicht trauen
+    #       fitness - rmse/voxel; Sieger bekommt einen gestuften Feinschliff bis
+    #       0,10 m. icp: verfeinert nur T_init.
+    # {"T", "fitness", "rmse", "kandidat", "rangliste", "voxel"};
+    # fitness < 0.3 ⇒ nicht trauen; rangliste = (bewertung, name, fitness, rmse)
+
+def transform_poses(poses, T) -> np.ndarray          # T_neu = T @ T_alt
+def lage_aus_reglern(yaw_deg, versatz_xyz, zentrum, basis=None) -> np.ndarray
+    # 4×4 aus den Handreglern des Abschnitts Zusammenführen: Versatz zu basis
+    # (Lage der letzten Ausrichtung), gegiert um die Wolkenmitte nach basis
 
 def merge_recordings(rec_a, rec_b, T_ab, out_dir, bag_a, bag_b,
                      info=None, progress_cb=None, cancel=None) -> dict:
     # schreibt eine vollwertige Aufzeichnung nach out_dir
 ```
+
+**Lotrecht.** `register` sucht nur um die Hochachse breit; Kippen verfeinert ICP
+bloß. Startet ein Flug schon in der Luft, findet `Recording.load` kein Ruhefenster
+und lässt ihn gekippt. Die UI misst deshalb beim Laden des zweiten Flugs beide
+Lotrechten über den ganzen Flug und dreht B mit `kippausgleich` auf A, bevor
+gesucht wird (`_merge_T_kipp`); ist eine nicht messbar, bleibt B, wie FAST-LIO ihn
+liefert, und das Protokoll sagt es. Die Handregler wirken relativ zur Lage der letzten
+Ausrichtung (`_merge_T_basis`).
 
 Der Kniff beim Schreiben: `points.bin` steht im **Body-Frame** des jeweiligen
 Scans und ist von der Pose unabhängig. Zusammenführen heißt darum, die
@@ -445,20 +567,42 @@ Grenzen: das 360°-Video und die GPS-Prüfung hängen weiter am führenden Bag.
 ## core/meander.py
 
 Hülle um `colorize_pipeline` aus dem Repo PointCloudMerger. Das Verfahren selbst
-bleibt dort, hier stehen nur die drei Anpassungen für Super360 Studio.
+bleibt dort, hier stehen nur die drei Anpassungen für Super360 Studio, dazu die
+Schritte, die die Arbeitsthreads der UI brauchen, und die kleinen Dateien des
+Arbeitsordners.
 
 ```python
 def find_pipeline()                       # colorize_pipeline importieren
 def find_colmap_python() -> str | None    # Interpreter mit pycolmap
-def build_pipeline(points, photo_dir, work_dir, thermal=False, ...) -> Pipeline
+def build_pipeline(points, photo_dir, work_dir, thermal=False, rgb_versatz=None,
+                   thermal_versatz=None, log=None, cancel=None) -> Pipeline
 def prepare(pipe, progress=None) -> dict  # Fotos, COLMAP, Georeferenzierung
 def align(pipe, progress=None) -> dict    # Gierwinkel + Verschiebung
-def colorize_points(points, cams, image_dir, A, b, ...) -> (rgb, maske)
-def save_layer(dir, rgb, maske, meta) / load_layer(dir, n_points)
+def pruefe_ausrichtung(kennwerte) -> str | None   # Meldung, wenn der Lage nicht zu trauen ist
+def set_manual(pipe, yaw_deg, t)          # Lage setzen und als align.json festschreiben
+def lage_affine(pipe, yaw_deg, t) -> (A, b)       # Affin einer Lage, samt Feinausrichtung
+def thermal_lage(rgb_yaw_deg, rgb_t, zuschlag) -> (yaw, t)   # RGB-Lage + Thermal-Zuschlag
+def colorize_points(points, cams, image_dir, A, b, progress=None, cancel=None,
+                    temperatur=None) -> (rgb, maske[, temperatur])
 
-class LivePreview:                        # Handjustage in Echtzeit
+# Schritte für die Arbeitsthreads der UI
+def bauen(args, log) -> Pipeline          # build_pipeline aus den im GUI-Thread gesammelten args
+def bereit_machen(pipe, args, th_zuschlag, optik_jetzt, progress, cancel, log, von, bis)
+    # -> (pipe, thermal_zuschlag, optik); ohne pipe: bauen, prepare, align und prüfen
+def kameras(p, opt, th, thermal=True) -> dict
+    # rgb_faktor, thermal_faktor, yaw_deg, A, b, rgb, thermal, temperatur, yaw_th, A_th, b_th
+def zaehle_rgb_jpeg(ordner) -> int; def hat_modell(work_dir) -> bool
+
+# Dateien im Arbeitsordner
+def load_thermal_zuschlag(work_dir) -> (gier, x, y); def save_thermal_zuschlag(work_dir, z)
+def load_rgb_zuschlag(work_dir) -> dict | None;      def save_rgb_zuschlag(work_dir, d)
+save_layer = core.ebenen.speichern        # Weiterleitung, von ui/fenster/maeander.py benutzt
+load_layer = core.ebenen.laden            # Weiterleitung, nur noch für Selbsttest und
+load_temperatur = core.ebenen.lade_temperatur   # Prüfwerkzeuge (scripts/umbau/proben_maeander.py)
+
+class LivePreview:                        # Farbvorschau des Ausrichtfensters
     def __init__(self, cams, image_dir, scale=1/6, progress=None, cancel=None)
-    def colorize(self, points, A, b) -> (rgb, maske)
+    def colorize(self, points, A, b, cams=None) -> (rgb, maske)
 ```
 
 **Güte der Ausrichtung.** `align` ergänzt `anteil_auf_flaeche_optik` und
@@ -470,22 +614,30 @@ für die richtige Lage 0,8 % und einen Fehlalarm, ein um 17° falscher Kandidat
 wäre mit 51 % durchgekommen; mit dem Faktor aus der Tiefe (1,087) sind es 62 %
 gegen 51 %. `pruefe_ausrichtung` nimmt den neuen Wert, wenn es ihn gibt.
 
-**LivePreview** ist der volle Weg in klein. Der teure Teil beim Einfärben ist
-nicht die Rechnung, sondern das Laden von 255 Bildern je Durchlauf. Also einmal
-alle Bilder verkleinert in den Speicher (Faktor 1/6 ⇒ ~40 MB, 3,2 s) und statt
-aller Punkte eine Stichprobe. Gemessen an den 255 M4T-Bildern:
+**LivePreview** ist der volle Weg in klein und dient der Farbvorschau RGB und
+Thermal im Ausrichtfenster (`ui/meander_align_window.py`). Der teure Teil beim
+Einfärben ist nicht die Rechnung, sondern das Laden von 255 Bildern je Durchlauf.
+Also einmal alle Bilder verkleinert in den Speicher (Faktor 1/6 ⇒ ~40 MB, 3,2 s)
+und statt aller Punkte eine Stichprobe. Die UI lädt die Bilder nach jedem
+„Ausrichten“ in einem Arbeiter (`_start_live_preview`, gehalten in `_live` und
+`_live_th`); die Automatik und das selbsttätige Einmessen hängen an diesem
+Schritt. Gemessen an den 255 M4T-Bildern (Messung; das Fenster färbt eine
+Stichprobe von 150.000 Punkten):
 
 | Stichprobe | Dauer je Durchlauf |
 |---|---|
 | 10.000 Punkte | 21 ms |
 | 25.000 | 46 ms |
-| **50.000** (Vorgabe) | **84 ms** |
+| 50.000 | 84 ms |
 | 100.000 | 161 ms |
 
 Die Projektion ist dieselbe wie im vollen Lauf; nur die Bildkoordinaten werden
 am Ende mit dem Faktor multipliziert. Intrinsik und Verzeichnung gelten weiter
 für das Originalbild, damit die Vorschau nicht woanders sitzt als das Ergebnis —
 bei Faktor 1 ist sie bitgleich mit `colorize_points`, das prüft der Selbsttest.
+Eine Vorschau in der 3D-Ansicht des Hauptfensters gibt es nicht.
+
+Die drei Anpassungen:
 
 1. **Wolke hineinreichen ohne Datei.** `Pipeline.load_cloud` liest ihren
    Zwischenstand aus `work/cloud.npy` und überspringt das Einlesen, wenn er da
@@ -494,21 +646,58 @@ bei Faktor 1 ist sie bitgleich mit `colorize_points`, das prüft der Selbsttest.
 2. **Volle Wolke einfärben.** Die Pipeline färbt die ausgedünnte Wolke für ihren
    PLY-Export; Super360 Studio braucht je Punkt eine Farbe. `colorize_points`
    macht dasselbe über alle Punkte und gibt zusätzlich eine **Maske** zurück
-   statt nur einer Quote.
-3. **Ebenen im Projektformat**, gleiche Dateien wie `colors/`.
+   statt nur einer Quote. Mit Sichtbarkeitsprüfung färbt stattdessen
+   `core.sichtbar.colorize_sichtbar` (Verdeckung und Blickwinkel).
+3. **Ebenen im Projektformat**, gleiche Dateien wie `colors/` (`core/ebenen.py`).
 
 Externe Abhängigkeit: das Paket muss unter einem der Pfade in
 `PIPELINE_CANDIDATES` liegen (Vorgabe `~/PointCloudMerger`). Fehlt es, sagt die
 Fehlermeldung wo gesucht wurde. Für die Rekonstruktion wird ein Interpreter mit
 `pycolmap` gebraucht; `sfm.find_python()` kennt die venv im DRZ-Datensatz.
 
+### Lage und Handjustage
+
+Von Hand justiert wird **nur im Ausrichtfenster** (`ui/meander_align_window.py`,
+geöffnet über „Im Fenster justieren …“ in der Seitenleiste und im Menü
+Ablauf ▸ Mäander-Einfärbung; es gibt höchstens eines, ein zweiter Klick holt es nach
+vorn). Dort liegen alle neun Regler (RGB Gier, X, Y, Z und Maßstab; Thermal Gier, X,
+Y und Maßstab), die Überlagerung und die Farbvorschau. Wirksam wird erst
+„Lage übernehmen“; „Schließen“ verwirft. Hat sich die Lage seit dem Öffnen geändert
+(neu ausgerichtet, eingemessen, anderer Flug), wird nicht übernommen und ein neuer
+Klick ersetzt das Fenster.
+
+Im Hauptfenster gibt es dafür keine Regler, sondern Zustand
+(`ui/fenster/maeander_justage.py`): die Lage selbst steckt in der Pipeline
+(`pipe.yaw`, `pipe.t`), `_th_zuschlag` hält den Thermal-Zuschlag (Gier Grad, X m,
+Y m) auf die RGB-Lage, `_optik` die Maßstäbe (`rgb_faktor`, `thermal_faktor`) und
+die Thermal-Einmessung. Zuschlag und Maßstäbe liegen auf dem Raster der früheren
+Regler (`ui.feinregler.raster_grad`/`raster_meter`/`raster_prozent`: 0,005°, 1 cm,
+0,01 %). Die Seitenleiste zeigt sie im Lagetext (`_lbl_meander_lage`: Gier,
+Maßstäbe, Thermal-Zuschlag). Der Hauptpunkt-Versatz je Optik bleibt als Regler im
+Unterblock „Hauptpunkt (wirkt beim nächsten Ausrichten)“, weil er in den Bau der
+Pipeline eingeht.
+
+Dateien der Lage im Arbeitsordner `meander/`:
+
+| Datei | Inhalt |
+|---|---|
+| `align.json` | die Lage der Pipeline (Gier, Verschiebung), geschrieben von `set_manual` |
+| `rgb_zuschlag.json` | `yaw, x, y, z`; wird immer mit Nullen geschrieben, die ganze Lage steht in `align.json`. Ein Zuschlag ungleich null aus einem älteren Programmstand wird beim Ausrichten auf eine gespeicherte Lage eingerechnet (mit Protokollzeile), danach steht dort null |
+| `thermal_lage.json` | Thermal-Zuschlag `gier_grad, x, y` auf die RGB-Lage |
+| `optik_kalibrierung.json` | Optik (`core.optik.laden`/`speichern`): Maßstäbe, Thermal-Einmessung, Feinausrichtung |
+
+Die Einstellung `meander_solo` wird weiter gelesen und gespeichert, wirkt aber
+nicht mehr.
+
 ### Farbebenen
 
 `Project.LAYERS` bildet Schlüssel auf Unterordner ab: `onboard` → `colors/`
-(Name aus Kompatibilität), `meander_rgb` → `colors_meander_rgb/`,
-`meander_thermal` → `colors_meander_thermal/`. Jede Ebene ist `colors.bin`
-(uint8 N×3 RGB) + `valid.bin` (uint8 N) + `meta.json`, alle gegen die Punktzahl
-geprüft. Die UI hält sie in `_layers` und schiebt beim Umschalten nur die
+(Name aus Kompatibilität), `onboard_splat`, `meander_rgb`, `meander_splat`,
+`meander_thermal`, `meander_thermal_splat`, `fusion`, `fusion_splat` →
+`colors_<schlüssel>/`. Jede Ebene ist `colors.bin` (uint8 N×3 RGB) + `valid.bin`
+(uint8 N) + `meta.json`, Thermal-Ebenen (`core.ebenen.THERMAL`) zusätzlich mit der
+Temperatur je Punkt; alle gegen die Punktzahl geprüft (`core.ebenen.laden`,
+`lade_farbdateien`). Die UI hält sie in `_layers` und schiebt beim Umschalten nur die
 Referenz in die `CloudView` — kein Neuladen.
 
 ## core/splat.py + scripts/splat_train.py
@@ -522,6 +711,7 @@ System-Python und Qt-frei.
 ```python
 def find_splat_python() -> (str|None, dict)   # SUPER360_SPLAT_PYTHON, ~/.venvs/splat, DRZ-venv
 def hinweis(info) -> str|None                 # warum es nicht geht (z. B. Secure Boot)
+def interpreter() -> (str, dict)              # wie find_splat_python, wirft RuntimeError(hinweis)
 def anker(punkte, voxel=0.05, max_anker=4e6) -> {"pos","normal","voxel","index","anzahl"}
 def ansichten_aus_colmap(cams, A, b) -> (viewmats (V,4,4), {"massstab","abweichung"})
 def entzerrung(model, params, size, bild_groesse, skala) -> (map_x, map_y, K, gueltig)
@@ -530,11 +720,21 @@ def datensatz_maeander(ordner, ak, cams, bild_ordner, A, b, temperatur=None, hal
 def datensatz_onboard(ordner, ak, rec, teile, calib_json, T_imu_cam0, bmin, bmax, …)
 def datensatz_gemeinsam(ordner, ak, punkte, maeander={…}, onboard={…}, abbildung=None, …)
 def trainieren(python, ordner, progress, cancel, log, alle_bilder=False) -> {"bericht","pruefung"}
-def punkt_farben(ordner, ak) -> {"rgb","maske"[, "temperatur"]}
-def mit_feinstruktur(splat_w, splat_m, direkt_w, direkt_m, index, M, grenze)
-def probe(ak, zellen=60000) -> Punktindizes ganzer Zellen
+def punkt_farben(ordner, n_punkte) -> {"rgb","maske"[, "temperatur"]}
+def probe(ak, zellen=60000, seed=0) -> Punktindizes ganzer Zellen
 def vergleich(ordner, ak, punkte, normalen, {name: (werte, maske)}) -> {"bilder","punkte","methoden"}
+
+# Ablauf eines Splat-Schritts, gemeinsam für Mäander, 360°-Kamera und beide zusammen
+def lauf(py, ordner, cfg, progress, cancel, log, von, bis, alle) -> dict
+    # ein trainieren() mit Fortschritt von..bis, Posen und Prüfbilder ins Protokoll
+def gegenprobe(ordner, ak, welt, pf, direkt_w, temp, cancel, log) -> dict
+    # Splat gegen direkte Projektion an den zurückgehaltenen Bildern
+def trainingsfolge(py, ordner, cfg, spannen, gegenprobe_cb, progress, cancel, log)
+    # spannen = (von, mitte, weiter, bis); mit cfg["pruefen"]: Lauf ohne Prüfbilder,
+    # gegenprobe_cb, Lauf mit allen Bildern; -> (Ergebnis des letzten Laufs, Gegenprobe|None)
+def splat_meta(ak, cfg, posen) -> dict        # Eintrag "splat" in der meta.json der Ebene
 ```
+`cancel` von `lauf` und `gegenprobe` muss das `threading.Event` des Arbeiters sein.
 
 Datensatz `splat/<ebene>/` (vom System-Python geschrieben, vom Trainer gelesen):
 
@@ -578,7 +778,7 @@ Konventionen, die hier leicht kippen:
   unter einem Drittel des freien Speichers bleiben (`speichergrenze`, mindestens
   1,2 GB), sonst kommt je Schritt eines von der Platte — 3000 Würfelseiten
   wären 5 GB auf einem Rechner mit 7,5 GB.
-  `farbe0` und `mit_feinstruktur` rechnen aus demselben Grund stückweise.
+  `farbe0` rechnet aus demselben Grund stückweise.
 * **Gegenprobe.** Die direkte Projektion bekommt dort `tiefe_punkte=ak["pos"]`
   (s. `core/sichtbar.py`): gefärbt wird nur eine Probe, und aus verstreuten
   Punkten entsteht keine Tiefenkarte — ohne das gälte jeder verdeckte Punkt als
@@ -611,6 +811,8 @@ den fertigen Farbebenen:
 def schaetze_abbildung(quelle, ziel, gewicht=None) -> (M (3,3), t (3,))
 def gewicht_maeander(normalen) -> float32 (N,)   # Anteil des Mäanders je Punkt
 def fusioniere(onboard, maeander, normalen, …) -> {"rgb","maske","M","t","bericht"}
+def quellen(vorhandene) -> (onboard_ebene, maeander_ebene) | None
+    # welche Ebenen fusioniert werden; eine Splat-Ebene geht der direkten vor
 ```
 
 1. **Farbabbildung** Onboard → Mäander, `ziel ≈ M·quelle + t`, auf den Punkten,
@@ -645,11 +847,12 @@ zu finden und nicht mitzunehmen. `bundle` macht daraus einen Ordner und zurück.
 TEILE = {"recording": (…, Pflicht), "colors", "panos", "meander", "bags"}
 
 def describe(project, bag_paths=None) -> dict      # was da ist, wie groß
+def pruefe_ziel(dest) -> (ok, zustand)             # neu/leer/projekt ok; fremd/datei abgelehnt
 def export_project(project, dest, teile, bag_paths=None, calib_path=None,
                    meta_extra=None, progress=None, cancel=None) -> dict
 def read_manifest(src) -> dict
 def bag_paths_after_import(src, manifest) -> list
-def import_project(src, project, progress=None, cancel=None) -> dict
+def oeffnen(src) -> {"manifest", "project", "bags", "fehlende_bags", "zusammengefuehrt"}
 ```
 
 Entscheidungen dahinter:
@@ -659,16 +862,22 @@ Entscheidungen dahinter:
   was aus dem Cache lebt.
 * **Mitgenommene Bags bleiben im Exportordner** und werden von dort referenziert;
   ein zweites Mal 24 GB zu kopieren wäre Verschwendung.
-  `import_project` zieht die Pfade in `recording/meta.json` (auch die in
-  `sources` einer zusammengeführten Aufzeichnung) auf den Ort nach, an dem sie
-  jetzt wirklich liegen — sonst zeigt der Import ins Leere des fremden Rechners.
-* **Ein nicht leerer fremder Zielordner wird abgelehnt**, sonst schüttet der
-  Export fremde Daten zu.
+* **Geöffnet wird an Ort und Stelle** (`oeffnen`, Menü Datei ▸ Exportiertes Projekt
+  öffnen …): gearbeitet wird direkt in `<ordner>/projekt`, ohne Kopie in den
+  Cache. `oeffnen` zieht die Bagpfade in `recording/meta.json` (auch die in
+  `sources` einer zusammengeführten Aufzeichnung) über den Ordnernamen des Bags auf
+  den Ort nach, an dem sie jetzt wirklich liegen — sonst zeigt das Projekt ins Leere
+  des fremden Rechners.
+* **Ein nicht leerer fremder Zielordner wird abgelehnt** (`pruefe_ziel`), sonst
+  schüttet der Export fremde Daten zu. Ist das Ziel eine Datei, lässt der
+  Export-Dialog OK ohne Hinweis zu; erst `export_project` lehnt dann ab.
 * `recording` ist Pflicht, alles andere wählbar.
 
 ## core/georef.py
 
 ```python
+FIX_TYPE_TEXT = {fix_type: (kurz, lang)}   # 0 "kein GPS" … 8 "PPP"; Gründe und GPS-Reiter
+
 @dataclass
 class GpsQuality:
     usable: bool
@@ -737,6 +946,14 @@ class Explorationsgrad:
 def berechne(bag_path: str, voxel: float = VOXEL_M, progress=None, cancel=None
              ) -> Explorationsgrad: ...
 def lies_box(reader); def lies_flugbahn(reader); def lies_phasen(reader)
+
+# für den Arbeiter der UI, jeweils -> (Explorationsgrad | None, Hinweis)
+def rechnen_und_ablegen(bag_path, project, log_cb, progress_cb, cancel, von=0.0, bis=1.0)
+    # rechnen und als exploration.json ablegen; fehlende EPIC-Daten oder ein Fehler
+    # werfen das Öffnen nicht um, nur ein Abbruch geht nach oben
+def holen(bag_path, project, log_cb, progress_cb, cancel, von=0.0, bis=1.0)
+    # wie rechnen_und_ablegen, nimmt aber exploration.json, wenn brauchbar
+def aus_cache(gespeichert) -> (Grad | None, Hinweis)   # wirft TypeError/ValueError
 ```
 
 Verfahren: Box aus `/exploration/box` (CUBE-Marker) in Zellen von `voxel` zerlegen; je
@@ -773,13 +990,36 @@ VTK (QVTKRenderWindowInteractor). API (alles Slots-tauglich, Aufruf aus GUI-Thre
 def set_cloud(self, points: np.ndarray, colors: np.ndarray | None = None,
               intensity: np.ndarray | None = None, valid: np.ndarray | None = None): ...
 def set_path(self, positions: np.ndarray | None): ...   # Polyline der Trajektorie
-# Optionen (Setter, von main_window-Sidebar bedient):
-set_point_size(int 1..8); set_color_mode(str in {"rgb","hoehe","intensitaet","uniform"});
+# Optionen (Setter; das Fenster setzt sie aus seinem Zustand und den Einstellungen,
+# s. AnzeigeMixin._push_display_settings):
+set_point_size(float 0,5..10, Viertelschritte); set_color_mode(str in {"rgb","hoehe","intensitaet","uniform"});
 set_only_colored(bool)    # valid-Maske anwenden ("nur eingefärbte Punkte")
 set_voxel_display(float)  # 0=aus, sonst Anzeige-Downsample in m (numpy-Grid-Hash)
 set_background(str in {"dunkel","hell"}); set_eyedome(bool)  # EDL, Fallback ohne
 def reset_camera(self); def screenshot(self, path: str)
+# Leiste und Zusatzschichten
+set_farbmodi(eintraege: [(schluessel, text, verfuegbar)], aktuell); setze_farbmodus(key)
+set_temperatur(temp | None); set_temperatur_anzeigen(bool)
+set_mesh(vertices, triangles, normals); set_mesh_farben(rgb, ok); set_mesh_restpunkte(maske)
+set_mesh_schalter(bool, text=None); mesh_an() -> bool
+set_preview_cloud(points | None, color); set_preview_visible(bool)   # zweiter Flug, orange
+set_measure(bool); clear_measure(); cut_planes() -> (unten, oben) | None
+# Signale
+measured(object, object); farbmodus_gewaehlt(str); punktgroesse_geaendert(float)
+messen_angefordert(); temperatur_umgeschaltet(bool); mesh_umgeschaltet(bool)
 ```
+**Leiste über der Ansicht** (`_leiste_bauen`): Farbe, Punktgröße (Schieber in
+Viertelpixeln), Messen, Temperatur anzeigen, Mesh, Ansicht zurücksetzen und rechts
+ein Hinweis zur Maus. Sie ist der einzige Ort für Farbe und Punktgröße; dieselbe
+Farbe trägt das Menü Ansicht ▸ Farbe, beide aus der Tabelle `_FARBEN` in
+`ui/fenster/anzeige.py` (Farbmodi und Farbebenen, fehlende Ebenen grau). Die Leiste
+meldet nur über ihre Signale; Zustand ist `_color_mode`, `_layer_key` und
+`_point_size` am Fenster, `_setze_farbe` gleicht Leiste, Menü und Ansicht ab.
+`_Leistenfluss` legt die Gruppen in Reihen und bricht bei schmaler Arbeitsfläche
+um, statt sie breit zu halten; `_Hinweis` kürzt den Hinweis mit „…“ (voller Text im
+Tooltip) und lässt ihn unter 60 px ganz weg.
+Rechts am Rand der Höhenschnitt (`CutBar`, vtkPlane am Mapper).
+
 vtkPolyData + vtkVertexGlyphFilter vermeiden bei 9 Mio Punkten — stattdessen
 `vtkPolyData` mit direktem `vtkCellArray` aus arange (oder `vtkGlyph3DMapper`); Farben
 als `vtkUnsignedCharArray` (RGB). Höhe: Turbo/Viridis-Colormap über z-Perzentile 2..98.
@@ -804,7 +1044,7 @@ class PanoView(QWidget):
 Player: Play/Pause (Space), Frame ±1 (←/→), Speed-Combo 0.25/0.5/1/2/4×, Zeit-Slider,
 Label "Frame i/N — t=…s". Anzeige: QGraphicsView, Mausrad-Zoom 10 %–1600 % auf
 Mauszeiger (AnchorUnderMouse), Drag-Pan (ScrollHandDrag), Doppelklick/Knopf "Einpassen",
-Screenshot-Knopf. Dekodier-/Stitch-Arbeit in QThread-Prefetcher (aktuellen + nächste 4
+Knopf "Bild speichern …" (aktuelles Pano als Datei). Dekodier-/Stitch-Arbeit in QThread-Prefetcher (aktuellen + nächste 4
 Frames vorladen), UI nie blockieren; Drop-Frames wenn zu langsam (Stamps-basiert).
 `if __name__=="__main__":` Selbsttest mit synthetischer Quelle.
 
@@ -817,50 +1057,255 @@ Signal `georefReady = pyqtSignal(object)`.
 
 ## ui/main_window.py — `class MainWindow(QMainWindow)`
 
-Layout: links Sidebar (QScrollArea, feste Breite ~360 px) mit Gruppen:
-1. **Rosbag** — "Bag öffnen…" (Ordner-Dialog), Info-Tabelle (Topics/Dauer/Frames).
-2. **Punktwolke (FAST-LIO2)** — Config-Combo (whs_dense.yaml=„Maximal dicht“ Default,
-   mid360.yaml=„Schnell“), Rate-Spin (0.25–2.0, Default 1.0), Knopf "Karte berechnen",
-   QProgressBar, danach Kennzahlen (Scans, Punkte, Drops).
-3. **Einfärbung** — Helligkeit-min/max (2 Slider 0..255 mit Zahlenanzeige),
-   K-Frames-Spin, Extrinsik: 6 DoubleSpin (Yaw/Pitch/Roll °, x/y/z m) + Knöpfe
-   "Auto-Kalibrierung (grob)", "Overlay-Vorschau", "Einfärben".
-4. **Anzeige** — Punktgröße, Farbmodus-Combo, "Nur eingefärbte Punkte",
-   Anzeige-Voxel-Combo (Aus/0.05/0.10/0.20 m), Hintergrund, EDL, "Trajektorie zeigen".
-5. **Export** — "PLY/PCD speichern…", "LAS speichern…" (mit Georef falls vorhanden).
-Zentral: QTabWidget "3D-Karte" (CloudView) / "360°-Video" (PanoView) / "GPS" (GpsPanel)
-/ "Protokoll" (QPlainTextEdit, alle log_cb-Zeilen).
-Statusleiste: aktueller Schritt + unbestimmte Busy-Anzeige. Oben rechts in der
-Menüleiste die Explorationsgrad-Kachel (s. ui/explorationsgrad.py); sie wird beim Öffnen
-eines Bags mitgerechnet (aus `exploration.json`, sonst frisch) und über *Werkzeuge →
-Explorationsgrad neu berechnen* am Cache vorbei erneuert.
-Worker: EIN generisches `class Worker(QThread)` mit fn/args, Signale
-progress(float,str)/finished(object)/failed(str); pro Schritt ein Worker; Knöpfe
-gegenseitig sperren solange busy; Abbrechen-Knopf setzt cancel-Event.
+Gestartet wird nur über `app.py` (bzw. `run_gui.sh`); `ui/main_window.py` hat keinen
+eigenen Start und keinen Selbsttest. Fenster: 1600×950, Titel "Super360 Studio",
+qdarktheme dark + Akzent #4FC3F7.
+
+### Aufbau: Mixins und Besitzregel
+
+`MainWindow` erbt von je einem Mixin pro Fachbereich (`ui/fenster/*.py`, s.
+Verzeichnis) und zuletzt von `QMainWindow`; `self` ist in jedem Mixin das
+Hauptfenster. `ui/main_window.py` selbst enthält nur `__init__` (der ganze
+Sitzungszustand), `_build_ui`, `_SECTIONS`, `_build_sidebar`, die Breite der
+Seitenleiste (`_leiste_*`) und `closeEvent`. Regeln (s. `ui/fenster/__init__.py`):
+
+- Den Sitzungszustand legt nur `MainWindow.__init__` an; kein Mixin hat ein eigenes
+  `__init__`.
+- Jede Mixin-Datei nennt in ihrem Kopf, welche Attribute des Fensters sie schreibt.
+- Neue Helfer tragen ein Bereichspräfix (`_merge_…`, `_meander_…`, `_mesh_…`,
+  `_splat_…`, `_leiste_…`); kein Name darf in zwei Mixins vorkommen, sonst überdeckt
+  einer still den anderen (`scripts/umbau/pruefe_alles.sh`, Stufe `namen`).
+- Abschnitte der Seitenleiste baut je eine Methode `_abschnitt_<schlüssel>`.
+
+### Layout
+
+Arbeitsfläche links, Seitenleiste rechts, beide in einem waagerechten `QSplitter`.
+Arbeitsfläche: QTabWidget "3D-Karte" (CloudView mit Messzeile darunter) /
+"360°-Video" (PanoView) / "GPS" (GpsPanel) / "Protokoll" (QPlainTextEdit, alle
+log_cb-Zeilen). Statusleiste: aktueller Schritt, Frame-Anzeige, Fortschrittsbalken
+(nur während eines Schritts) und Abbrechen-Knopf. Oben rechts in der Menüleiste die
+Explorationsgrad-Kachel (s. ui/explorationsgrad.py); sie wird beim Öffnen eines Bags
+mitgerechnet (aus `exploration.json`, sonst frisch, `core.exploration.holen`) und über
+*Werkzeuge → Explorationsgrad neu berechnen* am Cache vorbei erneuert.
+
+**Seitenleiste** (`QScrollArea` um einen `SectionStack`), frei in der Breite:
+
+- Untergrenze ist der breiteste Abschnittskopf (`SectionStack.kopfbreite()`) plus
+  Rahmen und senkrechte Scrollleiste. Darunter lässt sie sich nicht ziehen.
+- Schmaler als ihr Inhalt brechen die Formzeilen um (Beschriftung über dem Feld,
+  `bausteine._wrappable`), Knopfreihen stellen sich untereinander
+  (`bausteine._Knopfreihe`), Hinweiszeilen über die volle Breite brechen um; was dann
+  noch nicht passt, erreicht die waagerechte Scrollleiste, statt abgeschnitten zu
+  werden. Breiter gezogen wachsen Auswahlen und Zahlenfelder mit.
+- Startbreite ohne gespeicherten Wert: gemessen am breitesten Abschnitt bzw. an
+  breitester Beschriftung plus breitestem Feld über alle Abschnitte (400–720 px).
+- Die gezogene Breite gilt app-weit und über einen Neustart: `<Cache-Wurzel>/
+  seitenleiste.json` als `{"breite": <int>}` (atomar). Geschrieben wird nur, wenn der
+  Splitter wirklich gezogen wurde (`splitterMoved`, 1 s entprellt, und in
+  `closeEvent`); ausgeblendet (0) zählt nicht. Fehlt die Datei oder ist sie kaputt,
+  gilt die gemessene Breite ohne Meldung; ein Wert unter der Untergrenze wird
+  angehoben. Kein QSettings, kein Schlüssel in settings.json.
+- Passt eine breite Leiste neben die Mindestbreite der Arbeitsfläche nicht ins
+  Fenster, wird das Fenster beim Start verbreitert, höchstens auf die Bildschirmbreite.
+- Ctrl+B (Ansicht ▸ Seitenleiste) blendet sie aus; gemerkt in der Einstellung `sidebar`.
+
+### Die 11 Abschnitte (`_SECTIONS`, Ablauffolge)
+
+Nummern tragen nur die Schritte des Ablaufs. Der Zustand auf/zu steht in der
+Einstellung `sections`, samt den einklappbaren Unterblöcken.
+
+| Schlüssel | Titel | Start | Mixin | Inhalt |
+|---|---|---|---|---|
+| aufnahme | 1 · Aufnahme | offen | projekt | `Rosbag öffnen …` \| `Projekt öffnen …`, Info-Tabelle |
+| karte | 2 · Karte (FAST-LIO2) | offen | projekt | Konfiguration (whs_dense.yaml „Maximal dicht“, mid360.yaml „Schnell“), Abspielrate 0,25–2,0, `Karte berechnen`, Kennzahlen |
+| extrinsik | 3 · Kamera-Kalibrierung | zu | kalibrierung | Gier/Nick/Roll/X/Y/Z (FeinRegler), `Automatisch kalibrieren (grob)` \| `Überlagerung prüfen`, `Extrinsik zurücksetzen` (mit Rückfrage, speichert) |
+| zusammen | 4 · Zusammenführen (optional) | zu | zusammenfuehren | `Zweiten Flug laden …`, Lage X/Y/Z/Gier, `Automatisch ausrichten` \| `Nur fein ausrichten (ICP)`, `Zusammenführen` \| `Zweiten Flug verwerfen`, Haken `Zweiten Flug (orange) zeigen` |
+| einfaerbung | 5 · Einfärbung (360°-Kamera) | offen | einfaerbung | Helligkeit von/bis, Frames je Scan, Himmelssaum, Linse, Linsenrand; Haken `Blaulicht filtern` blendet den Unterblock Blaulicht ein (mit `Blaumaske zeigen`); `Einfärben` |
+| maeander | 6 · Mäander-Einfärbung | zu | maeander, maeander_justage | Flug wählen, Thermal-Haken, `Automatisch: ausrichten bis zur Farbe`, `Ausrichten` \| `Optik einmessen`, `Feinausrichten` \| `Einfärben`, Sichtbarkeits-Haken, `Im Fenster justieren …`, Lagetext; einklappbarer Unterblock Hauptpunkt |
+| splat | 7 · Gaussian Splat und Fusion | zu | splat | `GPU und Interpreter prüfen`, gemeinsame Parameter; Unterblöcke Mäanderflug, 360°-Kamera, Beide gemeinsam (`Fusionieren (ohne Splat)`, `Beide in einem Splat einfärben`) |
+| mesh | 8 · Mesh | zu | mesh | Mesh-Raster, Detail (Tiefe), Ränder kürzen, Hybrid, `Mesh in CloudCompare öffnen` |
+| export | 9 · Export | offen | export | `PLY/PCD speichern …`, `LAS speichern …`, Statuszeile Georeferenz (`_lbl_georef`), `Punktwolke in CloudCompare öffnen`, `Projekt exportieren …` |
+| anzeige | Anzeige | offen | anzeige | Nur eingefärbte Punkte, Anzeige-Voxel, Hintergrund, Kantenbetonung (EDL), Flugbahn zeigen |
+| wiedergabe | Wiedergabe (RViz) | zu | wiedergabe | `Starten` \| `Beenden` \| `Wiederholen`, Zustand |
+
+Farbe und Punktgröße stehen nicht in der Seitenleiste, sondern nur in der Leiste über
+der 3D-Ansicht und im Menü Ansicht ▸ Farbe (s. ui/cloud_view.py). Die Mäander-
+Handjustage gibt es nur im Ausrichtfenster (s. core/meander.py, Lage und Handjustage).
+
+### Menüs und Befehlstabelle (`ui/menubar.py`)
+
+Menüs: **Datei** (öffnen, laden, exportieren, speichern, beenden) · **Ablauf**
+(`Karte berechnen (FAST-LIO2)` und je ein Untermenü für Kamera-Kalibrierung,
+Zusammenführen, Einfärbung (360°-Kamera), Mäander-Einfärbung, Gaussian Splat und
+Fusion, mit den Knopftexten) · **Ansicht** (Farbe ▸, Hintergrund ▸, Bereich ▸,
+Kantenbetonung (EDL), Ansicht zurücksetzen, Höhenschnitt aufheben, Zweiten Flug
+(orange) zeigen, Seitenleiste, alle Abschnitte auf/zu) · **Werkzeuge** (Messen,
+Explorationsgrad neu berechnen, RViz-Wiedergabe ▸, Einstellungen auf Vorgabe) ·
+**Hilfe**. 15 Kürzel (u. a. Ctrl+O, F5, F6, F7, M, R, Ctrl+B).
+
+`BEFEHLE` beschreibt jeden der 47 Befehle an einer Stelle (`Befehl`: schluessel,
+text, handler, menue, kuerzel, tooltip, braucht, frei_bei_busy, schaltbar, signal,
+knopf, trenner). `baue(win)` legt Menü und Aktionen an, bevor die Seitenleiste
+entsteht, und scheitert laut, wenn dem Fenster ein Handler fehlt. Knöpfe der
+Seitenleiste entstehen über `_befehlsknopf(schluessel)` (`bausteine.aktionsknopf`):
+sie folgen ihrer Aktion in Freigabe und Tooltip, tragen den Knopftext der Tabelle
+und lösen beim Klick genau einmal `action.trigger()` aus. `_update_enabled` rechnet
+einen Zustand (`bag`, `rec`, `world`, `calib`, `flug`, `lage`, `thermal`,
+`zweitflug`, `fusion`) und ruft `schalte(actions, zustand, busy)`: ein gesperrter
+Befehl nennt im Tooltip, was fehlt (`GRUENDE`), während eines Schritts
+`GRUND_BESCHAEFTIGT`, außer er ist `frei_bei_busy`.
+
+### Einstellungen (`ui/fenster/einstellungen.py`)
+
+Eine Tabelle `_EINSTELLUNGEN` mit allen 47 Schlüsseln der `settings.json` (Schlüssel,
+Vorgabe, Bindung am Fenster, Lesart, Art); `_LESEN` und `_SCHREIBEN` setzen je
+Lesart um, `_DEFAULT_SETTINGS` (28 vorbelegte) ist daraus abgeleitet. Ohne Wirkung,
+aber weiter gelesen und gespeichert: `pano_width` (die Breite ist fest 1920),
+`meander_solo` und `mesh_stand` (immer mit der Vorgabe). Gespeichert wird bei jeder
+Änderung und beim Schließen in `cache/<bag>/settings.json`.
+
+### Bausteine (`ui/bausteine.py`, `ui/collapsible.py`, `ui/feinregler.py`)
+
+- `knopf`, `aktionsknopf`, `aktionshaken`, `knopfzeile` (`_Knopfreihe`: nebeneinander,
+  sonst untereinander), `zahl`, `auswahl`, `haken`, `schieber`, `reglergruppe`,
+  `Unterblock` (einklappbar oder nur Überschrift), `still_setzen` (Wert ohne Signal,
+  auch an einer QAction), `bgr_zu_pixmap`, `speicherpfad`, `einmal_timer`; dazu
+  `_ImageDialog`, `_compact_combo`, `_wrappable`.
+- `Section`/`SectionStack`: `add`, `finish`, `melde_an` (einklappbaren Unterblock mit
+  Schlüssel anmelden, z. B. `maeander.hauptpunkt`), `sections`, `kopfbreite`,
+  `states`/`set_states`/`set_all`.
+- `FeinRegler` (grober + feiner Schieber, nach außen wie QDoubleSpinBox), Fabriken
+  `regler_meter`, `regler_grad`, `regler_prozent`, `regler_pixel`,
+  `regler_millimeter`; Rasterfunktionen `auf_raster`, `raster_meter`, `raster_grad`,
+  `raster_prozent` rechnen ohne Qt, was der Regler zeigen würde.
+  `FeinRegler.maximum` hat in der App keinen Aufrufer mehr und bleibt für die
+  Prüfwerkzeuge (`scripts/umbau/schnappschuss.py`).
+
+### Arbeiter (`ui/jobs.py`)
+
+EIN generisches `class Worker(QThread)`: `fn(progress_cb, cancel, log_cb)`, Signale
+progress(float,str)/finished(object)/failed(str)/log(str), `cancel` ist ein
+`threading.Event`; `cancellable=False` lässt den Abbrechen-Knopf gesperrt. Der Job
+fasst kein `self` und keine Widgets an; was er braucht, sammelt der Handler vorher im
+GUI-Thread ein (Stufe `threadregel` der Sammelprüfung). `_start_worker` startet einen
+Schritt nach dem anderen: läuft schon einer, lehnt es ab (Protokoll, Dialog
+„Beschäftigt“, Automatik angehalten). Während eines Schritts sind die Befehle
+gesperrt; das Abbrechen setzt das Event.
+
+**RViz-Arbeiter** (`ui/fenster/wiedergabe.py`): `Starten` ist ein Schritt wie jeder
+andere. `Beenden` und `Wiederholen` laufen über `_rviz_job(…, eigener=True)` in einem
+eigenen Arbeiter (`_rviz_worker`) neben dem Schritt, setzen weder `_busy` noch
+`_worker` und sperren, solange sie laufen, die drei Befehle der Wiedergabe. Ein
+700-ms-Takt gleicht die Knöpfe an die echte Prozesslage an. `closeEvent` wartet auf
+den Schritt und auf den RViz-Arbeiter, bevor der Player geräumt wird.
+
+### Öffnen
+
 Beim Bag-Öffnen: project.py-Cache prüfen und Vorhandenes (Recording/Farben/Panos)
-sofort laden. Einstellungen in cache/<bag>/settings.json persistieren.
-Fenster: 1600×950, Titel "Super360 Studio". qdarktheme dark + Akzent #4FC3F7.
+sofort laden; Farbebenen liest `_reload_layers`. Projekt aus dem Cache öffnen
+(Ctrl+Shift+P) und exportiertes Projekt öffnen (Ctrl+I, `core.bundle.oeffnen`) laufen
+über `_oeffne_projekt`: ein einzelner Flug, dessen Bag da ist, geht den Weg des
+Bag-Öffnens; ein zusammengeführter oder einer ohne Bag wird ohne Bag geöffnet — Karte,
+Farben und Export sind da, 360°-Video und GPS-Prüfung nicht.
+
+**Autotest-Haken:** Ist `SUPER360_AUTOTEST=<bagpfad>` gesetzt, öffnet das Fenster
+beim Start dieses Bag, wartet auf die Cache-Artefakte, schaltet durch alle Reiter,
+legt Screenshots unter `SUPER360_AUTOTEST_OUT` ab und beendet sich mit Exit-Code 0;
+2 bei einem Fehler im Arbeitsschritt oder fehlenden Screenshots, 3 nach sieben
+Minuten ohne Ergebnis (`ui/fenster/autotest.py`).
 
 ## core/project.py
 
 ```python
+DEFAULT_CACHE_ROOT                 # SUPER360_CACHE_ROOT, sonst ~/RosBagSuper_Gui/rosbag_suite/cache
+def lies_aufzeichnungs_meta(rec_dir) -> dict   # recording/meta.json; wirft OSError/ValueError
+
 class Project:
     def __init__(self, bag_path: str, cache_root=DEFAULT_CACHE_ROOT): ...
-    dir: str                       # cache/<bag_name>
+    dir: str                       # cache/<bag_name>-<md5(abspath)[:8]>
+    @classmethod
+    def from_dir(cls, dir_path) -> "Project"     # ohne Bagpfad (zusammengeführt, Export)
+    @staticmethod
+    def list_projects(cache_root=DEFAULT_CACHE_ROOT) -> list   # Kennzahlen, neueste zuerst
+    LAYERS: dict                   # Farbebene -> Unterordner (s. core/meander.py, Farbebenen)
     def recording_dir(self); def colors_dir(self); def pano_dir(self, width)
+    def layer_dir(self, key); def has_layer(self, key) -> bool; def meander_work_dir(self)
     def gps_json(self); def extrinsic_json(self); def settings_json(self)
-    def has_recording(self) -> bool; ...
+    def has_recording(self) -> bool; def has_colors(self) -> bool   # = has_layer("onboard")
     def load_settings(self) -> dict; def save_settings(self, d: dict)
     def load_extrinsic(self) -> np.ndarray | None; def save_extrinsic(self, T)
     def exploration_json(self); def has_exploration(self) -> bool
     def load_exploration(self) -> dict | None   # None auch bei beschädigter Datei
     def save_exploration(self, d: dict)
 ```
+`colors_dir()` ist eine Hülle um `layer_dir("onboard")`. Cache-Ordner ohne Hash im
+Namen (aus sehr alten Ständen) werden nicht übernommen: das Projekt beginnt dann neu,
+der alte Ordner bleibt liegen.
+
+## core/gemeinsam.py, core/kalibrierung.py, core/ebenen.py
+
+Kleinhelfer, die mehrere Module brauchen, stehen je einmal hier.
+
+```python
+# core/gemeinsam.py — nur Standardbibliothek, importiert nichts aus core
+GRAU_EBENE = 107                   # Grau für ungefärbte Punkte in einer Farbebene
+GRAU_ANZEIGE = 90                  # … in der 3D-Ansicht und im Export
+def write_json_atomic(path, obj, indent=2)     # über .tmp und os.replace
+def pruefe_abbruch(cancel)         # Event, Callable oder None; wirft RuntimeError("Abgebrochen")
+def melde(progress, f, m)          # Fortschritt, sofern es einen Empfänger gibt
+def kamera_modell(cams) -> str     # Kameramodell aus npz-/dict-Eintrag
+def de(x, n=1) -> str              # Dezimalkomma
+def fmt_int(n) -> str              # Tausenderpunkte
+
+# core/kalibrierung.py
+REPO_WURZEL; CALIB_CANDIDATES = (calib/calib_result_new2.json,)
+def default_calib() -> str         # erster vorhandener Kandidat, sonst RuntimeError
+
+# core/ebenen.py — Farbebenen im Projektformat
+THERMAL = ("meander_thermal", "meander_thermal_splat")   # Ebenen mit Temperatur
+def lade_farbdateien(colors_dir, n_points, …)            # colors.bin/valid.bin gegen n prüfen
+def speichern(out_dir, rgb, maske, meta, temperatur=None)
+def laden(out_dir, n_points) -> (rgb, maske) | None
+def lade_temperatur(out_dir, n_points) -> np.ndarray | None
+def meta_lesen(ordner) -> dict | None; def passt(ordner, **soll) -> bool
+```
 
 ## Teststrategie
 
-Jedes Modul hat `if __name__ == "__main__":`-Selbsttest (synthetisch oder gegen seg0)
-und legt Beweis-PNGs/Ausgaben unter
-`/tmp/super360_modtests/<modul>/` ab.
-UI-Selbsttests: `QT_QPA_PLATFORM=offscreen` wenn möglich (VTK braucht evtl. :0 — dann :0
-nehmen und Fenster sofort wieder schließen).
+Die Module haben einen `if __name__ == "__main__":`-Selbsttest (synthetisch oder
+gegen seg0) und legen Beweis-PNGs/Ausgaben unter `/tmp/super360_modtests/<modul>/` ab.
+Ohne Selbsttest: `core.ebenen`, `core.kalibrierung`, `core.rviz_player`, `ui.jobs`,
+`ui.main_window` und die Mixins unter `ui/fenster/` (die prüfen Schnappschuss und
+Ablauf-Proben, s. u.).
+
+Gestartet wird immer als Modul aus der Repo-Wurzel, nie als Datei (die Importe sind
+absolut):
+
+```
+python3 -m core.meander
+QT_QPA_PLATFORM=offscreen python3 -m ui.menubar
+xvfb-run -a python3 -m ui.cloud_view
+xvfb-run -a python3 scripts/test_cloud_view_steuerung.py
+```
+
+UI-Selbsttests: `QT_QPA_PLATFORM=offscreen` wenn möglich (VTK braucht evtl. :0 oder
+xvfb — dann Fenster sofort wieder schließen). Tests laufen nie gegen den echten
+Cache: `SUPER360_CACHE_ROOT` auf eine frische Kopie setzen.
+
+**Prüfwerkzeuge `scripts/umbau/`** halten fest, dass ein Umbau das Verhalten nicht
+ändert, gemessen gegen einen Vorher-Stand (`scripts/umbau/vorher/`):
+
+- `basis.py` — gemeinsame Grundlage (Repo-Wurzel, frische Projektkopie, Fenster bauen).
+- `numerik_probe.py` mit `proben_colorizer.py`, `proben_geometrie.py`,
+  `proben_maeander.py`, `proben_splat.py` — feste Eingaben, Ausgaben als SHA-256 gegen
+  den Vorher-Stand (Numerik in `core/` bleibt bitgleich).
+- `ablauf_probe.py` mit `ablaeufe_projekt.py`, `ablaeufe_maeander.py` — fährt die
+  Handler des Hauptfensters mit ersetzten Blattfunktionen und vergleicht Aufruffolge,
+  Fortschritt, Protokoll und meta-dicts; gewollte Abweichungen über `--erwartet`.
+- `schnappschuss.py` — Widget-Baum, Freigaben, Menüs und Einstellungen des echten
+  Fensters; `soll_gui.json` ist der Soll-Stand der Bedienoberfläche.
+- `zerlege.py`, `vergleiche_methoden.py`, `aufteilung.json` — Zerlegung von
+  `ui/main_window.py` in die Mixins, Methode für Methode AST-gleich.
+- `pruefe_alles.sh` — Sammelprüfung in Stufen: kompilieren, pyflakes, import, namen
+  (kein Name in zwei Mixins), threadregel (kein Job fasst `self` an), selbsttests
+  (`python3 -m core.<modul>`), gpu, ui, ui-zeit, autotest, echtcache.
