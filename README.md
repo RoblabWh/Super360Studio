@@ -90,6 +90,32 @@ opencv-python, open3d, rosbags 0.10, Pillow, laspy, pyproj, pyqtdarktheme)
 mit den getesteten Versionen als Kommentar. Fehlt `pyqtdarktheme`, startet die
 App im Standard-Look.
 
+**Ubuntu 24.04** (System-Python 3.12, PyQt5 5.15.10, VTK 9.1.0 aus apt): Dort
+sperrt PEP 668 `pip install --user` ins System-Python. Die Pakete kommen
+deshalb in eine venv, die PyQt5 und VTK aus apt mitsieht:
+
+```bash
+sudo apt install python3-venv python3-pyqt5 python3-pyqt5.qtopengl python3-pyqt5.qtsvg \
+                 python3-vtk9 libusb-1.0-0
+python3 -m venv --system-site-packages ~/.venvs/super360
+~/.venvs/super360/bin/pip install -r requirements.txt
+~/.venvs/super360/bin/pip install --ignore-requires-python pyqtdarktheme==2.1.0
+```
+
+`pyqtdarktheme` 2.1.0 verlangt laut Metadaten Python < 3.12, läuft aber
+unverändert (reines Python); `requirements.txt` lässt es unter 3.12 deshalb aus,
+die zweite pip-Zeile holt es nach. `python3-pyqt5.qtsvg` braucht qdarktheme,
+`libusb-1.0-0` braucht open3d ab 0.20 (sonst scheitert `import open3d`); auf
+einem Desktop-24.04 sind beide meist schon da. `opencv-python` bringt eigene
+Qt-Plugins mit; wer cv2 vor der QApplication lädt (eigene Skripte), nimmt
+besser `opencv-python-headless`, die App braucht kein highgui.
+`./run_gui.sh` nimmt die venv
+`~/.venvs/super360` von selbst, wenn es sie gibt (anderer Ort:
+`SUPER360_PYTHON=/pfad/zu/python3`); `python3 app.py` und die Skripte brauchen
+deren `python3` oder ein `source ~/.venvs/super360/bin/activate`. Ein
+fertiges Image samt Funktionstest liegt unter `docker/ubuntu-24.04/`
+(`basis.Dockerfile`, `pruefe_app.sh`).
+
 ### 2. Mäander-Einfärbung
 
 ```bash
@@ -108,11 +134,40 @@ python3 -m venv ~/.venvs/colmap
 ~/.venvs/colmap/bin/pip install pycolmap        # getestet: 4.0.4
 ```
 
+Unter **Ubuntu 24.04** (Python 3.12) dasselbe; `python3-venv` muss da sein,
+und die Wheels gibt es für 3.12 in denselben Versionen wie unter 22.04:
+
+```bash
+sudo apt install python3-venv libimage-exiftool-perl
+python3 -m venv ~/.venvs/colmap
+~/.venvs/colmap/bin/pip install pycolmap==4.0.4 numpy==1.26.4 pillow==12.2.0
+```
+
+Als Image (auf `super360-u2404-basis`, venv unter `/opt/venvs/colmap`, im
+Container als `~/.venvs/colmap` zu finden) samt Funktionstest auf der Kopie
+eines Cache-Projekts — das Projekt und die Bilder bleiben unberührt:
+
+```bash
+docker build -f docker/ubuntu-24.04/colmap.Dockerfile -t super360-u2404-colmap:latest docker/ubuntu-24.04
+docker run --rm --user "$(id -u):$(id -g)" \
+    -v "$PWD":/super360:ro -v ~/PointCloudMerger:/home/super360/PointCloudMerger:ro \
+    -v <projekt>:/projekt:ro -v <bilder>:/bilder:ro -v /tmp/maeander:/ziel \
+    super360-u2404-colmap:latest \
+    bash docker/ubuntu-24.04/pruefe_maeander.sh --modus neu /projekt /bilder /ziel
+```
+
+`--modus modell` färbt nur mit Modell und Lage des Projekts, `ausrichten`
+behält das COLMAP-Modell, `neu` rechnet alles ab den Fotos. Das Skript vergleicht
+mit dem Projekt: Lage je Kamera in Metern und Grad, Anteil und Farben der Ebenen.
+
 ### 3. Karte berechnen (FAST-LIO2)
 
-Nur dafür braucht es ROS 2 Humble. Die App erwartet die Workspaces unter
-`~/ws_livox` und `~/fastlio2_ws` und sourct sie selbst — vor dem Start der App
-muss nichts gesourct werden. Kurzfassung (Details in den READMEs der Repos):
+Nur dafür braucht es ROS 2: **Humble** auf Ubuntu 22.04, **Jazzy** auf
+Ubuntu 24.04. Welche da ist, erkennt die App selbst (`core/ros_umgebung.py`:
+ein gesourctes `ROS_DISTRO`, sonst `/opt/ros/*/setup.bash`). Sie erwartet die
+Workspaces unter `~/ws_livox` und `~/fastlio2_ws` und sourct sie selbst — vor
+dem Start der App muss nichts gesourct werden. Kurzfassung für 22.04 (Details
+in den READMEs der Repos, Unterschiede für 24.04 darunter):
 
 ```bash
 # ROS 2 Humble (https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
@@ -136,6 +191,25 @@ cd ~/fastlio2_ws && source /opt/ros/humble/setup.bash \
     && source ~/ws_livox/install/setup.bash && colcon build
 ```
 
+**Ubuntu 24.04 (Jazzy)** — dieselben Schritte mit `jazzy` statt `humble` in
+den Pfaden und drei Unterschieden:
+
+- Pakete: `ros-jazzy-ros-base ros-jazzy-rviz2 ros-jazzy-mavros-msgs
+  ros-jazzy-pcl-ros ros-jazzy-rosbag2-storage-default-plugins libapr1-dev
+  libpython3-dev` zusätzlich zu `libpcl-dev libeigen3-dev
+  python3-colcon-common-extensions` (Jazzy schreibt neue Bags als mcap, die
+  Drohnen-Bags sind sqlite3; das Plugin dafür muss da sein).
+- Livox-SDK2 baut mit gcc 13 nur mit `cmake .. -DCMAKE_CXX_FLAGS="-include cstdint"`
+  (`sdk_core/comm/define.h` nutzt `std::uint8_t` ohne `#include <cstdint>`).
+- livox_ros_driver2: `./build.sh humble` auch unter Jazzy — das Argument wählt
+  nur den CMake-Zweig mit `rosidl_get_typesupport_target`, den es in Jazzy gibt.
+
+Fertig gebaut steht das in `docker/ubuntu-24.04/ros.Dockerfile` (auf der
+App-Basis); den Funktionstest macht
+`docker/ubuntu-24.04/pruefe_karte.sh <bag> <ausgabe> [<referenz-recording>]`.
+Liegen die Workspaces nicht im Home, zeigt `SUPER360_ROS_WS` auf ihren
+Elternordner (im Image `/opt/super360/ros`).
+
 **`whs_dense.yaml` gehört nicht zu FAST_LIO_ROS2** — es ist die eigene
 Konfiguration für die Super-Drohne (jeder Rohpunkt, volle Scans, Lidar-IMU-
 Extrinsik der Mid-360) und liegt deshalb unter `config/fastlio/` in diesem Repo.
@@ -154,10 +228,19 @@ xvfb-run -a python3 scripts/test_cloud_view_steuerung.py
 python3 -m core.meander        # jedes Modul in core/ und ui/ hat einen Selbsttest
 ```
 
+Unter Ubuntu 24.04 dasselbe mit dem `python3` der venv. Ohne eigene
+Installation im Docker-Image (Bags und Cache werden nur lesend eingebunden,
+Ausgaben landen unter `--aus`):
+
+```bash
+docker build -f docker/ubuntu-24.04/basis.Dockerfile -t super360-u2404-basis:latest .
+bash docker/ubuntu-24.04/pruefe_app.sh --daten ~/RosBagSuper_Gui --merger ~/PointCloudMerger
+```
+
 ## Start
 
 ```bash
-./run_gui.sh          # oder: python3 app.py
+./run_gui.sh          # oder: python3 app.py (24.04: das python3 der venv)
 ```
 
 Nur so startet die App; das Modul des Hauptfensters lässt sich nicht mehr
@@ -165,7 +248,7 @@ direkt aufrufen.
 
 Kein ROS-Sourcing nötig — die GUI liest Bags über die `rosbags`-Bibliothek;
 nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
-(`/opt/ros/humble`, `~/ws_livox`, `~/fastlio2_ws`).
+(`/opt/ros/humble` bzw. `/opt/ros/jazzy`, `~/ws_livox`, `~/fastlio2_ws`).
 
 Projekte liegen im Cache unter `~/RosBagSuper_Gui/rosbag_suite/cache`, umzuhängen
 mit der Umgebungsvariable `SUPER360_CACHE_ROOT`.
@@ -656,12 +739,26 @@ Ein Interpreter mit torch und gsplat, gesucht unter `SUPER360_SPLAT_PYTHON`,
 was fehlt. Die Prüfung rechnet einen echten gsplat-Kernel: gsplat ist für bestimmte
 Kartenarchitekturen gebaut, und ein Bau nur für eine RTX 50xx (sm_120) bricht auf
 einer RTX 3060 Ti (sm_86) erst im Training mit „no kernel image is available“ ab.
-Teilen sich Rechner die venv, für alle bauen:
+Teilen sich Rechner die venv, für alle bauen (ein Bau für sm_86 läuft auch auf sm_89,
+etwa einer RTX 4090 Laptop, nicht aber auf sm_120):
 
 ```bash
 TORCH_CUDA_ARCH_LIST="8.6;12.0" CUDA_HOME=~/.venvs/splat/cuda PATH=~/.venvs/splat/cuda/bin:$PATH \
   ~/.venvs/splat/bin/pip install --no-build-isolation --no-deps --force-reinstall \
   --no-binary gsplat gsplat==1.5.3        # rund 15 Minuten
+```
+
+Ubuntu 22.04 und 24.04 nehmen dieselben Versionen: torch 2.8.0+cu128, gsplat 1.5.3
+aus den Quellen gebaut mit nvcc ab 12.8 (erst das kann sm_120). Unter 24.04 (Python
+3.12) legt `python3 -m venv` kein setuptools mehr an, der Bau ohne Isolation braucht
+es aber: vorher `~/.venvs/splat/bin/pip install setuptools wheel ninja jaxtyping rich
+packaging`. Fertig als Image (venv unter `/opt/venvs/splat`, gsplat für 8.6, 8.9 und
+12.0), geprüft mit Selbsttest, gsplat-Kernel und einem Onboard-Splat über das
+Hauptfenster:
+
+```bash
+docker build -f docker/ubuntu-24.04/splat.Dockerfile -t super360-u2404-splat:latest docker/ubuntu-24.04
+MERGER=~/PointCloudMerger docker/ubuntu-24.04/pruefe_splat.sh <bag-ordner> <cache-projekt>
 ```
 
 Sieht PyTorch keine GPU, weil kein `/dev/nvidiactl` da ist, und Secure Boot
