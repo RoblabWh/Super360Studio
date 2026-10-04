@@ -17,7 +17,7 @@ class Worker(QThread):
     """Generischer Hintergrund-Arbeiter: ``fn(progress_cb, cancel, log_cb)``.
 
     ``cancellable=False`` für Jobs, die aus einem einzelnen Bibliotheksaufruf
-    bestehen (Export, Overlay) und das Cancel-Event ohnehin nicht auswerten
+    bestehen (Export, Überlagerung) und das Cancel-Event ohnehin nicht auswerten
     können — der Abbrechen-Knopf bleibt dann ehrlich deaktiviert.
     """
 

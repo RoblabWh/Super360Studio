@@ -1,10 +1,9 @@
 """360°-Einfärbung (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _blue_widgets, _btn_blue_defaults, _btn_blue_preview,
-_btn_colorize, _chk_blue, _chk_lens, _colors, _lbl_blue_band, _loading_ui,
-_overlay_dialogs, _sld_blue_hi, _sld_blue_lo, _sld_blue_neutral, _sld_blue_sat,
-_sld_blue_val, _sld_bmax, _sld_bmin, _spin_edge, _spin_kframes, _spin_sky,
-_valid.
+_btn_colorize, _chk_blue, _chk_lens, _lbl_blue_band, _overlay_dialogs,
+_sld_blue_hi, _sld_blue_lo, _sld_blue_neutral, _sld_blue_sat, _sld_blue_val,
+_sld_bmax, _sld_bmin, _spin_edge, _spin_kframes, _spin_sky.
 """
 from __future__ import annotations
 
@@ -12,42 +11,23 @@ import os
 
 import numpy as np
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import (
-    QCheckBox, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QPushButton,
-    QSlider, QSpinBox, QWidget,
+    QCheckBox, QFormLayout, QLabel, QMessageBox, QPushButton, QSpinBox, QWidget,
 )
 
 from core.ebenen import lade_farbdateien as _load_color_files
 from core.gemeinsam import fmt_int as _fmt_int
 
-from ui.bausteine import _ImageDialog, _wrappable
+from ui.bausteine import Unterblock, _ImageDialog, _wrappable, knopfzeile, schieber
 from ui.fenster.einstellungen import _DEFAULT_SETTINGS
 
 
 class EinfaerbungMixin:
-    def _slider_row(self, minimum: int, maximum: int, value: int
-                    ) -> tuple[QSlider, QLabel, QWidget]:
-        holder = QWidget()
-        lay = QHBoxLayout(holder)
-        lay.setContentsMargins(0, 0, 0, 0)
-        slider = QSlider(Qt.Horizontal)
-        slider.setRange(minimum, maximum)
-        slider.setValue(value)
-        lbl = QLabel(str(value))
-        lbl.setMinimumWidth(30)
-        lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        slider.valueChanged.connect(lambda v, l=lbl: l.setText(str(v)))
-        lay.addWidget(slider, 1)
-        lay.addWidget(lbl)
-        return slider, lbl, holder
-
     def _update_blue_widgets(self, *_args) -> None:
-        """Farbtonband neu zeichnen, Blaulicht-Regler nur mit Filter aktiv."""
-        an = self._chk_blue.isChecked()
-        for w in self._blue_widgets:
-            w.setEnabled(an)
+        """Farbtonband neu zeichnen, den Unterblock Blaulicht nur mit Filter zeigen."""
+        blau = self._chk_blue.parentWidget().findChild(Unterblock, "blaulicht")
+        blau.setVisible(self._chk_blue.isChecked())
         lo, hi = self._sld_blue_lo.value(), self._sld_blue_hi.value()
         w, h = 240, 14
         hue = np.linspace(0.0, 360.0, w, endpoint=False, dtype=np.float32)
@@ -97,24 +77,22 @@ class EinfaerbungMixin:
     def _abschnitt_einfaerbung(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._sld_bmin, _, row_min = self._slider_row(0, 255, 20)
-        self._sld_bmax, _, row_max = self._slider_row(0, 255, 235)
-        self._sld_bmin.valueChanged.connect(self._on_setting_changed)
-        self._sld_bmax.valueChanged.connect(self._on_setting_changed)
-        form.addRow("Helligkeit min:", row_min)
-        form.addRow("Helligkeit max:", row_max)
+        self._sld_bmin, row_min = schieber(0, 255, 20, self._on_setting_changed)
+        self._sld_bmax, row_max = schieber(0, 255, 235, self._on_setting_changed)
+        form.addRow("Helligkeit von:", row_min)
+        form.addRow("Helligkeit bis:", row_max)
         self._spin_kframes = QSpinBox()
         self._spin_kframes.setRange(1, 10)
         self._spin_kframes.setValue(3)
         self._spin_kframes.valueChanged.connect(self._on_setting_changed)
-        form.addRow("K Frames:", self._spin_kframes)
+        form.addRow("Frames je Scan:", self._spin_kframes)
         self._spin_sky = QSpinBox()
         self._spin_sky.setRange(0, 20)
         self._spin_sky.setValue(4)
         self._spin_sky.setSuffix(" px")
         self._spin_sky.setToolTip(
             "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\n"
-            "Farbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit max'\n"
+            "Farbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit bis'\n"
             "durchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.")
         self._spin_sky.valueChanged.connect(self._on_setting_changed)
         form.addRow("Himmelssaum:", self._spin_sky)
@@ -141,7 +119,6 @@ class EinfaerbungMixin:
         form.addRow("Linsenrand ab:", self._spin_edge)
 
         # Blaulicht: blinkt, also gibt es fast immer einen Frame ohne
-        form.addRow(QLabel("<b>Blaulicht</b>"))
         self._chk_blue = QCheckBox("Blaulicht filtern")
         self._chk_blue.setToolTip(
             "Proben im gewählten Blaubereich zählen nur, wenn es für den Punkt\n"
@@ -152,12 +129,20 @@ class EinfaerbungMixin:
         self._chk_blue.toggled.connect(self._on_setting_changed)
         self._chk_blue.toggled.connect(self._update_blue_widgets)
         form.addRow(self._chk_blue)
+        # Die Regler stehen nur da, solange der Haken gesetzt ist
+        blau = Unterblock("Blaulicht")
+        blau.setObjectName("blaulicht")
         d = _DEFAULT_SETTINGS
-        self._sld_blue_lo, _, row_blo = self._slider_row(0, 360, d["blue_hue_lo"])
-        self._sld_blue_hi, _, row_bhi = self._slider_row(0, 360, d["blue_hue_hi"])
-        self._sld_blue_sat, _, row_bsat = self._slider_row(0, 100, d["blue_sat"])
-        self._sld_blue_val, _, row_bval = self._slider_row(0, 255, d["blue_val"])
-        self._sld_blue_neutral, _, row_bneu = self._slider_row(0, 100, d["blue_neutral"])
+        self._sld_blue_lo, row_blo = schieber(0, 360, d["blue_hue_lo"],
+                                              self._on_setting_changed)
+        self._sld_blue_hi, row_bhi = schieber(0, 360, d["blue_hue_hi"],
+                                              self._on_setting_changed)
+        self._sld_blue_sat, row_bsat = schieber(0, 100, d["blue_sat"],
+                                                self._on_setting_changed)
+        self._sld_blue_val, row_bval = schieber(0, 255, d["blue_val"],
+                                                self._on_setting_changed)
+        self._sld_blue_neutral, row_bneu = schieber(0, 100, d["blue_neutral"],
+                                                    self._on_setting_changed)
         self._sld_blue_neutral.setToolTip(
             "Wo Blaulicht eine Fläche in jedem Frame anstrahlt, gibt es keine\n"
             "unbeleuchtete Probe. Punkte, deren Farbe am Ende im Blaubereich liegt,\n"
@@ -167,28 +152,25 @@ class EinfaerbungMixin:
         self._lbl_blue_band.setToolTip(
             "Farbton 0–360°: der helle Bereich wird als Blaulicht behandelt.\n"
             "Ist 'von' größer als 'bis', läuft der Bereich über Rot hinweg.")
-        for sld in (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
-                    self._sld_blue_val, self._sld_blue_neutral):
-            sld.valueChanged.connect(self._on_setting_changed)
         self._sld_blue_lo.valueChanged.connect(self._update_blue_widgets)
         self._sld_blue_hi.valueChanged.connect(self._update_blue_widgets)
-        form.addRow("Farbton von (°):", row_blo)
-        form.addRow("Farbton bis (°):", row_bhi)
-        form.addRow(self._lbl_blue_band)
-        form.addRow("Sättigung min (%):", row_bsat)
-        form.addRow("Helligkeit min:", row_bval)
-        form.addRow("Restblau neutralisieren (%):", row_bneu)
+        blau.form.addRow("Farbton von (°):", row_blo)
+        blau.form.addRow("Farbton bis (°):", row_bhi)
+        blau.form.addRow(self._lbl_blue_band)
+        blau.form.addRow("Blau ab Sättigung (%):", row_bsat)
+        blau.form.addRow("Blau ab Helligkeit:", row_bval)
+        blau.form.addRow("Restblau neutralisieren (%):", row_bneu)
         self._btn_blue_defaults = QPushButton("Standardwerte")
         self._btn_blue_defaults.setToolTip(
             "Farbton 150–290°, Sättigung ab 5 %, Helligkeit ab 10, Restblau\n"
             "100 % — eingestellt an einem Nachtflug mit Einsatzfahrzeugen, bis\n"
             "kein Blaulicht mehr zu sehen war. Grün (Bäume) bleibt.")
         self._btn_blue_defaults.clicked.connect(self._on_blue_defaults)
-        form.addRow(self._btn_blue_defaults)
-        # Die Blaumaske lässt sich auch ohne Filter ansehen: der Knopf folgt
-        # seiner Aktion, nicht dem Haken.
+        # Der Knopf folgt seiner Aktion, nicht dem Haken: ohne Filter bleibt
+        # die Blaumaske über das Menü zu sehen.
         self._btn_blue_preview = self._befehlsknopf("blaumaske")
-        form.addRow(self._btn_blue_preview)
+        blau.form.addRow(knopfzeile(self._btn_blue_defaults, self._btn_blue_preview))
+        form.addRow(blau)
         self._blue_widgets = (self._sld_blue_lo, self._sld_blue_hi, self._sld_blue_sat,
                               self._sld_blue_val, self._sld_blue_neutral,
                               self._btn_blue_defaults, self._lbl_blue_band)
@@ -250,19 +232,16 @@ class EinfaerbungMixin:
             return
         if self._merge_rec is not None:
             weiter = QMessageBox.question(
-                self, "Zweiter Flug nicht übernommen",
+                self, "Zweiter Flug nicht zusammengeführt",
                 "Es ist ein zweiter Flug geladen (die orangen Punkte), aber "
-                "noch nicht übernommen.\n\nEingefärbt wird nur der offene "
+                "noch nicht zusammengeführt.\n\nEingefärbt wird nur der offene "
                 "Flug; die orange Vorschau bleibt unverändert liegen und "
                 "verdeckt das Ergebnis.\n\nTrotzdem einfärben?",
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if weiter != QMessageBox.Yes:
                 return
         T = self._extrinsic_from_spins()
-        try:
-            self._project.save_extrinsic(T)
-        except RuntimeError as exc:
-            self._log(f"Extrinsik nicht gespeichert: {exc}")
+        self._speichere_extrinsik(T)
         params = colorizer.ColorizeParams(
             brightness_min=int(self._sld_bmin.value()),
             brightness_max=int(self._sld_bmax.value()),
@@ -296,7 +275,7 @@ class EinfaerbungMixin:
                     log_cb(
                         "WARNUNG: die gespeicherte Extrinsik ist deutlich verdreht. "
                         "Das kostet spürbar Farbqualität — Lauf abbrechen, "
-                        "'Auto-Kalibrierung (grob)' starten und neu einfärben.")
+                        "'Automatisch kalibrieren (grob)' starten und neu einfärben.")
             return colorizer.colorize(rec, bag, calib, params, out_dir,
                                       progress_cb=progress_cb, cancel=cancel,
                                       parts=parts)
@@ -343,18 +322,8 @@ class EinfaerbungMixin:
                 self._log(f"   WARNUNG: Abschnitt {teil} ist praktisch leer "
                           f"geblieben — vermutlich fehlt für dieses Bag die "
                           f"Kamera oder es liegt nicht mehr an seinem Ort.")
-        self._colors, self._valid = colors, valid
-        # Eine leere Anzeige ist der schlechteste Ausgang: bei "Nur eingefärbte
-        # Punkte" verschwindet die ganze Wolke, und uebrig bleibt nur, was sonst
-        # noch im Bild ist. Lieber den Haken loesen und es sagen.
-        if n_valid == 0 and self._chk_only_colored.isChecked():
-            self._loading_ui = True
-            self._chk_only_colored.setChecked(False)
-            self._loading_ui = False
-            self._log("Kein Punkt wurde eingefärbt — 'Nur eingefärbte Punkte' "
-                      "wurde gelöst, sonst bliebe die Ansicht leer.")
-        self._cloud_view.set_cloud(self._world, self._colors,
-                                   self._rec.intensity, self._valid)
-        idx = self._combo_colormode.findData("rgb")
-        self._combo_colormode.setCurrentIndex(idx)  # löst _on_display_changed aus
-        self._push_display_settings()
+        # Das Ergebnis ist die Ebene 'onboard': eintragen und als Farbe zeigen.
+        # Bleibt sie fast leer, löst _apply_layer den Haken 'Nur eingefärbte
+        # Punkte', sonst bliebe die Ansicht leer.
+        self._ebene_eintragen("onboard", colors, valid)
+        self._setze_farbe("rgb:onboard")

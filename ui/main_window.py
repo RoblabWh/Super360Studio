@@ -119,19 +119,18 @@ class MainWindow(GrundgeruestMixin,
         self._point_size = 2.0
         self._meander_pipe = None
         self._meander_dir: Optional[str] = None
-        # Ausrichtfenster des Maeanderflugs, zuletzt geoeffnet (s. _on_meander_fenster)
+        # Ausrichtfenster des Maeanderflugs, solange es offen ist (s. _on_meander_fenster)
         self._meander_fenster = None
-        # Live-Vorschau der Handjustage: verkleinerte Bilder im Speicher
-        # plus eine Stichprobe der Wolke. Ein Durchlauf kostet damit rund
-        # 80 ms statt Minuten, die Wolke folgt dem Regler.
+        # Verkleinerte Bilder fuer die Farbvorschau im Ausrichtfenster: ein
+        # Durchlauf kostet damit Millisekunden statt Minuten.
         self._live = None
         self._live_th = None           # dasselbe fuer die Thermalbilder
-        self._live_optik = "rgb"       # welche Optik die Vorschau gerade zeigt
-        self._live_pts: Optional[np.ndarray] = None
-        self._live_gemeckert = False   # Warnung bei 0 % nur einmal je Sitzung
-        self._live_timer = einmal_timer(self, 120, self._live_update)
         # Optik der Maeanderkameras: Massstab je Optik, Thermal-Einmessung
         self._optik: dict = {"rgb_faktor": 1.0, "thermal_faktor": 1.0, "thermal": None}
+        # Thermal-Zuschlag auf die RGB-Lage: (Gier Grad, X m, Y m)
+        self._th_zuschlag = (0.0, 0.0, 0.0)
+        # Einstellung meander_solo: wird gelesen und gespeichert, wirkt nicht
+        self._meander_solo = False
         # Temperatur je Punkt aus der Thermal-Mäanderebene (°C, NaN wo keine)
         self._temperatur: Optional[np.ndarray] = None
         self._temperaturen: dict = {}      # Thermalebene -> Temperatur je Punkt
@@ -141,9 +140,6 @@ class MainWindow(GrundgeruestMixin,
         self._optik_neu_messen = False   # frisch ausgerichtet: Hoehe gilt nicht mehr
         # Schieber am zweiten Flug: erst nach kurzer Ruhe neu transformieren
         self._merge_timer = einmal_timer(self, 60, self._on_merge_manual)
-        # RGB-Handzuschlag: kurz nach dem letzten Zug ins Projekt schreiben
-        self._zuschlag_timer = einmal_timer(
-            self, 400, lambda: self._meander_speichere_zuschlag())
         self._n_frames = 0
         self._project: Optional[Project] = None
         self._settings: dict = dict(_DEFAULT_SETTINGS)

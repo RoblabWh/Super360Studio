@@ -1265,7 +1265,9 @@ def _rviz_waehrend_schritt(s):
     _offen(s, welt)
     _langer_schritt(s)
     s.fenster._on_rviz_start()
+    s._rviz_abwarten()                    # sonst Wettlauf mit dem RViz-Arbeiter
     s.fenster._on_rviz_replay()
+    s._rviz_abwarten()
     s.fenster._on_rviz_stop()
     _laufe(s)
 

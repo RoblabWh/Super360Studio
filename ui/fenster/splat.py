@@ -1,10 +1,10 @@
 """Gaussian Splat und Fusion (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _btn_splat_gemeinsam, _btn_splat_maeander,
-_btn_splat_onboard, _btn_splat_pruefen, _chk_splat_posen, _chk_splat_pruefen,
-_chk_splat_thermal, _combo_splat_raster, _combo_splat_sh, _lbl_splat,
-_meander_pipe, _spin_splat_anker, _spin_splat_frames, _spin_splat_schritte,
-_spin_splat_schritte_onboard.
+Schreibt am Hauptfenster: _btn_fusion, _btn_splat_gemeinsam,
+_btn_splat_maeander, _btn_splat_onboard, _btn_splat_pruefen, _chk_splat_posen,
+_chk_splat_pruefen, _chk_splat_thermal, _combo_splat_raster, _combo_splat_sh,
+_lbl_splat, _meander_pipe, _spin_splat_anker, _spin_splat_frames,
+_spin_splat_schritte, _spin_splat_schritte_onboard.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 from core.gemeinsam import fmt_int as _fmt_int
 from core.project import Project
 
-from ui.bausteine import _compact_combo, _wrappable
+from ui.bausteine import Unterblock, _compact_combo, _wrappable
 
 
 def _splat_anker(welt, cfg, progress_cb, cancel, log_cb, von, bis) -> dict:
@@ -72,7 +72,7 @@ class SplatMixin:
             "(geschätzt). Auf der RTX 5090 gemessen: 3,9 Mio. (7,6 cm) brauchen\n"
             "GPU_SPEICHER_76, 7,2 Mio. (5 cm) GPU_SPEICHER_50. Bei Speichermangel\n"
             "hier herunter, das Raster wird dann gröber.")
-        form.addRow("höchstens:", self._spin_splat_anker)
+        form.addRow("Anker höchstens:", self._spin_splat_anker)
         self._combo_splat_sh = _compact_combo(QComboBox())
         for label, wert in (("keine", 0), ("1. Grades", 1), ("2. Grades", 2)):
             self._combo_splat_sh.addItem(label, wert)
@@ -98,23 +98,24 @@ class SplatMixin:
             chk.stateChanged.connect(self._on_setting_changed)
             form.addRow(chk)
 
-        form.addRow(QLabel("<b>Mäanderflug</b>"))
+        maeander = Unterblock("Mäanderflug")
         self._spin_splat_schritte = QSpinBox()
         self._spin_splat_schritte.setRange(500, 100_000)
         self._spin_splat_schritte.setSingleStep(500)
         self._spin_splat_schritte.setValue(3000)
-        form.addRow("Schritte:", self._spin_splat_schritte)
+        maeander.form.addRow("Schritte:", self._spin_splat_schritte)
         self._chk_splat_thermal = QCheckBox("Temperaturen mitlernen")
         self._chk_splat_thermal.setChecked(True)
         self._chk_splat_thermal.setToolTip(
             "Ein zweites Splat auf den Temperaturen der R-JPEGs statt auf der\n"
             "Palette — die skaliert die Kamera je Bild selbst.")
         self._chk_splat_thermal.stateChanged.connect(self._on_setting_changed)
-        form.addRow(self._chk_splat_thermal)
+        maeander.form.addRow(self._chk_splat_thermal)
         self._btn_splat_maeander = self._befehlsknopf("splat_meander")
-        form.addRow(self._btn_splat_maeander)
+        maeander.form.addRow(self._btn_splat_maeander)
+        form.addRow(maeander)
 
-        form.addRow(QLabel("<b>360°-Kamera an Bord</b>"))
+        onboard = Unterblock("360°-Kamera")
         self._spin_splat_frames = QSpinBox()
         self._spin_splat_frames.setRange(20, 3000)
         self._spin_splat_frames.setSingleStep(50)
@@ -122,17 +123,22 @@ class SplatMixin:
         self._spin_splat_frames.setToolTip(
             "Höchstens so viele Frames, gewählt nach Bewegung (0,3 m oder 8°).\n"
             "Je Frame bis zu zehn Würfelseiten, fünf je Fisheye.")
-        form.addRow("Frames:", self._spin_splat_frames)
+        onboard.form.addRow("Frames:", self._spin_splat_frames)
         self._spin_splat_schritte_onboard = QSpinBox()
         self._spin_splat_schritte_onboard.setRange(1000, 300_000)
         self._spin_splat_schritte_onboard.setSingleStep(1000)
         self._spin_splat_schritte_onboard.setValue(15000)
-        form.addRow("Schritte:", self._spin_splat_schritte_onboard)
+        onboard.form.addRow("Schritte:", self._spin_splat_schritte_onboard)
         self._btn_splat_onboard = self._befehlsknopf("splat_onboard")
-        form.addRow(self._btn_splat_onboard)
-        form.addRow(QLabel("<b>Beide gemeinsam</b>"))
+        onboard.form.addRow(self._btn_splat_onboard)
+        form.addRow(onboard)
+
+        gemeinsam = Unterblock("Beide gemeinsam")
+        self._btn_fusion = self._befehlsknopf("fusion")
+        gemeinsam.form.addRow(self._btn_fusion)
         self._btn_splat_gemeinsam = self._befehlsknopf("splat_gemeinsam")
-        form.addRow(self._btn_splat_gemeinsam)
+        gemeinsam.form.addRow(self._btn_splat_gemeinsam)
+        form.addRow(gemeinsam)
         for sp in (self._spin_splat_anker, self._spin_splat_schritte,
                    self._spin_splat_frames, self._spin_splat_schritte_onboard):
             sp.valueChanged.connect(self._on_setting_changed)
@@ -321,7 +327,7 @@ class SplatMixin:
 
     def _on_splat_gemeinsam(self) -> None:
         kontext = self._maeander_kontext(
-            "Gaussian Splat", "Erst einen Flug mit Bag öffnen und einen Mäanderflug wählen.",
+            "Gaussian Splat", "Erst ein Rosbag öffnen und einen Mäanderflug wählen.",
             zusatz_ok=self._rec is not None and self._bag is not None and bool(self._calib))
         if kontext is None:
             return

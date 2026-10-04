@@ -1,11 +1,10 @@
 """Eigenes Fenster zum Ausrichten des Maeanderfluges auf die Karte.
 
 Nach dem Vorbild der Pipeline aus PointCloudMerger: beide Wolken **uebereinander**
-sehen und die eine von Hand auf die andere schieben. Dass das ein eigenes Fenster
-bekommt, hat einen Grund — im Hauptfenster musste die Karte fuer die Vorschau
-ausgeblendet werden, weil eine Stichprobe von 50.000 Punkten in 24 Millionen
-untergeht. Hier ist das Ueberlagern der Zweck, nicht die Stoerung: die Karte
-liegt bewusst ausgeduennt darunter, damit die Fotopunkte darauf zu sehen sind.
+sehen und die eine von Hand auf die andere schieben. Das ist die einzige Stelle
+der Handjustage; das Hauptfenster zeigt in seiner Seitenleiste nur, welche Lage
+gilt. Das Ueberlagern ist hier der Zweck: die Karte liegt bewusst ausgeduennt
+darunter, damit die Fotopunkte darauf zu sehen sind.
 
 Drei Ansichten, umschaltbar:
 
@@ -411,7 +410,8 @@ class MeanderAlignWindow(QtWidgets.QDialog):
             "Brennweite der RGB-Kamera gegenüber COLMAP, in Prozent.\n"
             "Zu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\n"
             "um Meter, in jedem Bild anders. In der Seitenansicht liegen die\n"
-            "Fotopunkte dann über der Karte; stimmt er, liegen sie darauf.")
+            "Fotopunkte dann über der Karte; stimmt er, liegen sie darauf.\n"
+            "„Optik einmessen“ im Hauptfenster findet ihn selbst.")
         self._massstab_rgb.valueChanged.connect(lambda *_: self._angefasst("rgb"))
         f.addRow("Maßstab", self._massstab_rgb)
         form.addWidget(box)
@@ -445,6 +445,9 @@ class MeanderAlignWindow(QtWidgets.QDialog):
             box.setEnabled(False)
             box.setToolTip("Keine Thermalbilder in diesem Lauf — im Hauptfenster "
                            "„Thermalbilder mitrechnen“ anhaken und neu ausrichten.")
+        else:
+            box.setToolTip("Wird RGB verschoben, zieht Thermal mit. Mit „Lage "
+                           "übernehmen“ bleibt der Wert im Projekt gespeichert.")
 
         knopf_null = QtWidgets.QPushButton("zurücksetzen")
         knopf_null.setToolTip("Alle Regler auf den Stand beim Öffnen des Fensters.")

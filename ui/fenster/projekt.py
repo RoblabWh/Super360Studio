@@ -1,9 +1,9 @@
 """Aufnahme, Karte und Projekt (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _bag, _bag_info, _btn_fastlio, _btn_open, _colors,
-_combo_config, _exploration, _fixes, _georef, _info_table, _layers,
-_lbl_fastlio, _meander_pipe, _n_frames, _pano_failed, _pano_src, _parts,
-_pbar_fastlio, _project, _quality, _rec, _settings, _spin_rate, _valid, _world.
+Schreibt am Hauptfenster: _bag, _bag_info, _btn_fastlio, _btn_open,
+_btn_open_project, _colors, _combo_config, _exploration, _fixes, _info_table,
+_layers, _lbl_fastlio, _meander_pipe, _n_frames, _pano_failed, _pano_src,
+_parts, _project, _quality, _rec, _settings, _spin_rate, _valid, _world.
 """
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ import numpy as np
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QComboBox, QDialog, QDoubleSpinBox, QFileDialog, QFormLayout, QHeaderView,
-    QLabel, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton,
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QDialog, QFileDialog, QFormLayout, QHeaderView, QLabel, QMessageBox,
+    QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
+    QWidget,
 )
 
 from core import exploration, georef
@@ -31,7 +31,7 @@ from core.kalibrierung import REPO_WURZEL
 from core.project import Project
 from core.recording import lade_mit_hinweis
 
-from ui.bausteine import _compact_combo, _wrappable
+from ui.bausteine import _wrappable, auswahl, knopfzeile, zahl
 from ui.fenster.einstellungen import _DEFAULT_SETTINGS
 from ui.pano_view import StitchingPanoSource
 
@@ -50,7 +50,8 @@ class ProjektMixin:
         box = QWidget()
         lay = QVBoxLayout(box)
         self._btn_open = self._befehlsknopf("open")
-        lay.addWidget(self._btn_open)
+        self._btn_open_project = self._befehlsknopf("open_project")
+        lay.addWidget(knopfzeile(self._btn_open, self._btn_open_project))
         self._info_table = QTableWidget(0, 2, box)
         self._info_table.setHorizontalHeaderLabels(["Eigenschaft", "Wert"])
         self._info_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -66,29 +67,19 @@ class ProjektMixin:
     def _abschnitt_karte(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._combo_config = _compact_combo(QComboBox())
-        for label, data in _CONFIG_ITEMS:
-            self._combo_config.addItem(label, data)
-        self._combo_config.currentIndexChanged.connect(self._on_setting_changed)
+        self._combo_config = auswahl(_CONFIG_ITEMS, slot=self._on_setting_changed)
         form.addRow("Konfiguration:", self._combo_config)
-        self._spin_rate = QDoubleSpinBox()
-        self._spin_rate.setRange(0.25, 2.0)
-        self._spin_rate.setSingleStep(0.25)
-        self._spin_rate.setValue(1.0)
-        self._spin_rate.valueChanged.connect(self._on_setting_changed)
+        self._spin_rate = zahl(0.25, 2.0, 1.0, 0.25, dezimalen=2,
+                               slot=self._on_setting_changed)
         form.addRow("Abspielrate:", self._spin_rate)
         self._btn_fastlio = self._befehlsknopf("fastlio")
         form.addRow(self._btn_fastlio)
-        self._pbar_fastlio = QProgressBar()
-        self._pbar_fastlio.setRange(0, 1000)
-        self._pbar_fastlio.setValue(0)
-        form.addRow(self._pbar_fastlio)
         self._lbl_fastlio = QLabel("Noch keine Karte berechnet.")
         self._lbl_fastlio.setWordWrap(True)
         form.addRow(self._lbl_fastlio)
         return box
 
-    # ============================================================ Bag öffnen
+    # ========================================================= Rosbag öffnen
 
     def _beschaeftigt_melden(self, lang: bool) -> bool:
         """Läuft noch ein Arbeitsschritt, das sagen und True liefern."""
@@ -159,7 +150,7 @@ class ProjektMixin:
         self._valid = None
         self._fixes = None
         self._quality = None
-        self._georef = None
+        self._georef_setzen(None)
         self._exploration = None
         self._grad_anzeige.leeren()
         self._pano_src = None
@@ -447,28 +438,21 @@ class ProjektMixin:
         # Aufzeichnung ersetzt recording/ — offene np.memmaps auf den alten
         # Dateien würden sonst als veraltete Anzeige weiterleben (bzw. bei
         # Truncation einen SIGBUS riskieren). Auch die Georeferenzierung passt
-        # nicht mehr zur neuen Trajektorie.
+        # nicht mehr zur neuen Flugbahn.
         self._rec = None
         self._world = None
         self._colors = None
         self._valid = None
-        self._georef = None
+        self._georef_setzen(None)
         self._cloud_view.set_cloud(None)
         self._cloud_view.set_path(None)
         if self._quality is not None:
             self._gps_panel.set_quality(self._quality, self._fixes, None)
         self._lbl_fastlio.setText("Karte wird berechnet …")
-        self._pbar_fastlio.setRange(0, 1000)
-        self._pbar_fastlio.setValue(0)
-
-        def extra(frac: float, _msg: str) -> None:
-            self._pbar_fastlio.setValue(int(max(0.0, min(1.0, frac)) * 1000))
-
         self._start_worker(f"FAST-LIO2 läuft ({config}, Rate {rate:g}×) …",
-                           job, self._on_fastlio_done, extra_progress=extra)
+                           job, self._on_fastlio_done)
 
     def _on_fastlio_done(self, result) -> None:
-        self._pbar_fastlio.setValue(1000)
         self._lbl_fastlio.setText(
             _karten_zeile(result.n_scans, result.expected_scans, result.n_points,
                           result.dropped_scans))

@@ -373,7 +373,7 @@ class PanoView(QWidget):
         self._fit_btn.clicked.connect(self._view.fit)
 
         self._shot_btn = QToolButton(self)
-        self._shot_btn.setText("Screenshot…")
+        self._shot_btn.setText("Bild speichern …")
         self._shot_btn.setToolTip("Aktuelles Panorama in voller Auflösung speichern")
         self._shot_btn.clicked.connect(self._on_screenshot)
 

@@ -351,6 +351,11 @@
      "unterblock": null
     },
     {
+     "attribut": "_sections._unterbloecke[maeander.hauptpunkt]",
+     "text": null,
+     "unterblock": null
+    },
+    {
      "attribut": null,
      "text": "▸  Hauptpunkt (wirkt beim nächsten Ausrichten)",
      "unterblock": "maeander.hauptpunkt"

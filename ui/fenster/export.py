@@ -1,7 +1,7 @@
 """Export (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _btn_cloud_cc, _btn_export_las, _btn_export_plypcd,
-_georef, _valid.
+_georef, _lbl_georef, _valid.
 """
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import os
 
 import numpy as np
 
-from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QLabel, QMessageBox, QVBoxLayout, QWidget
 
 from core import georef
 from core.gemeinsam import GRAU_ANZEIGE, fmt_int as _fmt_int
@@ -25,8 +25,12 @@ class ExportMixin:
         self._btn_export_las = self._befehlsknopf("export_las")
         lay.addWidget(self._btn_export_plypcd)
         lay.addWidget(self._btn_export_las)
+        self._lbl_georef = QLabel(self._georef_text(None))
+        self._lbl_georef.setWordWrap(True)
+        lay.addWidget(self._lbl_georef)
         self._btn_cloud_cc = self._befehlsknopf("cloud_cc")
         lay.addWidget(self._btn_cloud_cc)
+        lay.addWidget(self._befehlsknopf("project_export"))
         return box
 
     # ================================================================== Export
@@ -128,9 +132,17 @@ class ExportMixin:
         self._start_worker("Schreibe Punktwolke für CloudCompare …", job,
                            lambda p: self._cc_open([p]), cancellable=False)
 
+    @staticmethod
+    def _georef_text(result: georef.GeorefResult | None) -> str:
+        """Statuszeile im Abschnitt Export: in welchem System LAS schreibt."""
+        if result is None:
+            return "LAS im lokalen System — Georeferenz im Reiter GPS"
+        return f"LAS in UTM, EPSG:{result.utm_epsg}"
+
     def _georef_setzen(self, result: georef.GeorefResult | None) -> None:
         """Georeferenz der offenen Wolke setzen (None: keine)."""
         self._georef = result
+        self._lbl_georef.setText(self._georef_text(result))
 
     def _on_georef_ready(self, result) -> None:
         self._georef_setzen(result)

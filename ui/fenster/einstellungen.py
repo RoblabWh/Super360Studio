@@ -1,7 +1,7 @@
 """Einstellungen (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _layer_key, _loading_ui, _meander_dir, _settings,
-_temperatur_anzeigen.
+Schreibt am Hauptfenster: _color_mode, _layer_key, _loading_ui, _meander_dir,
+_meander_solo, _point_size, _settings, _temperatur_anzeigen.
 """
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ import os
 from typing import NamedTuple
 
 from PyQt5.QtWidgets import QMessageBox
+
+from ui.fenster.anzeige import _farbmodus, _punktgroesse
 
 
 class _Einstellung(NamedTuple):
@@ -53,10 +55,10 @@ _EINSTELLUNGEN: tuple = (
     _Einstellung("mesh_stand", 3, "", "", "fest"),
     _Einstellung("mesh_hybrid", True, "_chk_mesh_hybrid", "haken"),
     _Einstellung("mesh_an", False, "_cloud_view", "mesh_schalter"),
-    _Einstellung("point_size", 2, "_spin_pointsize", "komma"),
+    _Einstellung("point_size", 2, "_point_size", "punktgroesse"),
     _Einstellung("temperatur_anzeigen", True, "_temperatur_anzeigen", "temperatur",
                  "rueckfall"),
-    _Einstellung("color_mode", "rgb", "_combo_colormode", "daten"),
+    _Einstellung("color_mode", "rgb", "_color_mode", "farbmodus"),
     _Einstellung("only_colored", True, "_chk_only_colored", "haken"),
     _Einstellung("voxel", 0.0, "_combo_voxel", "naeherung"),
     _Einstellung("background", "dunkel", "_combo_bg", "daten"),
@@ -64,7 +66,8 @@ _EINSTELLUNGEN: tuple = (
     _Einstellung("show_path", False, "_chk_path", "haken"),
     _Einstellung("meander_thermal", False, "_chk_thermal", "haken", "rueckfall"),
     _Einstellung("meander_sichtbar", True, "_chk_sichtbar", "haken", "rueckfall"),
-    _Einstellung("meander_solo", True, "_chk_solo", "haken", "rueckfall"),
+    # ohne Wirkung, wird nur gelesen und weiter gespeichert
+    _Einstellung("meander_solo", True, "_meander_solo", "merker", "rueckfall"),
     _Einstellung("splat_raster", 0.05, "_combo_splat_raster", "naeherung", "rueckfall"),
     _Einstellung("splat_anker_mio", 4.0, "_spin_splat_anker", "komma", "rueckfall"),
     _Einstellung("splat_sh", 1, "_combo_splat_sh", "daten_ganz", "rueckfall"),
@@ -139,6 +142,9 @@ _SCHREIBEN: dict = {
     "naeherung": lambda f, e, w: getattr(f, e.bindung).setCurrentIndex(
         _auswahl_index(getattr(f, e.bindung), w, e.vorgabe)),
     "mesh_schalter": lambda f, e, w: f._cloud_view.set_mesh_schalter(bool(w)),
+    "punktgroesse": lambda f, e, w: setattr(f, e.bindung, _punktgroesse(w)),
+    "farbmodus": lambda f, e, w: setattr(f, e.bindung, _farbmodus(w)),
+    "merker": lambda f, e, w: setattr(f, e.bindung, bool(w)),
     "temperatur": lambda f, e, w: _setze_temperatur(f, w),
     "versatz": _setze_versatz,
     "maeanderordner": lambda f, e, w: _setze_maeanderordner(f, w),
@@ -158,6 +164,9 @@ _LESEN: dict = {
     "daten_ganz": lambda f, e: int(getattr(f, e.bindung).currentData()),
     "naeherung": lambda f, e: float(getattr(f, e.bindung).currentData()),
     "mesh_schalter": lambda f, e: bool(f._cloud_view.mesh_an()),
+    "punktgroesse": lambda f, e: float(getattr(f, e.bindung)),
+    "farbmodus": lambda f, e: getattr(f, e.bindung),
+    "merker": lambda f, e: bool(getattr(f, e.bindung)),
     "temperatur": lambda f, e: bool(f._temperatur_anzeigen),
     "versatz": lambda f, e: f._meander_versatz(_optik(e)),
     "maeanderordner": lambda f, e: f._meander_dir or "",

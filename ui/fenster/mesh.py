@@ -23,8 +23,12 @@ class MeshMixin:
     def _abschnitt_mesh(self) -> QWidget:
         box = QWidget()
         lay = QVBoxLayout(box)
-        # Mesh fuer CloudCompare (s. core/mesh.py)
-        lay.addWidget(QLabel("<b>CloudCompare</b>"))
+        # Mesh fuer Ansicht und CloudCompare (s. core/mesh.py)
+        info = QLabel(
+            "Die Einstellungen gelten für den Schalter „Mesh“ über der 3D-Ansicht "
+            "und für das Mesh in CloudCompare.")
+        info.setWordWrap(True)
+        lay.addWidget(info)
         form = _wrappable(QFormLayout())
         d = _DEFAULT_SETTINGS
         self._spin_mesh_voxel = QSpinBox()

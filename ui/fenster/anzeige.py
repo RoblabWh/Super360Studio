@@ -1,9 +1,8 @@
 """Anzeige, Farbebenen und Menü (Mixin des Hauptfensters).
 
-Schreibt am Hauptfenster: _chk_edl, _chk_only_colored, _chk_path, _colors,
-_combo_bg, _combo_colormode, _combo_layer, _combo_voxel, _layer_key, _layers,
-_loading_ui, _spin_pointsize, _temperatur, _temperatur_anzeigen, _temperaturen,
-_valid.
+Schreibt am Hauptfenster: _chk_edl, _chk_only_colored, _chk_path, _color_mode,
+_colors, _combo_bg, _combo_voxel, _layer_key, _layers, _loading_ui, _point_size,
+_temperatur, _temperatur_anzeigen, _temperaturen, _valid.
 """
 from __future__ import annotations
 
@@ -11,89 +10,83 @@ import os
 
 import numpy as np
 
-from PyQt5.QtWidgets import (
-    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QMessageBox, QWidget,
-)
+from PyQt5.QtCore import QLocale
+from PyQt5.QtWidgets import QFormLayout, QMessageBox, QWidget
 
 from core.ebenen import THERMAL, lade_farbdateien, lade_temperatur, laden
 from core.project import Project
 
 from ui import menubar as menubar_mod
-from ui.bausteine import _compact_combo, _wrappable, speicherpfad, still_setzen
+from ui.bausteine import _wrappable, auswahl, haken, speicherpfad, still_setzen
 
-#: Farbebenen fuer die Auswahl — Reihenfolge wie in Project.LAYERS
-_LAYER_LABELS = (
-    ("onboard", "Onboard RGB (360°-Kamera)"),
-    ("onboard_splat", "Onboard RGB, Gaussian Splat"),
-    ("meander_rgb", "Mäander RGB (DJI)"),
-    ("meander_splat", "Mäander RGB, Gaussian Splat"),
-    ("meander_thermal", "Mäander Thermal (DJI)"),
-    ("meander_thermal_splat", "Mäander Temperatur, Gaussian Splat"),
-    ("fusion", "Fusion Onboard + Mäander"),
-    ("fusion_splat", "Fusion, gemeinsames Gaussian Splat"),
+#: Farben der 3D-Ansicht, wie Leiste und Menue Ansicht ▸ Farbe sie anbieten:
+#: (Schluessel, Ebene, Text). 'rgb:<ebene>' zeigt eine Farbebene, die uebrigen
+#: sind Farbmodi der Ansicht. Die Ebenen stehen in der Reihenfolge von
+#: Project.LAYERS; fehlt die gewaehlte, gilt die erste vorhandene.
+_FARBEN = (
+    ("uniform", None, "Einheitsfarbe"),
+    ("intensitaet", None, "Intensität"),
+    ("hoehe", None, "Höhe"),
+    ("rgb:onboard", "onboard", "RGB Onboard"),
+    ("rgb:onboard_splat", "onboard_splat", "RGB Onboard (Splat)"),
+    ("rgb:meander_rgb", "meander_rgb", "RGB Mäander"),
+    ("rgb:meander_splat", "meander_splat", "RGB Mäander (Splat)"),
+    ("rgb:meander_thermal", "meander_thermal", "Thermal Mäander"),
+    ("rgb:meander_thermal_splat", "meander_thermal_splat", "Temperatur Mäander (Splat)"),
+    ("rgb:fusion", "fusion", "RGB Fusion"),
+    ("rgb:fusion_splat", "fusion_splat", "RGB Fusion (Splat)"),
 )
-_COLOR_MODE_ITEMS = (("RGB (eingefärbt)", "rgb"), ("Höhe", "hoehe"),
-                     ("Intensität", "intensitaet"), ("Einfarbig", "uniform"))
-#: Farbmodi der Leiste ueber der 3D-Ansicht: Farbmodus und Farbquelle in einem
-_FARBLEISTE = (("uniform", "Einheitsfarbe"), ("intensitaet", "Intensität"),
-               ("hoehe", "Höhe"), ("rgb:onboard", "RGB Onboard"),
-               ("rgb:onboard_splat", "RGB Onboard (Splat)"),
-               ("rgb:meander_rgb", "RGB Mäander"),
-               ("rgb:meander_splat", "RGB Mäander (Splat)"),
-               ("rgb:meander_thermal", "Thermal Mäander"),
-               ("rgb:meander_thermal_splat", "Temperatur Mäander (Splat)"),
-               ("rgb:fusion", "RGB Fusion"),
-               ("rgb:fusion_splat", "RGB Fusion (Splat)"))
+_EBENEN = tuple(ebene for _key, ebene, _text in _FARBEN if ebene)
+if _EBENEN != tuple(Project.LAYERS) or any(
+        key != f"rgb:{ebene}" for key, ebene, _text in _FARBEN if ebene):
+    raise RuntimeError(f"Die Farbtabelle passt nicht zu Project.LAYERS: {_EBENEN} "
+                       f"gegen {tuple(Project.LAYERS)}.")
+#: Farbmodi der Ansicht; einen unbekannten aus den Einstellungen nimmt sie als RGB
+_FARBMODI = ("rgb",) + tuple(key for key, ebene, _text in _FARBEN if ebene is None)
 _VOXEL_ITEMS = (("Aus", 0.0), ("0,05 m", 0.05), ("0,10 m", 0.10), ("0,20 m", 0.20))
 _BG_ITEMS = (("Dunkel", "dunkel"), ("Hell", "hell"))
+
+
+def _punktgroesse(wert) -> float:
+    """Punktgroesse wie im frueheren Regler der Seitenleiste: auf 0,01 px
+    gerundet (Qt rundet halbe Hundertstel auf) und auf 0,5 bis 10 px begrenzt."""
+    v = float(QLocale.c().toString(float(wert), "f", 2))
+    if v < 0.5:
+        return 0.5
+    return v if v <= 10.0 else 10.0         # NaN wird wie dort zu 10
+
+
+def _farbmodus(wert) -> str:
+    """Farbmodus aus den Einstellungen; ein unbekannter gilt als RGB."""
+    return wert if isinstance(wert, str) and wert in _FARBMODI else _FARBMODI[0]
+
+
+def _ebene_oder_ersatz(key, ebenen) -> str:
+    """Die gewaehlte Ebene, wenn sie geladen ist; sonst die erste geladene in
+    Tabellenreihenfolge, ohne geladene Ebene 'onboard'."""
+    if key in _EBENEN and key in ebenen:
+        return key
+    return next((e for e in _EBENEN if e in ebenen), "onboard")
 
 
 class AnzeigeMixin:
     def _abschnitt_anzeige(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        self._spin_pointsize = QDoubleSpinBox()
-        self._spin_pointsize.setRange(0.5, 10.0)
-        self._spin_pointsize.setSingleStep(0.25)
-        self._spin_pointsize.setDecimals(2)
-        self._spin_pointsize.setSuffix(" px")
-        self._spin_pointsize.setValue(2.0)
-        self._spin_pointsize.valueChanged.connect(self._on_display_changed)
-        form.addRow("Punktgröße:", self._spin_pointsize)
-        self._combo_colormode = _compact_combo(QComboBox())
-        for label, data in _COLOR_MODE_ITEMS:
-            self._combo_colormode.addItem(label, data)
-        self._combo_colormode.currentIndexChanged.connect(self._on_display_changed)
-        form.addRow("Farbmodus:", self._combo_colormode)
-        self._combo_layer = _compact_combo(QComboBox())
-        self._combo_layer.setToolTip(
-            "Welche Einfärbung gezeigt wird. Angeboten wird, was berechnet ist.")
-        for data, label in _LAYER_LABELS:
-            self._combo_layer.addItem(label, data)
-        self._combo_layer.currentIndexChanged.connect(self._on_layer_changed)
-        form.addRow("Farbquelle:", self._combo_layer)
-        self._chk_only_colored = QCheckBox("Nur eingefärbte Punkte")
-        self._chk_only_colored.toggled.connect(self._on_display_changed)
+        self._chk_only_colored = haken("Nur eingefärbte Punkte",
+                                       slot=self._on_display_changed)
         form.addRow(self._chk_only_colored)
-        self._combo_voxel = _compact_combo(QComboBox())
-        for label, data in _VOXEL_ITEMS:
-            self._combo_voxel.addItem(label, data)
-        self._combo_voxel.currentIndexChanged.connect(self._on_display_changed)
+        self._combo_voxel = auswahl(_VOXEL_ITEMS, slot=self._on_display_changed)
         form.addRow("Anzeige-Voxel:", self._combo_voxel)
-        self._combo_bg = _compact_combo(QComboBox())
-        for label, data in _BG_ITEMS:
-            self._combo_bg.addItem(label, data)
-        self._combo_bg.currentIndexChanged.connect(self._on_display_changed)
+        self._combo_bg = auswahl(_BG_ITEMS, slot=self._on_display_changed)
         form.addRow("Hintergrund:", self._combo_bg)
-        self._chk_edl = QCheckBox("EDL (Eye-Dome Lighting)")
-        self._chk_edl.toggled.connect(self._on_display_changed)
+        self._chk_edl = haken("Kantenbetonung (EDL)", slot=self._on_display_changed)
         if not self._cloud_view.edl_available:
             self._chk_edl.setEnabled(False)
             self._chk_edl.setToolTip(
                 "EDL wird von dieser VTK-Installation nicht unterstützt.")
         form.addRow(self._chk_edl)
-        self._chk_path = QCheckBox("Trajektorie zeigen")
-        self._chk_path.toggled.connect(self._on_display_changed)
+        self._chk_path = haken("Flugbahn zeigen", slot=self._on_display_changed)
         form.addRow(self._chk_path)
         return box
 
@@ -102,8 +95,8 @@ class AnzeigeMixin:
 
     def _push_display_settings(self) -> None:
         cv = self._cloud_view
-        cv.set_point_size(float(self._spin_pointsize.value()))
-        cv.set_color_mode(self._combo_colormode.currentData())
+        cv.set_point_size(float(self._point_size))
+        cv.set_color_mode(self._color_mode)
         cv.set_only_colored(self._chk_only_colored.isChecked())
         cv.set_voxel_display(float(self._combo_voxel.currentData()))
         cv.set_background(self._combo_bg.currentData())
@@ -117,49 +110,77 @@ class AnzeigeMixin:
     # ------------------------------------------------ Leiste ueber der Ansicht
 
     def _farbleiste_key(self) -> str:
-        modus = self._combo_colormode.currentData()
-        return f"rgb:{self._layer_key}" if modus == "rgb" else str(modus)
+        if self._color_mode == "rgb":
+            return f"rgb:{self._layer_key}"
+        return str(self._color_mode)
 
-    def _sync_farbleiste(self) -> None:
-        """Auswahl der Leiste an Seitenleiste und vorhandene Ebenen angleichen."""
+    def _farbeintraege(self) -> list:
+        """Die Farbtabelle als [(Schluessel, Text, vorhanden)] fuer Leiste und Menue."""
         hat_int = self._rec is not None and getattr(self._rec, "intensity", None) is not None
         eintraege = []
-        for key, text in _FARBLEISTE:
-            if key.startswith("rgb:"):
-                da = key[4:] in self._layers
+        for key, ebene, text in _FARBEN:
+            if ebene:
+                da = ebene in self._layers
             elif key == "intensitaet":
                 da = hat_int
             else:
                 da = True
             eintraege.append((key, text, da))
+        return eintraege
+
+    def _sync_farbleiste(self) -> None:
+        """Leiste und Menue Ansicht ▸ Farbe an Farbe und vorhandene Ebenen angleichen."""
+        eintraege = self._farbeintraege()
         self._cloud_view.set_farbmodi(eintraege, self._farbleiste_key())
+        self._farbmenue_abgleichen(eintraege)
+
+    def _setze_farbe(self, schluessel: str, speichern: bool = True) -> None:
+        """Farbe der Ansicht setzen, ein Schluessel aus der Farbtabelle.
+
+        'rgb:<ebene>' stellt auf RGB und macht die Ebene zur Farbquelle, wenn sie
+        geladen ist; die uebrigen sind Farbmodi. Ansicht, Leiste, Menue und
+        (mit ``speichern``) die Einstellungen ziehen nach.
+        """
+        if schluessel.startswith("rgb:"):
+            ebene = schluessel[4:]
+            paar = self._layers.get(ebene)
+            if (self._world is not None and paar is not None
+                    and ebene == self._layer_key and self._colors is paar[0]):
+                # Die Ebene steht schon in der Wolke: nur der Modus wechselt.
+                self._color_mode = "rgb"
+                self._push_display_settings()
+                if speichern:
+                    self._save_settings()
+                return
+            if paar is not None:
+                self._layer_key = ebene
+            self._color_mode = "rgb"
+        elif schluessel in _FARBMODI:
+            self._color_mode = schluessel
+            if self._world is not None:
+                # Ein reiner Farbmodus aendert an Wolke, Farben und Maske nichts:
+                # den Modus durchreichen genuegt. Die Wolke neu aufzubauen
+                # kostete bei 24 Mio. Punkten einige Sekunden.
+                self._push_display_settings()
+                if speichern:
+                    self._save_settings()
+                return
+        self._farbe_anwenden()
+        if speichern:
+            self._save_settings()
+
+    def _farbe_anwenden(self) -> None:
+        """Gewaehlte Ebene und Farbmodus in Ansicht, Leiste und Menue bringen."""
+        self._apply_layer()
+        if self._world is None:
+            # ohne Wolke endet _apply_layer vor der Ansicht
+            self._push_display_settings()
 
     def _on_farbleiste(self, key: str) -> None:
-        """Farbmodus aus der Leiste: setzt Farbmodus und -quelle der Seitenleiste."""
-        if key.startswith("rgb:"):
-            ebene = key[4:]
-            if ebene != self._layer_key:
-                i = self._combo_layer.findData(ebene)
-                if i >= 0:
-                    self._loading_ui = True
-                    self._combo_layer.setCurrentIndex(i)
-                    self._loading_ui = False
-                    self._layer_key = ebene
-                    self._apply_layer()
-                    self._fill_layer_menu()
-            modus = "rgb"
-        else:
-            modus = key
-        i = self._combo_colormode.findData(modus)
-        if i >= 0 and i != self._combo_colormode.currentIndex():
-            self._combo_colormode.setCurrentIndex(i)      # loest die Anzeige aus
-        else:
-            self._push_display_settings()
-            self._sync_after_display()
-        self._save_settings()
+        self._setze_farbe(key)
 
     def _on_leiste_punktgroesse(self, wert: float) -> None:
-        still_setzen(self._spin_pointsize, float(wert))
+        self._point_size = _punktgroesse(wert)
         self._save_settings()
 
     def _on_leiste_temperatur(self, an: bool) -> None:
@@ -179,8 +200,8 @@ class AnzeigeMixin:
         """Alle vorhandenen Farbebenen des Projekts einlesen.
 
         Jede Ebene wird gegen die Punktzahl geprueft; was nicht passt, faellt
-        weg statt die Anzeige zu verfaelschen. Die Auswahlliste zeigt danach
-        nur, was wirklich da ist.
+        weg statt die Anzeige zu verfaelschen. Leiste und Menue bieten danach
+        nur an, was wirklich da ist.
         """
         self._layers = {}
         self._temperaturen = {}
@@ -240,13 +261,32 @@ class AnzeigeMixin:
             satz = f"Farbebene '{key}': {anteil * 100:.1f} % der Punkte eingefärbt."
             self._log(f"{satz} {zusatz}" if zusatz else satz)
 
-    def _ebene_waehlen(self, key) -> bool:
-        """Eine geladene Ebene als Farbquelle waehlen, wie von Hand.
+    def _ebene_eintragen(self, key: str, rgb, valid) -> None:
+        """Eine eben berechnete Farbebene eintragen, ohne sie von der Platte zu lesen.
 
-        Speichert und protokolliert ueber ``_on_layer_changed``; der Farbmodus
-        bleibt. False, wenn die Ebene nicht geladen ist.
+        Leiste und Menue bieten sie danach an; gezeigt wird sie erst mit
+        ``_setze_farbe`` oder ``_ebene_waehlen``.
         """
-        return key in self._layers and self._waehle(self._combo_layer, key)
+        if key not in _EBENEN:
+            raise ValueError(f"Unbekannte Farbebene: {key}")
+        self._layers[key] = (rgb, valid)
+        self._sync_farbleiste()
+
+    def _ebene_waehlen(self, key) -> bool:
+        """Eine geladene Ebene als Farbquelle waehlen; der Farbmodus bleibt.
+
+        Wendet an, speichert und protokolliert, wenn sich die Farbquelle
+        aendert. False, wenn die Ebene nicht geladen ist.
+        """
+        if key not in self._layers:
+            return False
+        if key != self._layer_key:
+            self._layer_key = key
+            self._farbe_anwenden()
+            self._save_settings()
+            text = next((t for _k, e, t in _FARBEN if e == key), key)
+            self._log(f"Farbquelle: {text}")
+        return True
 
     def _waehle(self, combo, data) -> bool:
         """Den Eintrag mit diesen Daten waehlen (mit Signal); False, wenn er fehlt."""
@@ -257,46 +297,41 @@ class AnzeigeMixin:
         return True
 
     def _refresh_layer_combo(self) -> None:
-        """Auswahlliste auf die vorhandenen Ebenen setzen."""
-        alt = self._layer_key
-        self._loading_ui = True
-        try:
-            self._combo_layer.clear()
-            for data, label in _LAYER_LABELS:
-                if data in self._layers:
-                    self._combo_layer.addItem(label, data)
-            if self._combo_layer.count() == 0:
-                self._combo_layer.addItem("keine Einfärbung", "onboard")
-                self._combo_layer.setEnabled(False)
-            else:
-                self._combo_layer.setEnabled(True)
-            idx = self._combo_layer.findData(alt)
-            if idx < 0:
-                idx = 0
-            self._combo_layer.setCurrentIndex(idx)
-            self._layer_key = self._combo_layer.currentData() or "onboard"
-        finally:
-            self._loading_ui = False
+        """Farbquelle, Leiste und Menue auf die vorhandenen Ebenen setzen.
+
+        Fehlt die gewaehlte Ebene, etwa die aus den Einstellungen, gilt die
+        erste vorhandene in Tabellenreihenfolge, ohne Ebenen 'onboard'.
+        """
+        self._layer_key = _ebene_oder_ersatz(self._layer_key, self._layers)
         self._apply_layer()
-        self._fill_layer_menu()
+        self._farbmenue_abgleichen()
 
     def _fill_layer_menu(self) -> None:
+        """Ansicht ▸ Farbe aus der Farbtabelle fuellen, als Auswahl wie die Leiste."""
         menubar_mod.fill_radio_menu(
             self._actions["menu_farbquelle"], self,
-            [(self._combo_layer.itemData(i), self._combo_layer.itemText(i))
-             for i in range(self._combo_layer.count())],
-            self._on_menu_layer, self._layer_key)
+            [(key, text) for key, _ebene, text in _FARBEN],
+            self._on_menu_layer, self._farbleiste_key())
+        self._farbmenue_abgleichen()
+
+    def _farbmenue_abgleichen(self, eintraege=None) -> None:
+        """Haken und Freigabe unter Ansicht ▸ Farbe wie in der Leiste; Fehlendes ist grau."""
+        if eintraege is None:
+            eintraege = self._farbeintraege()
+        da = {key: vorhanden for key, _text, vorhanden in eintraege}
+        aktuell = self._farbleiste_key()
+        for act in self._actions["menu_farbquelle"].actions():
+            act.setEnabled(bool(da.get(act.data(), False)))
+            act.setChecked(act.data() == aktuell)
 
     def _on_menu_layer(self, data) -> None:
-        self._waehle(self._combo_layer, data)
-
-    def _on_layer_changed(self, *_a) -> None:
-        if self._loading_ui:
-            return
-        self._layer_key = self._combo_layer.currentData() or "onboard"
-        self._apply_layer()
-        self._save_settings()
-        self._log(f"Farbquelle: {self._combo_layer.currentText()}")
+        """Ansicht ▸ Farbe; wie frueher protokolliert ein Wechsel der Ebene die Farbquelle."""
+        vorher = self._layer_key
+        self._setze_farbe(data)
+        if self._layer_key != vorher:
+            text = next((t for _k, e, t in _FARBEN if e == self._layer_key),
+                        self._layer_key)
+            self._log(f"Farbquelle: {text}")
 
     def _apply_layer(self) -> None:
         """Die gewaehlte Ebene in die Ansicht schieben.
@@ -305,24 +340,24 @@ class AnzeigeMixin:
         einfarbig graue Wolke — richtig gerechnet, aber nichtssagend. Dann
         lieber auf Hoehe umschalten und es sagen.
         """
-        paar = self._layers.get(self._layer_key)
+        # Bis zum Laden der Ebenen steht hier, was die settings.json nennt —
+        # auch etwas, das kein Ebenenschluessel sein kann.
+        ebene = self._layer_key if isinstance(self._layer_key, str) else None
+        paar = self._layers.get(ebene)
         self._colors, self._valid = paar if paar else (None, None)
         # Die Maus zeigt die Temperatur der angezeigten Thermalebene; in jeder
         # anderen Ebene die der direkten, sonst die des Splats.
-        self._temperatur = self._temperaturen.get(self._layer_key)
+        self._temperatur = self._temperaturen.get(ebene)
         if self._temperatur is None:
             self._temperatur = next((self._temperaturen[k] for k in THERMAL
                                      if k in self._temperaturen), None)
         self._cloud_view.set_temperatur(self._temperatur)
         if self._world is None:
             return
-        if self._colors is None and self._combo_colormode.currentData() == "rgb":
-            self._loading_ui = True
-            gewaehlt = self._waehle(self._combo_colormode, "hoehe")
-            self._loading_ui = False
-            if gewaehlt:
-                self._log("Für diese Farbquelle gibt es noch keine Einfärbung — "
-                          "die Ansicht steht auf Höhe statt auf einfarbigem Grau.")
+        if self._colors is None and self._color_mode == "rgb":
+            self._color_mode = "hoehe"
+            self._log("Für diese Farbquelle gibt es noch keine Einfärbung — "
+                      "die Ansicht steht auf Höhe statt auf einfarbigem Grau.")
         # Eine fast leere Ebene plus "Nur eingefaerbte Punkte" ergibt eine leere
         # Ansicht — und die sieht aus, als sei das Modell weg. Das darf nie
         # passieren, also lieber den Haken loesen und es sagen.
@@ -359,14 +394,12 @@ class AnzeigeMixin:
         self._actions["sidebar"].setChecked(self._sidebar_scroll.isVisible())
 
     def _sync_menu_state(self) -> None:
-        """Haken im Menue an die Seitenleiste angleichen (ohne Rueckkopplung)."""
-        for key, combo in (("menu_farbquelle", self._combo_colormode),
-                           ("menu_hintergrund", self._combo_bg)):
-            menu = self._actions.get(key)
-            if menu is None:
-                continue
+        """Hintergrund und Kantenbetonung im Menue an die Seitenleiste angleichen
+        (ohne Rueckkopplung)."""
+        menu = self._actions.get("menu_hintergrund")
+        if menu is not None:
             for act in menu.actions():
-                act.setChecked(act.data() == combo.currentData())
+                act.setChecked(act.data() == self._combo_bg.currentData())
         edl = self._actions.get("edl")
         if edl is not None:
             still_setzen(edl, self._chk_edl.isChecked())

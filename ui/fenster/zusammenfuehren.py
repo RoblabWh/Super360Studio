@@ -1,7 +1,7 @@
 """Zusammenführen (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _bag, _bag_info, _btn_merge_apply, _btn_merge_auto,
-_btn_merge_drop, _btn_merge_icp, _btn_merge_pick, _colors, _georef, _lbl_merge,
+_btn_merge_drop, _btn_merge_icp, _btn_merge_pick, _colors, _lbl_merge,
 _merge_bag, _merge_center, _merge_cloud, _merge_kipp_grad, _merge_rec,
 _merge_T, _merge_T_basis, _merge_T_kipp, _pano_src, _parts, _project,
 _spin_merge, _valid.
@@ -13,7 +13,7 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QWidget,
+    QFileDialog, QFormLayout, QLabel, QMessageBox, QWidget,
 )
 
 from core.bag_reader import BagReader
@@ -23,7 +23,9 @@ from core.merge import lage_aus_reglern
 from core.project import Project
 from core.recording import lade_mit_hinweis
 
-from ui.bausteine import _wrappable, still_setzen
+from ui.bausteine import (
+    _wrappable, aktionshaken, knopfzeile, reglergruppe, still_setzen,
+)
 
 
 class ZusammenfuehrenMixin:
@@ -36,33 +38,22 @@ class ZusammenfuehrenMixin:
         self._lbl_merge.setWordWrap(True)
         form.addRow(self._lbl_merge)
 
+        # Lage des zweiten Fluges, relativ zur letzten Ausrichtung
         from ui.feinregler import regler_grad, regler_meter
-        self._spin_merge = {}
-        for key, label, sp in (("x", "X", regler_meter(500.0)),
-                               ("y", "Y", regler_meter(500.0)),
-                               ("z", "Z", regler_meter(500.0)),
-                               ("yaw", "Gier", regler_grad())):
-            sp.valueChanged.connect(lambda *_: self._merge_timer.start())
-            form.addRow(label, sp)
-            self._spin_merge[key] = sp
+        self._spin_merge = reglergruppe(
+            form, (("x", "X", regler_meter(500.0)),
+                   ("y", "Y", regler_meter(500.0)),
+                   ("z", "Z", regler_meter(500.0)),
+                   ("yaw", "Gier", regler_grad())),
+            lambda *_: self._merge_timer.start())
 
-        row = QWidget()
-        hl = QHBoxLayout(row)
-        hl.setContentsMargins(0, 0, 0, 0)
         self._btn_merge_auto = self._befehlsknopf("merge_auto")
         self._btn_merge_icp = self._befehlsknopf("merge_icp")
-        hl.addWidget(self._btn_merge_auto)
-        hl.addWidget(self._btn_merge_icp)
-        form.addRow(row)
-
-        row2 = QWidget()
-        hl2 = QHBoxLayout(row2)
-        hl2.setContentsMargins(0, 0, 0, 0)
+        form.addRow(knopfzeile(self._btn_merge_auto, self._btn_merge_icp))
         self._btn_merge_apply = self._befehlsknopf("merge_apply")
         self._btn_merge_drop = self._befehlsknopf("merge_reset")
-        hl2.addWidget(self._btn_merge_apply)
-        hl2.addWidget(self._btn_merge_drop)
-        form.addRow(row2)
+        form.addRow(knopfzeile(self._btn_merge_apply, self._btn_merge_drop))
+        form.addRow(aktionshaken(self._actions["preview"]))
         return box
 
     # ========================================================= Zusammenführen
@@ -84,9 +75,9 @@ class ZusammenfuehrenMixin:
         """Handjustage: um den Schwerpunkt der zweiten Wolke gieren, dann schieben.
 
         Die Regler sind ein Versatz zur Lage der letzten Ausrichtung
-        (``_merge_T_basis``), nicht zum Ladeort. Nach 'Nur ICP' stehen sie auf
-        null; galten sie ab Ursprung, fiel die Wolke beim ersten Reglerschritt
-        auf ihren Ladeort zurück.
+        (``_merge_T_basis``), nicht zum Ladeort. Nach 'Nur fein ausrichten
+        (ICP)' stehen sie auf null; galten sie ab Ursprung, fiel die Wolke beim
+        ersten Reglerschritt auf ihren Ladeort zurück.
         """
         return lage_aus_reglern(
             self._spin_merge["yaw"].value(),
@@ -196,7 +187,7 @@ class ZusammenfuehrenMixin:
             else:
                 log_cb("Zweiter Flug: Lotrechte nicht messbar — er bleibt, wie "
                        "FAST-LIO ihn liefert. Steht er schief, findet "
-                       "Auto-Ausrichten ihn womöglich nicht.")
+                       "'Automatisch ausrichten' ihn womöglich nicht.")
             progress_cb(0.6, "Dünne für die Vorschau aus …")
             wolke = merge_mod.cloud_for_registration(rec_b)
             return {"rec": rec_b, "cloud": wolke, "path": path,
@@ -223,8 +214,8 @@ class ZusammenfuehrenMixin:
         self._log(f"Zweiter Flug geladen: {name} "
                   f"({_fmt_int(self._merge_rec.n_points)} Punkte). Orange und "
                   f"halbdurchsichtig dargestellt — das ist eine VORSCHAU und "
-                  f"gehört erst nach 'Übernehmen' zur Karte. Ausblenden über "
-                  f"Ansicht → Zweiten Flug anzeigen.")
+                  f"gehört erst nach 'Zusammenführen' zur Karte. Ausblenden über "
+                  f"den Haken 'Zweiten Flug (orange) zeigen'.")
         self._sync_preview_action()
         self._update_enabled()
 
@@ -278,11 +269,11 @@ class ZusammenfuehrenMixin:
         if fit < 0.3:
             self._log("WARNUNG: Trefferquote unter 0,3 — die Wolken überlappen "
                       "vermutlich zu wenig. Von Hand grob zusammenschieben und "
-                      "'Nur ICP' nachlaufen lassen.")
+                      "'Nur fein ausrichten (ICP)' nachlaufen lassen.")
         elif rmse > 0.30:
             self._log(f"Hinweis: Restfehler {rmse:.2f} m ist für Innenräume viel. "
                       f"Die Lage stimmt grob, sitzt aber nicht sauber — vor dem "
-                      f"Übernehmen im Viewer prüfen und ggf. von Hand nachziehen.")
+                      f"Zusammenführen im Viewer prüfen und ggf. von Hand nachziehen.")
 
     def _on_merge_discard(self) -> None:
         if self._merge_rec is None:
@@ -340,7 +331,7 @@ class ZusammenfuehrenMixin:
             self._log(f"Info des führenden Bags nicht lesbar: {exc}")
         self._colors = None
         self._valid = None
-        self._georef = None
+        self._georef_setzen(None)
         self._pano_src = None
         self._pano_view.set_source(None)
         self.setWindowTitle(f"Super360 Studio — {project_m.bag_name}")

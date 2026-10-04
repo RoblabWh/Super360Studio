@@ -10,7 +10,7 @@ Am rechten Rand liegt der Hoehenschnitt (:class:`CutBar`): zwei Griffe
 spannen die sichtbare Schicht auf, so laesst sich das Dach abnehmen und in
 ein Gebaeude hineinschauen. Geschnitten wird ueber vtkPlane am Mapper, also
 auf der Grafikkarte — die Geometrie wird dabei nicht neu aufgebaut, das
-Ziehen bleibt auch bei Millionen Punkten fluessig. Die Trajektorie haengt an
+Ziehen bleibt auch bei Millionen Punkten fluessig. Die Flugbahn haengt an
 einem eigenen Mapper und bleibt ungeschnitten sichtbar.
 
 **Maus wie im VS-Code-Punktwolken-Viewer** (``PointCloudMerger/vscode-
@@ -359,7 +359,7 @@ class CloudView(QtWidgets.QWidget):
         self._actor.GetProperty().SetPointSize(2)
         self._renderer.AddActor(self._actor)
         # Hoehenschnitt auf der Grafikkarte: nur am Wolken-Mapper, damit die
-        # Trajektorie ungeschnitten sichtbar bleibt.
+        # Flugbahn ungeschnitten sichtbar bleibt.
         self._plane_lo = vtk.vtkPlane()
         self._plane_lo.SetNormal(0.0, 0.0, 1.0)
         self._plane_hi = vtk.vtkPlane()
@@ -507,7 +507,7 @@ class CloudView(QtWidgets.QWidget):
         self._btn_mesh.setToolTip(
             "Statt der Punkte das Dreiecksnetz zeigen. Es wird für jede Punktwolke\n"
             "einmal berechnet (Grafikkarte per OpenCL, wenn vorhanden) und im\n"
-            "Projekt gespeichert; Raster und Detail stehen im Abschnitt Export.")
+            "Projekt gespeichert; Raster und Detail stehen im Abschnitt Mesh.")
         self._btn_mesh.toggled.connect(self._mesh_umgeschaltet)
         gruppe(self._btn_mesh)
 

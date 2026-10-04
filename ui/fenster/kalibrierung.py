@@ -7,9 +7,10 @@ from __future__ import annotations
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from PyQt5.QtWidgets import QFormLayout, QLabel, QMessageBox, QWidget
+from PyQt5.QtWidgets import QFormLayout, QMessageBox, QWidget
 
-from ui.bausteine import _wrappable
+from ui.bausteine import _wrappable, knopfzeile
+from ui.feinregler import regler_grad, regler_millimeter
 
 _AUTOCAL_WEAK_SCORE = 0.30
 
@@ -18,26 +19,24 @@ class KalibrierungMixin:
     def _abschnitt_extrinsik(self) -> QWidget:
         box = QWidget()
         form = _wrappable(QFormLayout(box))
-        # Extrinsik: grob und fein je Wert — Winkel bis 0,005°, Versatz bis
-        # auf den Millimeter.
-        from ui.feinregler import FeinRegler, regler_grad
+        # Extrinsik Kamera↔IMU: grob und fein je Wert — Winkel bis 0,005°,
+        # Versatz bis auf den Millimeter.
         self._ext_spins: dict = {}
-        form.addRow(QLabel("<b>Extrinsik Kamera↔IMU</b>"))
         for key, label, spin in (
-                ("yaw", "Yaw", regler_grad()),
-                ("pitch", "Pitch", regler_grad()),
+                ("yaw", "Gier", regler_grad()),
+                ("pitch", "Nick", regler_grad()),
                 ("roll", "Roll", regler_grad()),
-                ("x", "x", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
-                ("y", "y", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm")),
-                ("z", "z", FeinRegler(2.0, 0.01, 0.05, 0.001, " m", 3, "fein mm"))):
+                ("x", "X", regler_millimeter()),
+                ("y", "Y", regler_millimeter()),
+                ("z", "Z", regler_millimeter())):
             spin.valueChanged.connect(self._on_extrinsic_changed)
             self._ext_spins[key] = spin
             form.addRow(label, spin)
 
         self._btn_autocal = self._befehlsknopf("autocal")
         self._btn_overlay = self._befehlsknopf("overlay")
-        form.addRow(self._btn_autocal)
-        form.addRow(self._btn_overlay)
+        form.addRow(knopfzeile(self._btn_autocal, self._btn_overlay))
+        form.addRow(self._befehlsknopf("extrinsic_reset"))
         return box
 
     # ============================================================== Extrinsik
@@ -78,13 +77,21 @@ class KalibrierungMixin:
         self._speichere_extrinsik(self._extrinsic_from_spins())
 
     def _on_extrinsic_reset(self) -> None:
-        self._spins_from_extrinsic(np.eye(4))
+        if QMessageBox.question(
+                self, "Extrinsik zurücksetzen",
+                "Extrinsik Kamera↔IMU auf Identität zurücksetzen?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+            return
+        T = np.eye(4)
+        # _spins_from_extrinsic speichert nicht (_loading_ui), darum ausdrücklich
+        self._spins_from_extrinsic(T)
+        self._speichere_extrinsik(T)
         self._log("Extrinsik auf Identität zurückgesetzt.")
 
     def _on_overlay_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
-        colorizer = self._mit_colorizer("Overlay-Vorschau")
+        colorizer = self._mit_colorizer("Überlagerung prüfen")
         if colorizer is None:
             return
         frame_idx = self._aktueller_frame()
@@ -92,20 +99,20 @@ class KalibrierungMixin:
         rec, bag, calib = self._rec, self._bag, self._calib
 
         def job(progress_cb, cancel, log_cb):
-            progress_cb(0.2, f"Erzeuge Overlay für Frame {frame_idx} …")
+            progress_cb(0.2, f"Erzeuge Überlagerung für Frame {frame_idx} …")
             return colorizer.overlay_preview(rec, bag, calib, T, frame_idx, stride=50)
 
         def on_done(img) -> None:
-            self._zeige_bild(f"Overlay-Vorschau — Frame {frame_idx}", img)
+            self._zeige_bild(f"Überlagerung — Frame {frame_idx}", img)
 
         # Einzelner Bibliotheksaufruf ohne Cancel-Auswertung — nicht abbrechbar.
-        self._start_worker("Erzeuge Overlay-Vorschau …", job, on_done,
+        self._start_worker("Erzeuge Überlagerung …", job, on_done,
                            cancellable=False)
 
     def _on_autocal_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
-        colorizer = self._mit_colorizer("Auto-Kalibrierung")
+        colorizer = self._mit_colorizer("Automatisch kalibrieren")
         if colorizer is None:
             return
         T_init = self._extrinsic_from_spins()
@@ -119,11 +126,11 @@ class KalibrierungMixin:
             T, score = result
             self._spins_from_extrinsic(np.asarray(T))
             self._speichere_extrinsik(np.asarray(T))
-            self._log(f"Auto-Kalibrierung fertig — Score {score:.3f}.")
+            self._log(f"Automatische Kalibrierung fertig — Score {score:.3f}.")
             if score < _AUTOCAL_WEAK_SCORE and not self._autotest_active():
                 QMessageBox.warning(
-                    self, "Auto-Kalibrierung",
+                    self, "Automatische Kalibrierung",
                     f"Schwacher Kalibrier-Score ({score:.3f}) — Ergebnis bitte mit "
-                    "der Overlay-Vorschau prüfen und ggf. von Hand nachjustieren.")
+                    "„Überlagerung prüfen“ kontrollieren und ggf. von Hand nachjustieren.")
 
-        self._start_worker("Auto-Kalibrierung läuft …", job, on_done)
+        self._start_worker("Automatische Kalibrierung läuft …", job, on_done)

@@ -2,9 +2,8 @@
 
 Schreibt am Hauptfenster: _auto_kette, _btn_meander_align, _btn_meander_auto,
 _btn_meander_fein, _btn_meander_fenster, _btn_meander_optik, _btn_meander_pick,
-_btn_meander_run, _chk_sichtbar, _chk_solo, _chk_thermal, _lbl_meander,
-_lbl_meander_lage, _massstab, _meander_dir, _meander_pipe, _optik,
-_optik_neu_messen, _spin_meander, _spin_meander_th, _spin_optik.
+_btn_meander_run, _chk_sichtbar, _chk_thermal, _lbl_meander, _lbl_meander_lage,
+_meander_dir, _meander_pipe, _optik, _optik_neu_messen, _spin_optik.
 """
 from __future__ import annotations
 
@@ -13,10 +12,11 @@ import os
 import numpy as np
 
 from PyQt5.QtWidgets import (
-    QCheckBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QMessageBox, QWidget,
+    QCheckBox, QFileDialog, QFormLayout, QLabel, QMessageBox, QWidget,
 )
 
-from ui.bausteine import _wrappable, still_setzen
+from ui.bausteine import Unterblock, _wrappable, knopfzeile
+from ui.feinregler import regler_pixel
 
 
 class MaeanderMixin:
@@ -34,30 +34,19 @@ class MaeanderMixin:
             "Färbt ein zweites Mal mit den _T.JPG und legt eine eigene Ebene an.\n"
             "Eine zweite Rekonstruktion braucht es nicht — beide Optiken sitzen\n"
             "auf derselben Gimbal und lösen zusammen aus.")
-        self._chk_thermal.stateChanged.connect(self._on_setting_changed)
+        self._chk_thermal.toggled.connect(self._on_setting_changed)
         form.addRow(self._chk_thermal)
 
-        row = QWidget()
-        hl = QHBoxLayout(row)
-        hl.setContentsMargins(0, 0, 0, 0)
-        self._btn_meander_align = self._befehlsknopf("meander_align")
-        self._btn_meander_run = self._befehlsknopf("meander_run")
-        hl.addWidget(self._btn_meander_align)
-        hl.addWidget(self._btn_meander_run)
-        form.addRow(row)
-        self._btn_meander_fenster = self._befehlsknopf("meander_fenster")
-        form.addRow(self._btn_meander_fenster)
-        self._btn_meander_optik = self._befehlsknopf("meander_optik")
-        self._btn_meander_fein = self._befehlsknopf("meander_fein")
-        row = QWidget()
-        hl = QHBoxLayout(row)
-        hl.setContentsMargins(0, 0, 0, 0)
-        hl.addWidget(self._btn_meander_optik)
-        hl.addWidget(self._btn_meander_fein)
-        form.addRow(row)
+        # Die Schritte in der Reihenfolge, in der die Automatik sie geht
         self._btn_meander_auto = self._befehlsknopf("meander_auto")
         self._btn_meander_auto.setStyleSheet("font-weight: bold;")
         form.addRow(self._btn_meander_auto)
+        self._btn_meander_align = self._befehlsknopf("meander_align")
+        self._btn_meander_optik = self._befehlsknopf("meander_optik")
+        form.addRow(knopfzeile(self._btn_meander_align, self._btn_meander_optik))
+        self._btn_meander_fein = self._befehlsknopf("meander_fein")
+        self._btn_meander_run = self._befehlsknopf("meander_run")
+        form.addRow(knopfzeile(self._btn_meander_fein, self._btn_meander_run))
         self._chk_sichtbar = QCheckBox("Beim Einfärben Sichtbarkeit prüfen (Wände)")
         self._chk_sichtbar.setChecked(True)
         self._chk_sichtbar.setToolTip(
@@ -65,69 +54,37 @@ class MaeanderMixin:
             "das am frontalsten auf seine Fläche blickt. Sonst läuft das Dach-\n"
             "muster die Wände hinunter. Verdeckte Punkte bleiben ungefärbt.\n"
             "Dauert etwa dreimal so lang.")
-        self._chk_sichtbar.stateChanged.connect(self._on_setting_changed)
+        self._chk_sichtbar.toggled.connect(self._on_setting_changed)
         form.addRow(self._chk_sichtbar)
 
-        # Handjustage: verschiebt die Fotopunkte starr gegen die Wolke. RGB
-        # ist ein Zuschlag auf die gefundene Lage, Thermal ein Zuschlag auf
-        # die RGB-Lage — beide Optiken haengen an derselben Gimbal, wird RGB
-        # nachgezogen, zieht Thermal mit. Jeder Wert hat einen groben und einen
-        # feinen Schieber, der feine bis auf den Zentimeter.
-        from ui.feinregler import regler_grad, regler_meter, regler_pixel, regler_prozent
-        self._spin_meander = {}
-        self._spin_meander_th = {}
-        self._massstab = {}
-        for optik, titel, ziel, felder in (
-                ("rgb", "RGB — Zuschlag auf die gefundene Lage", self._spin_meander,
-                 (("yaw", "Gier", regler_grad()), ("x", "X", regler_meter()),
-                  ("y", "Y", regler_meter()), ("z", "Z (Höhe)", regler_meter(50.0)))),
-                ("thermal", "Thermal — Zuschlag auf die RGB-Lage", self._spin_meander_th,
-                 (("yaw", "Gier", regler_grad()), ("x", "X", regler_meter()),
-                  ("y", "Y", regler_meter())))):
-            form.addRow(QLabel(f"<b>{titel}</b>"))
-            for key, label, regler in felder:
-                regler.valueChanged.connect(
-                    lambda _v, o=optik: self._on_meander_manual(o))
-                form.addRow(label, regler)
-                ziel[key] = regler
-            m = regler_prozent()
-            m.setToolTip(
-                "Maßstab = Brennweite gegenüber der Rekonstruktion, in Prozent.\n"
-                "Zu kurz, und jedes Bild landet zu klein auf der Karte — am Rand\n"
-                "um Meter, in jedem Bild anders: die Bilder wirken zueinander\n"
-                "verzerrt. „Optik einmessen“ findet ihn selbst."
-                if optik == "rgb" else
-                "Maßstab der Thermalkamera gegenüber ihrer Einmessung, in Prozent.")
-            m.valueChanged.connect(lambda _v, o=optik: self._on_meander_massstab(o))
-            form.addRow("Maßstab", m)
-            self._massstab[optik] = m
-        self._chk_solo = QCheckBox("Während der Justage nur die Vorschau zeigen")
-        self._chk_solo.setChecked(False)
-        self._chk_solo.setToolTip(
-            "Blendet die volle Karte aus, solange die Vorschau läuft.\n"
-            "50.000 Stichprobenpunkte gehen in 24 Millionen sonst unter.\n"
-            "Abschalten zeigt beides übereinander.")
-        self._chk_solo.stateChanged.connect(self._on_solo_changed)
-        form.addRow(self._chk_solo)
+        # Von Hand justiert wird im Ausrichtfenster; hier steht, was gilt:
+        # Gier, beide Massstaebe und der Thermal-Zuschlag.
+        self._btn_meander_fenster = self._befehlsknopf("meander_fenster")
+        form.addRow(self._btn_meander_fenster)
         self._lbl_meander_lage = QLabel("")
         self._lbl_meander_lage.setWordWrap(True)
         form.addRow(self._lbl_meander_lage)
 
         # Hauptpunkt-Versatz je Optik: wirkt wie eine Verkippung der Kamera
         # gegen die Achse, die COLMAP angenommen hat, und waechst mit dem
-        # Abstand — anders als die Regler darueber, die starr schieben.
+        # Abstand — anders als die Lage, die starr schiebt. Er geht in den Bau
+        # der Pipeline ein und gilt darum erst ab dem naechsten Ausrichten.
+        hauptpunkt = Unterblock("Hauptpunkt (wirkt beim nächsten Ausrichten)",
+                                einklappbar=True, offen=False,
+                                schluessel="maeander.hauptpunkt")
         self._spin_optik = {}
         for optik, titel, tip in (
                 ("rgb", "RGB-Optik", "Versatz des Bildhauptpunkts in Pixeln des RGB-Bildes."),
                 ("thermal", "Thermal-Optik", "Dasselbe für die Thermaloptik — eigener Wert, "
                                              "es ist ein zweites Objektiv.")):
-            form.addRow(QLabel(f"<b>{titel} — Hauptpunkt</b>"))
+            hauptpunkt.form.addRow(QLabel(f"<b>{titel} — Hauptpunkt</b>"))
             for achse, label in (("u", "rechts"), ("v", "unten")):
                 sp = regler_pixel()
                 sp.setToolTip(tip)
                 sp.valueChanged.connect(self._on_setting_changed)
-                form.addRow(label, sp)
+                hauptpunkt.form.addRow(label, sp)
                 self._spin_optik[(optik, achse)] = sp
+        form.addRow(self._sections.melde_an(hauptpunkt))
         return box
 
     # ================================================= Mäander-Einfärbung
@@ -210,8 +167,8 @@ class MaeanderMixin:
         Ohne Mäanderflug, Karte oder Projekt — oder wenn der Aufrufer mit
         ``zusatz_ok`` eine eigene Bedingung verneint — kommt ``text`` als
         Hinweis und None zurück, ebenso, wenn die Rekonstruktion abgelehnt
-        wird. Sonst ist die Handjustage in die Pipeline geschrieben und das
-        dict traegt pipe, args, th_zuschlag und optik_jetzt.
+        wird. Sonst ist die Lage festgeschrieben (align.json) und das dict
+        traegt pipe, args, th_zuschlag und optik_jetzt.
         """
         if not self._meander_dir or self._world is None or self._project is None \
                 or not zusatz_ok:
@@ -223,8 +180,7 @@ class MaeanderMixin:
         pipe = self._meander_pipe
         args = self._meander_args()
         th_zuschlag = self._thermal_zuschlag()
-        optik_jetzt = dict(self._optik, rgb_faktor=self._faktor("rgb"),
-                           thermal_faktor=self._faktor("thermal"))
+        optik_jetzt = dict(self._optik)
         return {"pipe": pipe, "args": args, "th_zuschlag": th_zuschlag,
                 "optik_jetzt": optik_jetzt}
 
@@ -293,8 +249,6 @@ class MaeanderMixin:
             self._lbl_meander.setText(
                 f"Ausrichtung fraglich: {k['yaw_deg']:.2f}°, nur "
                 f"{anteil * 100:.1f} % auf der Oberfläche.")
-        for key in ("yaw", "x", "y", "z"):
-            still_setzen(self._spin_meander[key], 0.0)
         if k.get("aus_cache", True):
             self._meander_lade_zuschlag()     # Handzuschlag von zuletzt
         self._meander_lade_thermal()
@@ -352,11 +306,10 @@ class MaeanderMixin:
                     f"Oberfläche (vorher {res['rgb']['auf_flaeche_vorher'] * 100:.0f} %), "
                     f"RGB-Maßstab {res['rgb']['faktor']:.3f}"
                     + (", Thermal eingemessen." if res["thermal"] else "."))
-            self._log("Optik eingemessen und gespeichert. Einfärben und Vorschau "
-                      "benutzen sie ab jetzt; die Maßstab-Regler zeigen das "
-                      "Ergebnis und lassen sich weiter von Hand nachziehen.")
-            if self._cloud_view.has_color_preview():
-                self._live_timer.start()
+            self._log("Optik eingemessen und gespeichert. Einfärben und die "
+                      "Farbvorschau im Fenster benutzen sie ab jetzt; der Maßstab "
+                      "lässt sich unter „Im Fenster justieren …“ weiter von Hand "
+                      "nachziehen.")
             self._update_enabled()
             if self._auto_kette:
                 self._auto_weiter("fein")
@@ -391,8 +344,6 @@ class MaeanderMixin:
                 f"der Fotopunkte auf der Oberfläche, Neigung "
                 f"{k['neigung_grad'][0]:+.2f}°/{k['neigung_grad'][1]:+.2f}°, Versatz "
                 f"{k['versatz_m'][0]:+.2f}/{k['versatz_m'][1]:+.2f} m.")
-            if self._cloud_view.has_color_preview():
-                self._live_timer.start()
             self._update_enabled()
             if self._auto_kette:
                 self._auto_weiter("einfaerben")
@@ -550,10 +501,9 @@ class MaeanderMixin:
         elif res["ebenen"].get("meander_thermal", 1.0) < 0.9:
             self._log("Der Rest liegt außerhalb der Thermalbilder — die sehen "
                       "einen schmaleren Ausschnitt als die RGB-Kamera.")
-        self._live_hide()
         self._reload_layers()
         if self._live is None and self._meander_pipe is not None:
-            self._start_live_preview()   # Nachjustieren soll sofort wirken
+            self._start_live_preview()   # das Fenster braucht sie zum Nachjustieren
         self._ebene_waehlen("meander_rgb")
         self._update_enabled()
         if self._auto_kette:

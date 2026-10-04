@@ -6,8 +6,9 @@ _lbl_rviz, _rviz_timer, _rviz_worker.
 from __future__ import annotations
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 
+from ui.bausteine import knopfzeile
 from ui.jobs import Worker
 
 #: Die drei Befehle der Wiedergabe in der Befehlstabelle
@@ -19,13 +20,11 @@ class WiedergabeMixin:
         box = QWidget()
         lay = QVBoxLayout(box)
         lay.addWidget(QLabel("Spielt den geöffneten Bag in RViz ab."))
-        row = QHBoxLayout()
         self._btn_rviz_start = self._befehlsknopf("rviz_start")
         self._btn_rviz_stop = self._befehlsknopf("rviz_stop")
         self._btn_rviz_replay = self._befehlsknopf("rviz_replay")
-        for b in (self._btn_rviz_start, self._btn_rviz_stop, self._btn_rviz_replay):
-            row.addWidget(b)
-        lay.addLayout(row)
+        lay.addWidget(knopfzeile(self._btn_rviz_start, self._btn_rviz_stop,
+                                 self._btn_rviz_replay))
         self._lbl_rviz = QLabel("Gestoppt")
         lay.addWidget(self._lbl_rviz)
         # Knopfzustand an der echten Prozesslage ausrichten (der Player kann

@@ -141,11 +141,6 @@ class GrundgeruestMixin:
         if self._auto_kette:
             self._auto_kette = False
             self._log("Automatik angehalten — der Schritt davor ist fehlgeschlagen.")
-        # Nach einem Fehlschlag darf keine Solo-Vorschau die Karte verdecken:
-        # sonst sieht ein abgebrochener Lauf so aus, als sei das Modell weg.
-        if self._cloud_view.has_color_preview():
-            self._live_hide()
-            self._log("Vorschau geräumt — die Karte ist wieder sichtbar.")
         if self._closing:
             return  # Fenster schließt bereits — keine Dialoge/Folgeschritte mehr
         self._set_busy(False, "Bereit")

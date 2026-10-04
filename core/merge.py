@@ -227,7 +227,7 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
     kandidaten: list[tuple[str, np.ndarray]] = []
     if mode == "icp":
         if T_init is None:
-            raise RuntimeError("Für 'Nur ICP' wird eine Ausgangslage gebraucht.")
+            raise RuntimeError("Für 'Nur fein ausrichten (ICP)' wird eine Ausgangslage gebraucht.")
         kandidaten.append(("Handjustage", np.asarray(T_init, dtype=np.float64)))
     else:
         ca = np.asarray(a_grob.get_center())
@@ -300,7 +300,7 @@ def register(points_a: np.ndarray, points_b: np.ndarray,
     if bestes is None:
         raise RuntimeError(
             "Ausrichten fehlgeschlagen — die Wolken überlappen zu wenig. "
-            "Erst von Hand grob zusammenschieben, dann 'Nur ICP'.")
+            "Erst von Hand grob zusammenschieben, dann 'Nur fein ausrichten (ICP)'.")
 
     _, name, T, fit, rmse = bestes
     # Feinschliff in Stufen: jede teilt das Voxel durch 2,5, bis _FEIN_ZIEL
@@ -535,7 +535,7 @@ if __name__ == "__main__":
         off = np.arange(n_scans + 1, dtype=np.int64) * punkte_je_scan
         st = t0 + np.arange(n_scans, dtype=np.float64) * 0.1
         po = np.zeros((n_scans, 7), dtype=np.float64)
-        po[:, 0] = np.arange(n_scans)          # Trajektorie laeuft in x
+        po[:, 0] = np.arange(n_scans)          # Flugbahn laeuft in x
         po[:, 6] = 1.0                          # Einheitsquaternion
         return Recording(points=pts, intensity=np.ones(len(pts), np.float32),
                          offsets=off, stamps=st, poses=po,
@@ -554,7 +554,7 @@ if __name__ == "__main__":
     assert m.n_scans == 35 and m.n_points == 35 * 50
     assert np.all(np.diff(m.stamps) > 0), "Stempel nicht aufsteigend"
     assert m.gravity_level is not None and not m.gravity_level["applied"]
-    # B-Posen muessen gedreht und verschoben sein: x -> 10, Trajektorie laeuft in y
+    # B-Posen muessen gedreht und verschoben sein: x -> 10, Flugbahn laeuft in y
     pb = m.poses[20:]
     assert abs(pb[0, 0] - 10.0) < 1e-9 and abs(pb[0, 1]) < 1e-9, pb[0]
     assert abs(pb[5, 1] - 5.0) < 1e-9, pb[5]

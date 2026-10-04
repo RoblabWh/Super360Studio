@@ -237,7 +237,7 @@ class RvizPlayer:
         with self._lock:
             bag = self._bag
         if not bag:
-            raise RvizPlayerError("Kein Bag geladen — bitte zuerst „Start“.")
+            raise RvizPlayerError("Kein Bag geladen — bitte zuerst „Starten“.")
         self.stop(close_rviz=False)
         # Der Player muss weg sein, BEVOR geleert wird, sonst schreibt er
         # sofort wieder Punkte in die gerade geleerte Anzeige.

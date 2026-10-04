@@ -533,23 +533,18 @@ def _zustand(s) -> None:
         "korrektur": hole(lambda: getattr(pipe, "s360_korrektur", None)),
         "optik": hole(lambda: f._optik),
         "automatik": hole(lambda: [f._auto_kette, f._optik_neu_messen]),
-        "vorschaubilder": hole(lambda: [f._live, f._live_th, f._live_optik]),
+        "vorschaubilder": hole(lambda: [f._live, f._live_th]),
         "vorschau_sichtbar": hole(lambda: f._cloud_view.has_color_preview()),
-        "regler_rgb": hole(lambda: {k: r.value() for k, r in f._spin_meander.items()}),
-        "regler_thermal": hole(lambda: {k: r.value()
-                                        for k, r in f._spin_meander_th.items()}),
-        "massstab": hole(lambda: {k: r.value() for k, r in f._massstab.items()}),
+        "thermal_zuschlag": hole(lambda: [float(v) for v in f._thermal_zuschlag()]),
+        "massstaebe": hole(lambda: [f._faktor("rgb"), f._faktor("thermal")]),
         "thermal_haken": hole(lambda: [f._chk_thermal.isEnabled(),
                                        f._chk_thermal.isChecked()]),
         "ebenen": hole(lambda: sorted(f._layers)),
         "ebene": hole(lambda: f._layer_key),
         "temperaturen": hole(lambda: sorted(f._temperaturen)),
         "temperatur": hole(lambda: f._temperatur),
-        "farbmodus": hole(lambda: f._combo_colormode.currentData()),
-        "farbquellen": hole(lambda: [[f._combo_layer.itemData(i),
-                                      f._combo_layer.itemText(i)]
-                                     for i in range(f._combo_layer.count())]),
-        "farbquelle_frei": hole(lambda: f._combo_layer.isEnabled()),
+        "farbmodus": hole(lambda: f._color_mode),
+        "farbquellen": hole(lambda: [list(e) for e in f._farbeintraege()]),
         "menue": hole(lambda: [[a.data(), a.isChecked()] for a in menue.actions()]),
         "nur_eingefaerbt": hole(lambda: f._chk_only_colored.isChecked()),
         "mesh": hole(lambda: [f._cloud_view.mesh_an(), f._mesh_geom is not None,
@@ -715,7 +710,6 @@ def einmessen(s):
     st = Stubs(s, thermal=True, einmessen_thermal=True)
     _flug(s)
     _lage(s, st)
-    _still(s.fenster._spin_meander["x"], 0.4)       # Handzuschlag wird verrechnet
     s.fenster._on_meander_einmessen()
 
 
@@ -725,7 +719,6 @@ def einmessen_mit_vorschau(s):
     _flug(s)
     _lage(s, st)
     f = s.fenster
-    f._live_update()                      # Vorschau steht in der Ansicht
     f._on_meander_einmessen()
     s.laufe()
     s.warte(400)                          # zieht die Vorschau nach
@@ -743,7 +736,7 @@ def feinausrichten(s):
     st = Stubs(s)
     _flug(s)
     _lage(s, st)
-    _still(s.fenster._massstab["rgb"], 5.0)
+    s.fenster._meander_setze_optik(dict(s.fenster._optik, rgb_faktor=1.05))
     s.fenster._on_meander_fein()
 
 
@@ -818,7 +811,6 @@ def einfaerben_mit_pipeline(s):
     _lage(s, st)
     f = s.fenster
     f._meander_lade_optik()
-    _still(f._spin_meander["yaw"], 1.5)
     f._on_meander_run()
 
 
@@ -890,77 +882,11 @@ def einfaerben_abgebrochen(s):
     st = Stubs(s)
     _flug(s)
     _lage(s, st)
-    s.fenster._live_update()              # Vorschau verdeckt die Karte nicht weiter
     s.abbruch_nach(2)
     s.fenster._on_meander_run()
 
 
 # ------------------------------------------------------------ Handjustage
-
-@fall
-def handjustage_ohne_lage(s):
-    Stubs(s)
-    _flug(s)
-    s.fenster._spin_meander["x"].setValue(0.4)
-    s.warte(600)
-
-
-@fall
-def handjustage_ohne_bilder(s):
-    st = Stubs(s)
-    _flug(s)
-    _lage(s, st, bilder=False)
-    s.fenster._spin_meander["x"].setValue(0.4)
-    s.warte(600)                          # der Zuschlag wird trotzdem gespeichert
-
-
-@fall
-def handjustage_rgb(s):
-    st = Stubs(s)
-    _flug(s)
-    _lage(s, st)
-    f = s.fenster
-    f._spin_meander["x"].setValue(0.4)
-    f._spin_meander["yaw"].setValue(1.5)
-    s.warte(600)
-    f._chk_solo.setChecked(True)
-    f._spin_meander["z"].setValue(-0.25)
-    s.warte(600)
-
-
-@fall
-def handjustage_thermal(s):
-    st = Stubs(s, thermal=True)
-    _flug(s)
-    _lage(s, st)
-    f = s.fenster
-    f._spin_meander_th["x"].setValue(0.3)
-    f._spin_meander_th["yaw"].setValue(-0.5)
-    s.warte(400)
-
-
-@fall
-def handjustage_kaum_treffer(s):
-    st = Stubs(s, treffer=0.02)
-    _flug(s)
-    _lage(s, st)
-    f = s.fenster
-    f._spin_meander["x"].setValue(0.4)
-    s.warte(600)
-    f._spin_meander["x"].setValue(0.8)    # die Warnung kommt nur einmal
-    s.warte(600)
-
-
-@fall
-def massstab(s):
-    st = Stubs(s, thermal=True)
-    _flug(s)
-    _lage(s, st)
-    f = s.fenster
-    f._massstab["rgb"].setValue(5.0)
-    s.warte(600)
-    f._massstab["thermal"].setValue(-2.0)
-    s.warte(400)
 
 
 @fall
@@ -970,9 +896,7 @@ def lage_uebernehmen(s):
     _flug(s)
     _lage(s, st)
     f = s.fenster
-    for key, wert in (("yaw", 1.5), ("x", 0.4), ("y", -0.3), ("z", 0.2)):
-        _still(f._spin_meander[key], wert)
-    _still(f._spin_meander_th["x"], 0.3)
+    f._meander_setze_thermal((0.0, 0.3, 0.0))
     f._meander_apply_manual()
 
 
@@ -1004,9 +928,7 @@ def ausrichtfenster_lage_uebernehmen(s):
     _lage(s, st)
     f = s.fenster
     f._meander_lade_optik()
-    _still(f._spin_meander["x"], 0.4)     # wird vor dem Öffnen verrechnet
-    _still(f._spin_meander_th["yaw"], 0.5)
-    f._live_update()
+    f._meander_setze_thermal((0.5, 0.0, 0.0))
     f._on_meander_fenster()
     s.warte(200)
     fenster = f._meander_fenster
@@ -1311,7 +1233,7 @@ def ebenen_mit_temperaturen(s):
                      ("meander_thermal", {"temperatur": True, "anteil": 0.5}),
                      ("meander_thermal_splat", {"temperatur": True, "anteil": 0.7})))
     f = s.fenster
-    f._combo_layer.setCurrentIndex(f._combo_layer.findData("meander_thermal_splat"))
+    f._ebene_waehlen("meander_thermal_splat")
 
 
 @fall
@@ -1376,7 +1298,7 @@ def farbe_ueber_menue(s):
     f = s.fenster
     for key in ("meander_rgb", "fusion", "onboard"):
         eintrag = next(a for a in f._actions["menu_farbquelle"].actions()
-                       if a.data() == key)
+                       if a.data() == f"rgb:{key}")
         eintrag.trigger()
         s.ereignis("gewählt", key, s.kurz([f._layer_key, f._settings.get("layer")]))
 
@@ -1386,6 +1308,6 @@ def farbe_ueber_seitenleiste(s):
     Stubs(s)
     _flug(s, ebenen=("onboard", "meander_rgb"))
     f = s.fenster
-    f._combo_layer.setCurrentIndex(f._combo_layer.findData("meander_rgb"))
-    f._combo_colormode.setCurrentIndex(f._combo_colormode.findData("hoehe"))
-    f._combo_colormode.setCurrentIndex(f._combo_colormode.findData("rgb"))
+    f._ebene_waehlen("meander_rgb")
+    f._setze_farbe("hoehe")
+    f._setze_farbe("rgb:meander_rgb")
