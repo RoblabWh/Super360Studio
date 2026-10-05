@@ -674,8 +674,9 @@
    "schaltbar": true,
    "text": "Messen",
    "tiefe": 0,
-   "tooltip": "zwei Punkte anklicken (M) — Esc verwirft",
-   "typ": "QPushButton"
+   "tooltip": "Zwei Klicks in die Wolke: Abstand in Metern. Esc verwirft die Marken.\n\nErst die Karte berechnen oder ein Projekt öffnen.",
+   "typ": "_AktionsKnopf",
+   "gesperrt": true
   },
   {
    "attribut": "_cloud_view._chk_temp",
@@ -1128,7 +1129,7 @@
     "rec"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen."
+   "tooltip": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll."
   },
   "meander": {
    "braucht": [
@@ -1170,7 +1171,7 @@
     "world"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen."
+   "tooltip": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/. Einstellungen im Abschnitt Mesh."
   },
   "screenshot": {
    "braucht": null,
@@ -1325,7 +1326,7 @@
     "calib"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU)."
+   "tooltip": "Ein Splat aus den Frames der 360°-Kamera (GPU). Nimmt die Extrinsik aus\ndem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster und Himmelssaum\naus dem Abschnitt Einfärbung (360°-Kamera)."
   },
   "fusion": {
    "braucht": [
@@ -1343,7 +1344,7 @@
     "flug"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort."
+   "tooltip": "Ein Splat aus beiden Flügen (GPU). Die Farbe steht im Mäander, jedes\nOnboard-Bild bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort."
   },
   "edl": {
    "braucht": null,
@@ -1385,7 +1386,7 @@
     "world"
    ],
    "frei_bei_busy": false,
-   "tooltip": "Zwei Klicks in die Wolke: Abstand in Metern."
+   "tooltip": "Zwei Klicks in die Wolke: Abstand in Metern. Esc verwirft die Marken."
   },
   "exploration": {
    "braucht": [
@@ -2709,7 +2710,10 @@
   "breite_min": "gemessene Startbreite der Seitenleiste (_sidebar_breite) wie in vorher/gui; sie gilt, solange keine gezogene Breite gespeichert ist (B14).",
   "entfallen": "die acht Attribute aus dem Paket; die Zustandsattribute der Vorschau (_live_optik, _live_pts, _live_gemeckert, _live_timer, _zuschlag_timer) prüft P7 über --vergleiche.",
   "seitenleiste_flexibel": "B14 (Lena 2026-10-04: „mach sie total flexibel“): die Leiste lässt sich frei ziehen. Untergrenze (_sidebar_scroll.minimumWidth()) = breitester Abschnittskopf samt Rand des Stapels, Rahmen und senkrechter Scrollleiste (SectionStack.kopfbreite(); unter xvfb 276 px), Obergrenze nur die Mindestbreite der Arbeitsfläche. Felder wachsen mit (keine Höchstbreite mehr an Auswahlen), Formzeilen brechen um, Hinweiszeilen umbrechen, Knopfzeilen stapeln sich; was dann nicht passt, erreicht die waagerechte Scrollleiste. Die gezogene Breite steht app-weit in <Cache-Wurzel>/seitenleiste.json als {\"breite\": <px>}, geschrieben nur nach einer Splitterbewegung. Der Schnappschuss prüft davon nur die Startbreite (breite_min); den Rest belegt die Laufzeitprobe des Pakets.",
-  "hauptpunkt_titel": "Die Zwischenüberschriften im Unterblock Hauptpunkt heißen „RGB“ und „Thermal“ (vorher „RGB-Optik — Hauptpunkt“, „Thermal-Optik — Hauptpunkt“; B14)."
+  "hauptpunkt_titel": "Die Zwischenüberschriften im Unterblock Hauptpunkt heißen „RGB“ und „Thermal“ (vorher „RGB-Optik — Hauptpunkt“, „Thermal-Optik — Hauptpunkt“; B14).",
+  "fw6_messen": "FW6 (P6): der Knopf Messen über der 3D-Ansicht ist ein ui.bausteine.aktionsknopf der Aktion measure (CloudView.messen_folgt): ohne Wolke gesperrt, Tooltip und Haken wie die Aktion, ein Klick löst sie aus; das Signal messen_angefordert entfällt.",
+  "fw6_umbruch": "FW6 (Lena 2026-10-04, „Umbrechen lassen“): Haken (bausteine.haken, aktionshaken), Aktionsknöpfe und die Köpfe der Unterblöcke brechen ihren Text um, wenn die Leiste schmaler ist als er (ui.bausteine._Umbruch, heightForWidth); Wortlaut und Startbreite 467 bleiben. An der Untergrenze (unter xvfb 276 px) mit allen Abschnitten offen gibt es keine waagerechte Scrollleiste mehr.",
+  "fw6_seitenleiste": "FW6 (P8 H5, H6): die Leiste lässt sich nur bis zur Untergrenze ziehen, nicht auf 0 px (setCollapsible(1, False)); der Haken Ansicht ▸ Seitenleiste steht nach dem Start richtig (isHidden statt isVisible vor show())."
  },
  "tooltips": {
   "aenderungen": [
@@ -2720,38 +2724,38 @@
    },
    {
     "vorher": "Zweites Rosbag laden und mit dem offenen zusammenführen.",
-    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Zweiten Flug laden)"
+    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Zweiten Flug laden) — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext"
    },
    {
     "vorher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.",
-    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.\nZweites Rosbag laden und mit dem offenen zusammenführen.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Zweiten Flug laden, vormals 1119-1121)"
+    "nachher": "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\nsonst wird gefragt, ob sie jetzt berechnet werden soll.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Zweiten Flug laden, vormals 1119-1121) — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext"
    },
    {
     "vorher": "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Export)\nund in CloudCompare öffnen.",
-    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mesh in CloudCompare öffnen); dazu nennt der Satz den neuen Abschnitt Mesh"
+    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/. Einstellungen im Abschnitt Mesh.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Mesh in CloudCompare öffnen); dazu nennt der Satz den neuen Abschnitt Mesh — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; der Hinweis auf den Abschnitt Mesh bleibt als eigener Satz"
    },
    {
     "vorher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.",
-    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/.\nDreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\nund in CloudCompare öffnen.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Mesh in CloudCompare öffnen, vormals 1331-1333)"
+    "nachher": "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\nProjektordner unter mesh/. Einstellungen im Abschnitt Mesh.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf Mesh in CloudCompare öffnen, vormals 1331-1333) — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; der Hinweis auf den Abschnitt Mesh bleibt als eigener Satz"
    },
    {
     "vorher": "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
-    "nachher": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü 360°-Kamera per Splat einfärben)"
+    "nachher": "Ein Splat aus den Frames der 360°-Kamera (GPU). Nimmt die Extrinsik aus\ndem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster und Himmelssaum\naus dem Abschnitt Einfärbung (360°-Kamera).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü 360°-Kamera per Splat einfärben) — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; „(GPU)“ steht jetzt in der ersten Zeile („Ein Splat aus den Frames der 360°-Kamera (GPU).“)"
    },
    {
     "vorher": "Nimmt Extrinsik, Helligkeitsfenster und Himmelssaum aus Abschnitt 3.",
-    "nachher": "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\nund Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\nFarben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf, vormals 1096-1097); dazu nennt der Satz die Abschnitte beim Namen (Kamera-Kalibrierung, Einfärbung (360°-Kamera)) statt 'Abschnitt 3'"
+    "nachher": "Ein Splat aus den Frames der 360°-Kamera (GPU). Nimmt die Extrinsik aus\ndem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster und Himmelssaum\naus dem Abschnitt Einfärbung (360°-Kamera).",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Knopf, vormals 1096-1097); dazu nennt der Satz die Abschnitte beim Namen (Kamera-Kalibrierung, Einfärbung (360°-Kamera)) statt 'Abschnitt 3' — FW6 (Lena 2026-10-04, doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; „(GPU)“ steht jetzt in der ersten Zeile („Ein Splat aus den Frames der 360°-Kamera (GPU).“)"
    },
    {
     "vorher": "Ein Splat aus beiden Flügen, Farbe im Mäander, Farbmatrix je Onboard-Bild (GPU).",
-    "nachher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
-    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Beide in einem Splat einfärben) — B14 (Lena 2026-10-04: doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; Knopf und Menüeintrag tragen nur noch den Fachtext des Knopfes"
+    "nachher": "Ein Splat aus beiden Flügen (GPU). Die Farbe steht im Mäander, jedes\nOnboard-Bild bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
+    "grund": "I2: Knopf und Menü hatten zwei Fachtexte; die Befehlstabelle nimmt den des Knopfes und hängt den Menüsatz an (gilt für Knopf und Menüeintrag) (Menü Beide in einem Splat einfärben) — B14 (Lena 2026-10-04: doppelte Tooltips kürzen): der angehängte Menüsatz entfällt, er wiederholte den Knopftext; Knopf und Menüeintrag tragen nur noch den Fachtext des Knopfes — FW6 (P8 H10): „(GPU)“ ging mit der gekürzten letzten Zeile verloren und steht jetzt in der ersten Zeile"
    },
    {
     "vorher": "Sperrt den Saum um ausgebrannte Himmelsflächen. Dort mischen Blur und\nFarbsaum Himmel und Objekt zu Grauweiß, das unter 'Helligkeit max'\ndurchrutscht und Baumkronen weiß überzieht. 0 schaltet die Sperre ab.",
@@ -2867,6 +2871,21 @@
     "vorher": "RViz-Wiedergabe beenden",
     "nachher": "Beenden",
     "grund": "I2: Menütext laut Befehlstabelle; ohne eigenen Tooltip zeigt der Eintrag seinen Text (Werkzeuge ▸ RViz-Wiedergabe ▸ Beenden, B12)"
+   },
+   {
+    "vorher": "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\nbekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
+    "nachher": "Ein Splat aus beiden Flügen (GPU). Die Farbe steht im Mäander, jedes\nOnboard-Bild bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\nLiegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
+    "grund": "FW6 (P8 H10): „(GPU)“ ging mit der gekürzten letzten Zeile verloren und steht jetzt in der ersten Zeile"
+   },
+   {
+    "vorher": "Zwei Klicks in die Wolke: Abstand in Metern.",
+    "nachher": "Zwei Klicks in die Wolke: Abstand in Metern. Esc verwirft die Marken.",
+    "grund": "FW6 (P6): der Knopf Messen der Leiste folgt der Aktion measure und trägt deren Tooltip; der Hinweis „Esc verwirft“ des alten Knopf-Tooltips steht darum jetzt in der Befehlstabelle"
+   },
+   {
+    "vorher": "zwei Punkte anklicken (M) — Esc verwirft",
+    "nachher": "Zwei Klicks in die Wolke: Abstand in Metern. Esc verwirft die Marken.",
+    "grund": "FW6 (P6): der Knopf Messen der Leiste folgt der Aktion measure (Haken, Freigabe, Tooltip samt fehlender Voraussetzung, gleicher Handler); das Kürzel M nennt das Menü"
    }
   ]
  }

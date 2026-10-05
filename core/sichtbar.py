@@ -229,6 +229,7 @@ def colorize_sichtbar(points: np.ndarray, cams, image_dir: str, A, b,
 if __name__ == "__main__":
     # Selbsttest: ein Dach ueber einem Boden, eine Kamera schraeg darueber.
     # Der Boden unter dem Dach darf nicht die Dachfarbe bekommen.
+    import shutil
     import tempfile
     from PIL import Image
 
@@ -278,4 +279,5 @@ if __name__ == "__main__":
     assert m_ohne[verdeckt].mean() > 0.3, "Test taugt nicht: Probe war schon verdeckt"
     assert m_mit[verdeckt].mean() < 0.05, "Tiefenwolke wirkt nicht"
     assert m_mit[~verdeckt].mean() > 0.9, "freie Punkte verloren"
+    shutil.rmtree(tmp, ignore_errors=True)
     print("sichtbar SELFTEST OK")

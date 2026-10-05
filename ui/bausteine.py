@@ -2,17 +2,20 @@
 
 Knöpfe, Zahlenfelder, Auswahlen, Haken und Schieber entstehen hier mit ihren
 Grundeinstellungen; ``aktionsknopf`` und ``aktionshaken`` spiegeln eine
-QAction, sodass Menü und Seitenleiste denselben Zustand zeigen.
+QAction, sodass Menü und Seitenleiste denselben Zustand zeigen. Haken,
+Aktionsknöpfe und die Köpfe der Unterblöcke brechen ihren Text um, wenn die
+Seitenleiste schmaler ist als er.
 """
 from __future__ import annotations
 
 import numpy as np
 from PyQt5.QtCore import QEvent, QRect, QSize, Qt, QTimer
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (
     QAbstractButton, QAction, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
     QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLayout, QLineEdit, QPushButton,
-    QSlider, QSpinBox, QStyle, QVBoxLayout, QWidget,
+    QSizePolicy, QSlider, QSpinBox, QStyle, QStyleOptionButton, QStyleOptionFocusRect,
+    QStyleOptionToolButton, QStylePainter, QToolButton, QVBoxLayout, QWidget,
 )
 
 from ui.collapsible import Section
@@ -54,6 +57,194 @@ def _wrappable(form: QFormLayout) -> QFormLayout:
     form.setRowWrapPolicy(QFormLayout.WrapLongRows)
     form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
     return form
+
+
+# --------------------------------------------------------- Umbrechender Text
+
+class _Umbruch:
+    """Gemeinsamer Teil der Knöpfe, Haken und Kopfzeilen, deren Text umbricht.
+
+    Breit genug zeichnet Qt sie wie sonst. Schmaler bricht der Text an
+    Wortgrenzen um und die Höhe folgt der Breite (heightForWidth); schmaler
+    als das längste Wort samt Rand werden sie nicht. Text, Klick, Fokus und
+    Tastatur bleiben die des Knopfes.
+    """
+
+    _AUSRICHTUNG = Qt.AlignLeft    # der Zeilen untereinander
+    _MITTIG = False                # der ganze Textblock steht mittig
+
+    def _umbrechen(self) -> None:
+        """Größenregel setzen: in der Breite schrumpfbar, Höhe nach Breite."""
+        sp = self.sizePolicy()
+        sp.setHorizontalPolicy(QSizePolicy.Policy(
+            int(sp.horizontalPolicy()) | QSizePolicy.ShrinkFlag))
+        sp.setVerticalPolicy(QSizePolicy.Minimum)
+        sp.setHeightForWidth(True)
+        self.setSizePolicy(sp)
+
+    def _rand(self) -> int:
+        """Breite um den Text herum (Rahmen, Haken, Abstände)."""
+        raise NotImplementedError
+
+    def _links(self) -> int:
+        """Abstand des Textes vom linken Rand."""
+        return self._rand() // 2
+
+    def _teile(self) -> tuple[str, str]:
+        """(Vorsatz, Rest): der Vorsatz steht vor jeder Zeile des Rests."""
+        return "", self.text()
+
+    def _flags(self) -> int:
+        return int(self._AUSRICHTUNG | Qt.AlignTop | Qt.TextWordWrap | Qt.TextShowMnemonic)
+
+    def _textgroesse(self, breite: int) -> QSize:
+        """Größe des umbrochenen Textes, wenn ``breite`` für ihn bleibt."""
+        fm = self.fontMetrics()
+        vor, rest = self._teile()
+        einzug = fm.horizontalAdvance(vor) if vor else 0
+        r = fm.boundingRect(QRect(0, 0, max(1, breite - einzug), 1 << 20),
+                            self._flags(), rest)
+        return QSize(einzug + r.width(), max(fm.height(), r.height()))
+
+    def _bricht_um(self) -> bool:
+        return self.width() < super().sizeHint().width()
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt-Name)
+        einzeilig = super().sizeHint()
+        fm = self.fontMetrics()
+        vor, rest = self._teile()
+        wort = max((fm.horizontalAdvance(w)
+                    for w in _ohne_kuerzel(rest).replace("&&", "&").split()), default=0)
+        breite = self._rand() + (fm.horizontalAdvance(vor) if vor else 0) + wort
+        return QSize(min(einzeilig.width(), breite), einzeilig.height())
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 (Qt-Name)
+        return True
+
+    def heightForWidth(self, breite: int) -> int:  # noqa: N802 (Qt-Name)
+        einzeilig = super().sizeHint()
+        if breite >= einzeilig.width():
+            return einzeilig.height()
+        mehr = self._textgroesse(breite - self._rand()).height() - self.fontMetrics().height()
+        return einzeilig.height() + max(0, mehr)
+
+    def _text_zeichnen(self, p: QStylePainter, opt, rolle) -> QRect:
+        """Den umbrochenen Text senkrecht mittig zeichnen; gibt sein Rechteck."""
+        links = self._links()
+        breite = self.width() - self._rand()
+        groesse = self._textgroesse(breite)
+        y = (self.height() - groesse.height()) // 2
+        x = links
+        if self._MITTIG:
+            x += max(0, (breite - groesse.width()) // 2)
+        vor, rest = self._teile()
+        einzug = self.fontMetrics().horizontalAdvance(vor) if vor else 0
+        if vor:
+            p.drawItemText(QRect(x, y, einzug, groesse.height()), int(Qt.AlignLeft | Qt.AlignTop),
+                           opt.palette, self.isEnabled(), vor, rolle)
+        p.drawItemText(QRect(x + einzug, y, groesse.width() - einzug, groesse.height()),
+                       self._flags(), opt.palette, self.isEnabled(), rest, rolle)
+        return QRect(x, y, groesse.width(), groesse.height())
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt-Name)
+        if not self._bricht_um():
+            super().paintEvent(event)
+            return
+        self._zeichnen(QStylePainter(self))
+
+
+class _UmbruchHaken(_Umbruch, QCheckBox):
+    """Haken, dessen Text neben dem Kästchen umbricht; ganz anklickbar."""
+
+    def __init__(self, text: str = "", parent: QWidget | None = None):
+        super().__init__(text, parent)
+        self._umbrechen()
+
+    def _option(self) -> QStyleOptionButton:
+        opt = QStyleOptionButton()
+        self.initStyleOption(opt)
+        return opt
+
+    def _rand(self) -> int:
+        opt = self._option()
+        opt.text = ""
+        return self.style().sizeFromContents(
+            QStyle.CT_CheckBox, opt, QSize(0, self.fontMetrics().height()), self).width()
+
+    def _links(self) -> int:
+        opt = self._option()
+        return self.style().subElementRect(QStyle.SE_CheckBoxContents, opt, self).left()
+
+    def hitButton(self, pos) -> bool:  # noqa: N802 (Qt-Name)
+        # umbrochen zählt der ganze Haken, auch die weiteren Zeilen
+        return self.rect().contains(pos) if self._bricht_um() else super().hitButton(pos)
+
+    def _zeichnen(self, p: QStylePainter) -> None:
+        opt = self._option()
+        text = self._text_zeichnen(p, opt, QPalette.WindowText)
+        kasten = QStyleOptionButton(opt)
+        kasten.rect = self.style().subElementRect(QStyle.SE_CheckBoxIndicator, opt, self)
+        kasten.rect.moveTop(text.top() + (self.fontMetrics().height() - kasten.rect.height()) // 2)
+        p.drawPrimitive(QStyle.PE_IndicatorCheckBox, kasten)
+        if self.hasFocus():
+            fokus = QStyleOptionFocusRect()
+            fokus.initFrom(self)
+            fokus.rect = text.adjusted(-2, -1, 2, 1)
+            p.drawPrimitive(QStyle.PE_FrameFocusRect, fokus)
+
+
+class _UmbruchKnopf(_Umbruch, QPushButton):
+    """Druckknopf, dessen Text mittig umbricht."""
+
+    _AUSRICHTUNG = Qt.AlignHCenter
+    _MITTIG = True
+
+    def __init__(self, text: str = "", parent: QWidget | None = None):
+        super().__init__(text, parent)
+        self._umbrechen()
+
+    def _rand(self) -> int:
+        opt = QStyleOptionButton()
+        self.initStyleOption(opt)
+        opt.text = ""          # sonst gilt die Mindestbreite eines beschrifteten Knopfes
+        return self.style().sizeFromContents(
+            QStyle.CT_PushButton, opt, QSize(0, self.fontMetrics().height()), self).width()
+
+    def _zeichnen(self, p: QStylePainter) -> None:
+        opt = QStyleOptionButton()
+        self.initStyleOption(opt)
+        opt.text = ""
+        p.drawControl(QStyle.CE_PushButton, opt)        # Fläche und Fokus
+        self._text_zeichnen(p, opt, QPalette.ButtonText)
+
+
+class _UmbruchKopf(_Umbruch, QToolButton):
+    """Kopfzeile eines Unterblocks; der Pfeil steht vor jeder Zeile des Titels.
+
+    Wie Qt den einzeiligen Text setzt der Block mittig, die Zeilen bündig.
+    """
+
+    _MITTIG = True
+
+    def _rand(self) -> int:
+        opt = QStyleOptionToolButton()
+        self.initStyleOption(opt)
+        opt.text = ""
+        return self.style().sizeFromContents(
+            QStyle.CT_ToolButton, opt, QSize(0, self.fontMetrics().height()), self).width()
+
+    def _teile(self) -> tuple[str, str]:
+        vor, abstand, rest = self.text().partition("  ")
+        if abstand and len(vor) == 1 and not vor.isalnum():
+            return vor + abstand, rest
+        return "", self.text()
+
+    def _zeichnen(self, p: QStylePainter) -> None:
+        opt = QStyleOptionToolButton()
+        self.initStyleOption(opt)
+        opt.text = ""
+        p.drawComplexControl(QStyle.CC_ToolButton, opt)  # Fläche und Fokus
+        self._text_zeichnen(p, opt, QPalette.ButtonText)
 
 
 # ------------------------------------------------------------------ Knöpfe
@@ -128,11 +319,11 @@ class _FolgtAktion:
             self.blockSignals(alt)
 
 
-class _AktionsKnopf(_FolgtAktion, QPushButton):
+class _AktionsKnopf(_FolgtAktion, _UmbruchKnopf):
     pass
 
 
-class _AktionsHaken(_FolgtAktion, QCheckBox):
+class _AktionsHaken(_FolgtAktion, _UmbruchHaken):
     pass
 
 
@@ -236,9 +427,10 @@ class _Knopfreihe(QLayout):
         ab = self._abstand(False)
         y = y0
         for it in items:
-            h = it.sizeHint().height()
+            b = max(breite, it.minimumSize().width())
+            h = it.heightForWidth(b) if it.hasHeightForWidth() else it.sizeHint().height()
             if setzen:
-                it.setGeometry(QRect(x0, y, max(breite, it.minimumSize().width()), h))
+                it.setGeometry(QRect(x0, y, b, h))
             y += h + ab
         return y - ab - y0 + m.top() + m.bottom()
 
@@ -303,8 +495,9 @@ def auswahl(eintraege, aktuell=None, slot=None, tip: str = "") -> QComboBox:
 
 
 def haken(text: str, an: bool = False, slot=None, tip: str = "") -> QCheckBox:
-    """Haken; ``slot`` hängt an toggled und bekommt den neuen Zustand."""
-    chk = QCheckBox(text)
+    """Haken, dessen Text umbrechen darf; ``slot`` hängt an toggled und bekommt
+    den neuen Zustand."""
+    chk = _UmbruchHaken(text)
     chk.setChecked(bool(an))
     if tip:
         chk.setToolTip(tip)
@@ -383,8 +576,11 @@ class Unterblock(Section):
     Einklappbar ist er eine Section mit Pfeil; sein Zustand wird erst
     gespeichert, wenn ihn das Fenster mit ``SectionStack.melde_an`` unter
     ``schluessel`` (etwa ``maeander.hauptpunkt``) anmeldet. Nicht einklappbar
-    ist die Kopfzeile nur Überschrift und der Inhalt immer offen.
+    ist die Kopfzeile nur Überschrift und der Inhalt immer offen. Der Text
+    der Kopfzeile bricht um, wenn sie schmaler ist als er.
     """
+
+    _kopf_klasse = _UmbruchKopf
 
     def __init__(self, titel: str, einklappbar: bool = False, offen: bool = True,
                  schluessel: str = "", parent: QWidget | None = None):
@@ -394,6 +590,7 @@ class Unterblock(Section):
         super().__init__(schluessel, titel, inhalt, bool(offen) or not einklappbar, parent)
         self.form = form
         self._einklappbar = bool(einklappbar)
+        self._head._umbrechen()
         if self._einklappbar:
             self._head.setStyleSheet(
                 "QToolButton { border: none; text-align: left; padding: 3px 2px;"
@@ -616,6 +813,35 @@ if __name__ == "__main__":
         pass
     else:
         raise AssertionError("nicht einklappbarer Unterblock angemeldet")
+
+    # Umbruch: schmal bricht der Text um, Höhe nach Breite, ganz anklickbar
+    from PyQt5.QtCore import QPoint
+    from PyQt5.QtTest import QTest
+    lang = "Beim Einfärben Sichtbarkeit prüfen (Wände)"
+    uh = haken(lang)
+    voll = uh.sizeHint()
+    assert uh.text() == lang and isinstance(uh, QCheckBox) and uh.hasHeightForWidth()
+    assert uh.minimumSizeHint().width() < voll.width() // 2
+    assert uh.heightForWidth(voll.width()) == voll.height()
+    assert uh.heightForWidth(voll.width() // 2) > voll.height()
+    uh.resize(voll.width() // 2, uh.heightForWidth(voll.width() // 2))
+    QTest.mouseClick(uh, Qt.LeftButton, Qt.NoModifier, QPoint(uh.width() // 2, uh.height() - 3))
+    assert uh.isChecked(), "Klick auf die zweite Zeile schaltet nicht"
+    QTest.keyClick(uh, Qt.Key_Space)
+    assert not uh.isChecked(), "Leertaste schaltet nicht"
+    uh.grab()                                           # zeichnet umbrochen
+    uk = aktionsknopf(QAction("Punktwolke in CloudCompare öffnen", besitzer))
+    assert uk.minimumSizeHint().width() < uk.sizeHint().width()
+    assert uk.heightForWidth(uk.minimumSizeHint().width()) > uk.sizeHint().height()
+    uk.resize(uk.minimumSizeHint().width(), 80)
+    uk.grab()
+    assert aktionshaken(vorschau).hasHeightForWidth()
+    kopf = Unterblock("Hauptpunkt (wirkt beim nächsten Ausrichten)", True, False, "x.y")
+    assert kopf._head._teile() == ("▸  ", "Hauptpunkt (wirkt beim nächsten Ausrichten)")
+    assert kopf._head.heightForWidth(kopf._head.minimumSizeHint().width()) \
+        > kopf._head.sizeHint().height()
+    kopf.resize(kopf._head.minimumSizeHint().width(), 200)
+    kopf.grab()
 
     # Knopf, Knopfzeile, Zahl, Auswahl, Haken, Schieber, Reglergruppe
     gerufen: list = []

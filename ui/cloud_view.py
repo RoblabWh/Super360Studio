@@ -51,6 +51,7 @@ except ImportError:
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 from core.gemeinsam import GRAU_ANZEIGE
+from ui.bausteine import aktionsknopf, still_setzen
 
 _ACCENT = (0x4F / 255.0, 0xC3 / 255.0, 0xF7 / 255.0)  # #4FC3F7
 _BG = {"dunkel": (0.102, 0.110, 0.125), "hell": (0.93, 0.94, 0.955)}
@@ -448,8 +449,6 @@ class CloudView(QtWidgets.QWidget):
     farbmodus_gewaehlt = QtCore.pyqtSignal(str)
     #: Leiste: Punktgroesse in Pixeln (Viertelschritte)
     punktgroesse_geaendert = QtCore.pyqtSignal(float)
-    #: Leiste oder Taste: Messen soll umschalten
-    messen_angefordert = QtCore.pyqtSignal()
     #: Leiste: Temperatur beim Hovern zeigen an/aus
     temperatur_umgeschaltet = QtCore.pyqtSignal(bool)
     #: Leiste: Mesh statt Punkte zeigen an/aus
@@ -617,6 +616,7 @@ class CloudView(QtWidgets.QWidget):
             for w in widgets:
                 g.addWidget(w)
             lay.addLayout(g)
+            return g
 
         self._farbe = QtWidgets.QComboBox()
         self._farbe.setMinimumContentsLength(14)
@@ -635,11 +635,13 @@ class CloudView(QtWidgets.QWidget):
         self._groesse.valueChanged.connect(self._groesse_gezogen)
         gruppe(QtWidgets.QLabel("Punkte"), self._groesse, self._groesse_lbl)
 
+        # Ohne Aktion schaltet der Knopf das Messen selbst; das Fenster haengt
+        # ihn mit messen_folgt an seine Aktion
         self._btn_messen = QtWidgets.QPushButton("Messen")
         self._btn_messen.setCheckable(True)
         self._btn_messen.setToolTip("zwei Punkte anklicken (M) — Esc verwirft")
-        self._btn_messen.clicked.connect(lambda: self.messen_angefordert.emit())
-        gruppe(self._btn_messen)
+        self._btn_messen.clicked.connect(self.set_measure)
+        self._messen_gruppe = gruppe(self._btn_messen)
 
         self._chk_temp = QtWidgets.QCheckBox("Temperatur anzeigen")
         self._chk_temp.setChecked(True)
@@ -913,14 +915,23 @@ class CloudView(QtWidgets.QWidget):
             return
         self._measure_on = on
         self._vtkw.setCursor(QtCore.Qt.CrossCursor if on else QtCore.Qt.OpenHandCursor)
-        self._btn_messen.blockSignals(True)
-        self._btn_messen.setChecked(on)
-        self._btn_messen.blockSignals(False)
+        still_setzen(self._btn_messen, on)
         if not on:
             self.clear_measure()
 
     def measure_enabled(self) -> bool:
         return self._measure_on
+
+    def messen_folgt(self, action: QtWidgets.QAction) -> None:
+        """Der Knopf Messen folgt ab jetzt ``action``: Haken, Freigabe und
+        Tooltip kommen von ihr, ein Klick loest sie aus. Ihr Handler schaltet
+        das Messen (set_measure)."""
+        knopf = aktionsknopf(action)
+        self._messen_gruppe.replaceWidget(self._btn_messen, knopf)
+        self._btn_messen.hide()
+        self._btn_messen.deleteLater()
+        self._btn_messen = knopf
+        still_setzen(knopf, self._measure_on)
 
     def clear_measure(self) -> None:
         self._meas = []

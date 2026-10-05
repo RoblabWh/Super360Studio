@@ -213,20 +213,14 @@ __kernel void normals(__global const long* keys, const int m,
 
 def opencl_available() -> str | None:
     """Name der OpenCL-GPU (dieselbe wie fuer die Einfaerbung) oder None."""
-    try:
-        from . import colorizer_gpu
-    except ImportError:  # pragma: no cover - Direktstart
-        import colorizer_gpu  # type: ignore
+    from . import colorizer_gpu
     return colorizer_gpu.available()
 
 
 def _normals_opencl(keys, cells, cen, dims, voxel, r: int = _NORMAL_R):
     """(Normalen (M,3) f32, Eigenwerte aufsteigend (M,3) f32, Nachbarn (M,) i32)."""
     import pyopencl as cl
-    try:
-        from . import colorizer_gpu
-    except ImportError:  # pragma: no cover
-        import colorizer_gpu  # type: ignore
+    from . import colorizer_gpu
     ctx, queue, _dev = colorizer_gpu._context()
     prg = cl.Program(ctx, _KERNEL).build()
     k = cl.Kernel(prg, "normals")

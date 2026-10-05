@@ -561,7 +561,16 @@ def teil_b(fenster) -> tuple:
     fall("mesh_trim_5_mit_stand_2", mesh_trim=5, mesh_stand=2)
 
     bsp = _beispiel(start)
-    faelle["beispiel"] = wende_an(bsp)
+    # Der Mäanderordner des Beispiels braucht ein Thermalbild: ohne setzt das
+    # Wiederherstellen den Thermal-Haken aus (wie die Flugwahl), dann gäbe
+    # das Beispiel meander_thermal nicht wieder. Je Prozess ein eigener Name,
+    # weil parallele Läufe denselben Ordner benutzen.
+    thermalbild = os.path.join(bsp["meander_dir"], f"probe_{os.getpid()}_T.JPG")
+    open(thermalbild, "wb").close()
+    try:
+        faelle["beispiel"] = wende_an(bsp)
+    finally:
+        os.remove(thermalbild)
     gesammelt = fenster._collect_settings()
     # Das Beispiel muss sich selbst wiedergeben, sonst taugt es nicht als Probe
     # für Laden und Speichern.

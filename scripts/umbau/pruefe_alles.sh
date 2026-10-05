@@ -95,10 +95,12 @@
 #
 # Jeder Aufruf arbeitet in einem eigenen Ordner von basis.arbeitsordner().
 # Kinder bekommen SUPER360_CACHE_ROOT im Arbeitsordner (nie der echte Cache),
-# TMPDIR im Arbeitsordner und PYTHONDONTWRITEBYTECODE. Was die Selbsttests
-# nach ihrer Konvention unter /tmp/super360_modtests/<modul> ablegen, wird nach
-# der Stufe wieder entfernt, sofern es vor ihr nicht da war; nur Ordner, deren
-# Name zu einem in der Stufe gestarteten Modul passt. Die Stufen mit
+# TMPDIR im Arbeitsordner, PYTHONDONTWRITEBYTECODE sowie OMP_NUM_THREADS=8 und
+# OMP_WAIT_POLICY=PASSIVE (OpenMP überbelegt sonst unter Fremdlast). Was die
+# Selbsttests nach ihrer Konvention unter /tmp/super360_modtests/<modul>
+# ablegen, wird nach der Stufe wieder entfernt, sofern es vor ihr nicht da
+# war; nur Ordner, deren Name zu einem in der Stufe gestarteten Modul passt.
+# Die Stufen mit
 # Selbsttests laufen dafür unter einer Sperre auf /tmp/super360_modtests/umbau:
 # zwei gleichzeitige Aufrufe räumen sich so nicht gegenseitig die Ordner weg.
 #
@@ -275,6 +277,9 @@ def kind_umgebung(**extra):
     os.makedirs(tmp, exist_ok=True)
     os.makedirs(cache, exist_ok=True)
     env.update(PYTHONDONTWRITEBYTECODE="1", TMPDIR=tmp, SUPER360_CACHE_ROOT=cache)
+    # Open3D-Poisson (core.mesh) überbelegt unter Fremdlast sonst alle Kerne
+    # und läuft ins Zeitlimit
+    env.update(OMP_NUM_THREADS="8", OMP_WAIT_POLICY="PASSIVE")
     env.update(extra)
     return env
 

@@ -122,15 +122,22 @@ Super360Studio/
   mavros_msgs .msg-Definitionen: `/opt/ros/humble/share/mavros_msgs/msg/GPSRAW.msg`
   (rosbags braucht register_types aus dieser Definition; Abhängigkeit
   `sensor_msgs/NavSatStatus` ggf. mitregistrieren).
-- Hardware (nachgemessen 2026-09-16): **4 Kerne, 7,5 GB RAM**, RTX 3060 Ti (8 GB),
-  X11 DISPLAY=:0. Die frühere Angabe hier (12 Kerne, 124 GB) war falsch — wer danach
-  plant, baut Datenstrukturen, die der Rechner nicht trägt: eine float64-Kopie der
-  Farben aller 24 Mio. Punkte sind 576 MB, ein Onboard-Splat-Datensatz als Tensoren
-  bis 5 GB. Der NVIDIA-Treiber lädt zurzeit nicht (Secure Boot, MOK-Schlüssel nicht
-  eingeschrieben), CUDA ist also nicht verfügbar.
-  **Offen:** Stand der Messung vom 2026-09-16, seither nicht neu geprüft. Ob Treiber
-  und CUDA inzwischen laden, steht nicht fest; `core.splat.hinweis` und
-  `core.colorizer_gpu.available` sagen zur Laufzeit, was geht.
+- Hardware: Die App läuft auf mehreren Rechnern, die sich das Home-Verzeichnis
+  teilen (Cache, venvs, Workspaces), mit verschiedenen NVIDIA-Karten: RTX 3060 Ti
+  (sm_86, 8 GB), RTX 4090 Laptop (sm_89) und RTX 50xx (sm_120). Treiber und CUDA
+  laden (unter Secure Boot nur mit eingeschriebenem MOK-Schlüssel, s. README).
+  gsplat in der geteilten Splat-venv muss deshalb für alle Architekturen gebaut sein
+  (`TORCH_CUDA_ARCH_LIST` mit 8.6 und 12.0; Code für sm_86 läuft auch auf sm_89),
+  sonst bricht das Training auf einem Rechner, dessen Architektur fehlt, mit
+  „no kernel image is available“ ab.
+  Ob es auf dem jeweiligen Rechner geht, sagen zur Laufzeit `core.splat.hinweis` und
+  `core.colorizer_gpu.available`, nicht diese Zeile.
+  Geplant wird für den kleinsten gemessenen Stand: **4 Kerne, 7,5 GB RAM**
+  (Rechner mit der RTX 3060 Ti, gemessen 2026-09-16; eine spätere Notiz nennt für
+  diesen Rechner 124 GB – vor dem Lockern der Grenze nachmessen). Wer nach einem
+  größeren plant, baut Datenstrukturen, die er nicht trägt: eine float64-Kopie der
+  Farben aller 24 Mio. Punkte sind 576 MB, ein Onboard-Splat-Datensatz als
+  Tensoren bis 5 GB.
 
 ## Konventionen
 
@@ -174,7 +181,8 @@ cache/<bag_dir_name>-<md5(abspath)[:8]>/
                         # gelesen (Project.gps_json bleibt, der Projektexport nimmt sie mit)
   extrinsic.json        # {"T_imu_cam0": [[4x4]]} Kamera-Extrinsik (cam0 im IMU/Body-Frame)
   settings.json         # zuletzt genutzte Einstellungen (47 Schlüssel, s. ui/fenster/einstellungen.py)
-  exploration.json      # Explorationsgrad des Bags (s. core/exploration.py)
+  exploration.json      # Explorationsgrad des Bags (s. core/exploration.py); ohne Grad
+                        # {"keine_daten": Hinweis}, so auch jede zusammengeführte Karte
   meander/              # Arbeitsordner der Mäander-Pipeline (COLMAP-Modell, Bilder, Lage;
                         # s. core/meander.py, Dateien der Lage)
   mesh/geometrie/<…>/   # Mesh-Geometrie je Aufzeichnung und Parameter (core.mesh.geometry_dir)
@@ -483,26 +491,41 @@ def overlay_preview(rec, bag, calib_json, T_imu_cam0, frame_idx: int,
     # Pano-großes BGR-Bild: gestitchtes Pano (separater Stitcher) + projizierte
     # Lidar-Punkte (Tiefe→Turbo-Colormap) übergezeichnet → für Extrinsik-Justage.
 
-def check_extrinsic(rec, bag, calib_json, T, frames=None, cancel=None) -> dict:
+def check_extrinsic(rec, bag, calib_json, T, frames=None, cancel=None,
+                    parts=None) -> dict:
     # Kurzer Hillclimb (10/3/1°) ab T. Bleibt er stehen, sitzt T auf einem Gipfel
     # der Foto-Konsistenz; läuft er weg, ist die gespeicherte Extrinsik verdreht.
     # {"score", "best_score", "best_T", "dist_deg", "suspect"};
     # suspect = Vorsprung >= 0.08 UND Abstand >= 5°. Läuft vor jeder Einfärbung (3-6 s).
+    # Mit parts (zusammengeführt): je Flug für sich (_check_je_flug), zusätzlich
+    # "teil" und "teile" (Ergebnis je Flug, "fehler" bei zu wenigen Paaren);
+    # suspect, sobald ein Flug die Schwelle reißt, die Werte vom schlechtesten.
 
 def auto_calibrate(rec, bag, calib_json, T_init=None, frames: list[int] = None,
-                   progress_cb=None, cancel=None) -> tuple[np.ndarray, float]:
+                   progress_cb=None, cancel=None, parts=None) -> tuple[np.ndarray, float]:
     # Grobe Rotationssuche (Translation 0): volles Gitter (30°, dazu Startwerte für die
     # kopfüber montierte Kamera) → beste 5 → _hillclimb mit 10°/3°/1°.
     # Score = Foto-Konsistenz (_PhotoScoreContext): ZNCC der Grauwerte derselben
     # Lidar-Punkte in Frame-Paaren mit Relativbewegung, Anker ~10 gleichverteilte
-    # Frames; bewertet wird auf einem eigenen Validierungs-Paarsatz.
+    # Frames; bewertet wird auf einem eigenen Validierungs-Paarsatz. Mit parts
+    # verteilen sich die Anker nach Flugdauer auf die Flüge, jeder Frame aus der
+    # Kamera seines Bags (_teil_score_frames, Paare nur innerhalb eines Flugs).
     # Rückgabe (T_imu_cam0, score). Ehrlich bleiben: score mitliefern, UI warnt
     # unter 0,30 (_AUTOCAL_WEAK_SCORE in ui/fenster/kalibrierung.py).
 
 def _hillclimb(ctx, start_rot, start_score, max_iter, cancel, schritt_cb=None)
     # Koordinaten-Hillclimb über Gier/Nick/Roll mit 10/3/1°, gemeinsam für
     # check_extrinsic und auto_calibrate -> (score, Rotation)
+def _check_lage(ctx, T, cancel) -> dict           # Hillclimb ab T auf einem Paar-Kontext
+def _check_je_flug(rec, calib_json, T, frames, cancel, parts) -> dict
+def _score_kontext(rec, bag, calib_json, frames, cancel, parts)  # _PhotoScoreContext
+def _teil_score_frames(rec, parts, n) -> list[(abschnitt, frame)]
+def _zwischen_frames(frames) -> list              # Validierungs-Anker zwischen den Ankern
 ```
+`parts` hat dieselbe Form wie bei `colorize`. Ohne `parts` rechnen beide wie
+vorher, bitgleich. Die Schwellen der Prüfung sind an Einzelflügen gemessen und
+gelten je Flug unverändert. Die UI reicht nur Abschnitte, deren Bag am Ort liegt
+(`KalibrierungMixin._kalibrier_teile`, sonst mit Protokollzeile ohne diesen Flug).
 
 ## core/merge.py
 
@@ -537,6 +560,9 @@ def lage_aus_reglern(yaw_deg, versatz_xyz, zentrum, basis=None) -> np.ndarray
 def merge_recordings(rec_a, rec_b, T_ab, out_dir, bag_a, bag_b,
                      info=None, progress_cb=None, cancel=None) -> dict:
     # schreibt eine vollwertige Aufzeichnung nach out_dir
+def ableitungen_entfernen(projekt) -> list[str]
+    # Farbebenen (Project.LAYERS) und mesh/ des Projekts löschen, meander/ bleibt;
+    # liefert die entfernten Ordnernamen
 ```
 
 **Lotrecht.** `register` sucht nur um die Hochachse breit; Kippen verfeinert ICP
@@ -562,7 +588,27 @@ Daraus baut die UI die Liste `parts` für `colorize()`: jeder Abschnitt wird mit
 der Kamera seines eigenen Bags eingefärbt. `gravity_level.applied` steht auf
 `false`, denn beide Teile kamen bereits lotrecht herein.
 
+**Was die UI drumherum tut** (`ui/fenster/zusammenfuehren.py`):
+
+- *Vorher ablehnen:* ohne Bag des offenen Flugs (Lotrechte und Kamera kommen daher),
+  bei einem offenen Flug, der schon zusammengeführt ist (`merge_recordings` kennt zwei
+  Quellen, mehr als zwei Flüge gehen nicht), und wenn das Ziel die gerade offene
+  Aufzeichnung wäre (memmap).
+- *Im Job nach dem Schreiben:* `ableitungen_entfernen` auf dem Zielprojekt. Fremde
+  Ebenen fängt sonst `ebenen.passt`/der Fingerprint ab; werden aber dieselben Flüge
+  in neuer Lage noch einmal zusammengeführt, bleiben Scans, Punkte und Stempel
+  gleich, und Farben und Mesh der alten Lage gälten weiter. Dazu `exploration.json`
+  mit `keine_daten` (`_GRAD_HINWEIS`): der Grad gilt je Flug und lässt sich nicht
+  zusammenlegen.
+- *Danach im GUI-Thread:* alte Wolke, Farbebenen (`_reload_layers`), Mesh,
+  Georeferenz und Explorationsgrad räumen; die Extrinsik der Regler als
+  `extrinsic.json` des neuen Projekts speichern. Die Mäander-Lage bleibt, die
+  gemeinsame Wolke liegt im Rahmen des offenen Flugs.
+
 Grenzen: das 360°-Video und die GPS-Prüfung hängen weiter am führenden Bag.
+„Explorationsgrad neu berechnen“ lehnt in einem zusammengeführten Projekt ab
+(erkannt an `sources` in `recording/meta.json`), statt den Grad des führenden Bags
+einzutragen.
 
 ## core/meander.py
 
@@ -591,6 +637,7 @@ def bereit_machen(pipe, args, th_zuschlag, optik_jetzt, progress, cancel, log, v
     # -> (pipe, thermal_zuschlag, optik); ohne pipe: bauen, prepare, align und prüfen
 def kameras(p, opt, th, thermal=True) -> dict
     # rgb_faktor, thermal_faktor, yaw_deg, A, b, rgb, thermal, temperatur, yaw_th, A_th, b_th
+    # (thermal_faktor null in optik_kalibrierung.json gilt als 1.0)
 def zaehle_rgb_jpeg(ordner) -> int; def hat_modell(work_dir) -> bool
 
 # Dateien im Arbeitsordner
@@ -664,7 +711,18 @@ vorn). Dort liegen alle neun Regler (RGB Gier, X, Y, Z und Maßstab; Thermal Gie
 Y und Maßstab), die Überlagerung und die Farbvorschau. Wirksam wird erst
 „Lage übernehmen“; „Schließen“ verwirft. Hat sich die Lage seit dem Öffnen geändert
 (neu ausgerichtet, eingemessen, anderer Flug), wird nicht übernommen und ein neuer
-Klick ersetzt das Fenster.
+Klick ersetzt das Fenster. Stehen dessen Regler anders als beim Öffnen
+(`MeanderAlignWindow.geaendert`, verglichen mit `_reglerstand` beim Bau), fragt
+`_meander_fenster_ersetzen` vorher (Vorgabe Nein, dann bleibt das alte vorn); der
+Text sagt, ob „Lage übernehmen“ im alten Fenster noch sichert (nur die
+Vorschaubilder sind neu) oder nicht mehr (andere Lage).
+
+Solange ein Schritt läuft, ist „Lage übernehmen“ gesperrt: `_freigabe_maeander`
+reicht `busy` an `MeanderAlignWindow.sperre_uebernahme` (Knopf grau, Grund im
+Tooltip); der Schritt rechnet mit der Pipeline, deren Lage die Übernahme setzt.
+Kommt eine Übernahme trotzdem an, lehnt `_on_meander_fenster_lage` sie mit
+Protokollzeile und Hinweis ab, und das Fenster bleibt mit seinen Reglern offen. Beim
+Projektwechsel schließt `_clear_bag_state` das Fenster ohne Rückfrage.
 
 Im Hauptfenster gibt es dafür keine Regler, sondern Zustand
 (`ui/fenster/maeander_justage.py`): die Lage selbst steckt in der Pipeline
@@ -735,6 +793,9 @@ def trainingsfolge(py, ordner, cfg, spannen, gegenprobe_cb, progress, cancel, lo
 def splat_meta(ak, cfg, posen) -> dict        # Eintrag "splat" in der meta.json der Ebene
 ```
 `cancel` von `lauf` und `gegenprobe` muss das `threading.Event` des Arbeiters sein.
+`trainieren` liest die Ausgabe des Trainers in einem eigenen Faden und prüft den
+Abbruch im Takt `_TAKT` (0,2 s), auch wenn der Trainer minutenlang schweigt
+(Kernelbau). Beendet wird mit `terminate`, nach `_FRIST` (3 s) mit `kill`.
 
 Datensatz `splat/<ebene>/` (vom System-Python geschrieben, vom Trainer gelesen):
 
@@ -777,7 +838,7 @@ Konventionen, die hier leicht kippen:
 * **Speicher.** `Datenquelle` im Trainer hält die Bilder im RAM, solange sie
   unter einem Drittel des freien Speichers bleiben (`speichergrenze`, mindestens
   1,2 GB), sonst kommt je Schritt eines von der Platte — 3000 Würfelseiten
-  wären 5 GB auf einem Rechner mit 7,5 GB.
+  wären 5 GB auf dem kleinsten Rechner mit 7,5 GB.
   `farbe0` rechnet aus demselben Grund stückweise.
 * **Gegenprobe.** Die direkte Projektion bekommt dort `tiefe_punkte=ak["pos"]`
   (s. `core/sichtbar.py`): gefärbt wird nur eine Probe, und aus verstreuten
@@ -1004,17 +1065,23 @@ set_mesh(vertices, triangles, normals); set_mesh_farben(rgb, ok); set_mesh_restp
 set_mesh_schalter(bool, text=None); mesh_an() -> bool
 set_preview_cloud(points | None, color); set_preview_visible(bool)   # zweiter Flug, orange
 set_measure(bool); clear_measure(); cut_planes() -> (unten, oben) | None
+messen_folgt(action)      # Knopf Messen folgt ab jetzt der QAction (aktionsknopf)
 # Signale
 measured(object, object); farbmodus_gewaehlt(str); punktgroesse_geaendert(float)
-messen_angefordert(); temperatur_umgeschaltet(bool); mesh_umgeschaltet(bool)
+temperatur_umgeschaltet(bool); mesh_umgeschaltet(bool)
 ```
+Den Knopf **Messen** ersetzt das Fenster beim Bau über `messen_folgt` durch einen
+Knopf der Aktion `measure` (in `_messen_gruppe`): Freigabe, Tooltip und Haken kommen
+von ihr, ein Klick löst sie aus, ihr Handler schaltet `set_measure`. Ohne Aktion
+(Selbsttest) schaltet der Knopf das Messen selbst.
 **Leiste über der Ansicht** (`_leiste_bauen`): Farbe, Punktgröße (Schieber in
 Viertelpixeln), Messen, Temperatur anzeigen, Mesh, Ansicht zurücksetzen und rechts
 ein Hinweis zur Maus. Sie ist der einzige Ort für Farbe und Punktgröße; dieselbe
 Farbe trägt das Menü Ansicht ▸ Farbe, beide aus der Tabelle `_FARBEN` in
 `ui/fenster/anzeige.py` (Farbmodi und Farbebenen, fehlende Ebenen grau). Die Leiste
-meldet nur über ihre Signale; Zustand ist `_color_mode`, `_layer_key` und
-`_point_size` am Fenster, `_setze_farbe` gleicht Leiste, Menü und Ansicht ab.
+meldet nur über ihre Signale, Messen über die Aktion (s. o.); Zustand ist
+`_color_mode`, `_layer_key` und `_point_size` am Fenster, `_setze_farbe` gleicht
+Leiste, Menü und Ansicht ab.
 `_Leistenfluss` legt die Gruppen in Reihen und bricht bei schmaler Arbeitsfläche
 um, statt sie breit zu halten; `_Hinweis` kürzt den Hinweis mit „…“ (voller Text im
 Tooltip) und lässt ihn unter 60 px ganz weg.
@@ -1086,17 +1153,22 @@ log_cb-Zeilen). Statusleiste: aktueller Schritt, Frame-Anzeige, Fortschrittsbalk
 (nur während eines Schritts) und Abbrechen-Knopf. Oben rechts in der Menüleiste die
 Explorationsgrad-Kachel (s. ui/explorationsgrad.py); sie wird beim Öffnen eines Bags
 mitgerechnet (aus `exploration.json`, sonst frisch, `core.exploration.holen`) und über
-*Werkzeuge → Explorationsgrad neu berechnen* am Cache vorbei erneuert.
+*Werkzeuge → Explorationsgrad neu berechnen* am Cache vorbei erneuert (nicht in einer
+zusammengeführten Karte, s. core/merge.py).
 
 **Seitenleiste** (`QScrollArea` um einen `SectionStack`), frei in der Breite:
 
 - Untergrenze ist der breiteste Abschnittskopf (`SectionStack.kopfbreite()`) plus
-  Rahmen und senkrechte Scrollleiste. Darunter lässt sie sich nicht ziehen.
+  Rahmen und senkrechte Scrollleiste. Darunter lässt sie sich nicht ziehen, auch
+  nicht ganz zu (`_splitter.setCollapsible(1, False)`): eine auf 0 px gezogene Leiste
+  gälte weiter als sichtbar, und Ctrl+B holte sie nicht zurück.
 - Schmaler als ihr Inhalt brechen die Formzeilen um (Beschriftung über dem Feld,
   `bausteine._wrappable`), Knopfreihen stellen sich untereinander
-  (`bausteine._Knopfreihe`), Hinweiszeilen über die volle Breite brechen um; was dann
-  noch nicht passt, erreicht die waagerechte Scrollleiste, statt abgeschnitten zu
-  werden. Breiter gezogen wachsen Auswahlen und Zahlenfelder mit.
+  (`bausteine._Knopfreihe`, Höhe nach `heightForWidth`), Hinweiszeilen über die volle
+  Breite brechen um, ebenso lange Haken, Aktionsknöpfe und Unterblock-Köpfe
+  (`bausteine._Umbruch`, s. Bausteine). Bis zur Untergrenze braucht es so keine
+  waagerechte Scrollleiste; sie bleibt als Rückfall, statt abzuschneiden. Breiter
+  gezogen wachsen Auswahlen und Zahlenfelder mit.
 - Startbreite ohne gespeicherten Wert: gemessen am breitesten Abschnitt bzw. an
   breitester Beschriftung plus breitestem Feld über alle Abschnitte (400–720 px).
 - Die gezogene Breite gilt app-weit und über einen Neustart: `<Cache-Wurzel>/
@@ -1108,6 +1180,8 @@ mitgerechnet (aus `exploration.json`, sonst frisch, `core.exploration.holen`) un
 - Passt eine breite Leiste neben die Mindestbreite der Arbeitsfläche nicht ins
   Fenster, wird das Fenster beim Start verbreitert, höchstens auf die Bildschirmbreite.
 - Ctrl+B (Ansicht ▸ Seitenleiste) blendet sie aus; gemerkt in der Einstellung `sidebar`.
+  Menühaken und Einstellung lesen `not isHidden()`, nicht `isVisible()`: vor dem
+  ersten `show()` ist nichts sichtbar, der Haken stünde sonst nach dem Start falsch.
 
 ### Die 11 Abschnitte (`_SECTIONS`, Ablauffolge)
 
@@ -1161,8 +1235,11 @@ Eine Tabelle `_EINSTELLUNGEN` mit allen 47 Schlüsseln der `settings.json` (Schl
 Vorgabe, Bindung am Fenster, Lesart, Art); `_LESEN` und `_SCHREIBEN` setzen je
 Lesart um, `_DEFAULT_SETTINGS` (28 vorbelegte) ist daraus abgeleitet. Ohne Wirkung,
 aber weiter gelesen und gespeichert: `pano_width` (die Breite ist fest 1920),
-`meander_solo` und `mesh_stand` (immer mit der Vorgabe). Gespeichert wird bei jeder
-Änderung und beim Schließen in `cache/<bag>/settings.json`.
+`meander_solo` und `mesh_stand` (immer mit der Vorgabe); sie bleiben, damit das
+Dateiformat stabil bleibt. Gespeichert wird bei jeder Änderung und beim Schließen in
+`cache/<bag>/settings.json`; scheitert das Schreiben (`OSError`), steht es im
+Protokoll („Einstellungen nicht gespeichert: …“). „Einstellungen auf Vorgabe“ setzt
+die Werte zurück, nicht den Klappzustand der Abschnitte.
 
 ### Bausteine (`ui/bausteine.py`, `ui/collapsible.py`, `ui/feinregler.py`)
 
@@ -1171,6 +1248,13 @@ aber weiter gelesen und gespeichert: `pano_width` (die Breite ist fest 1920),
   `Unterblock` (einklappbar oder nur Überschrift), `still_setzen` (Wert ohne Signal,
   auch an einer QAction), `bgr_zu_pixmap`, `speicherpfad`, `einmal_timer`; dazu
   `_ImageDialog`, `_compact_combo`, `_wrappable`.
+- Umbrechende Texte: `_Umbruch` bricht den Text an Wortgrenzen um, wenn die Breite
+  nicht reicht (nicht schmaler als das längste Wort, Höhe über `heightForWidth`,
+  `text()` bleibt der volle Wortlaut); breit genug zeichnet Qt wie sonst.
+  `_UmbruchHaken` (QCheckBox; `haken`, `aktionshaken`, in voller Fläche anklickbar),
+  `_UmbruchKnopf` (QPushButton; `aktionsknopf`), `_UmbruchKopf` (QToolButton; Kopf
+  eines `Unterblock`, über `Section._kopf_klasse`). Die Köpfe der Abschnitte brechen
+  nicht um, sie bestimmen die Untergrenze der Seitenleiste.
 - `Section`/`SectionStack`: `add`, `finish`, `melde_an` (einklappbaren Unterblock mit
   Schlüssel anmelden, z. B. `maeander.hauptpunkt`), `sections`, `kopfbreite`,
   `states`/`set_states`/`set_all`.
@@ -1192,12 +1276,27 @@ Schritt nach dem anderen: läuft schon einer, lehnt es ab (Protokoll, Dialog
 „Beschäftigt“, Automatik angehalten). Während eines Schritts sind die Befehle
 gesperrt; das Abbrechen setzt das Event.
 
+Die Mäander-Automatik (`_auto_kette`) lebt davon, dass jeder Schritt im Fertig-Zweig
+den nächsten startet. Tut er das nicht (Hinweis, verneinte Rückfrage, Fehler im
+Fertig-Zweig), setzt `_worker_done` die Kette zurück, mit Protokollzeile; ebenso
+`_on_meander_auto`, wenn schon der erste Schritt nicht anläuft. Ein späterer
+Einzelschritt läuft so nicht in die Kette weiter. Die COLMAP-Rückfrage
+(`_meander_ask_colmap`) stellt die Automatik einmal beim Start, nicht noch einmal im
+Ausrichten.
+
 **RViz-Arbeiter** (`ui/fenster/wiedergabe.py`): `Starten` ist ein Schritt wie jeder
 andere. `Beenden` und `Wiederholen` laufen über `_rviz_job(…, eigener=True)` in einem
 eigenen Arbeiter (`_rviz_worker`) neben dem Schritt, setzen weder `_busy` noch
 `_worker` und sperren, solange sie laufen, die drei Befehle der Wiedergabe. Ein
 700-ms-Takt gleicht die Knöpfe an die echte Prozesslage an. `closeEvent` wartet auf
 den Schritt und auf den RViz-Arbeiter, bevor der Player geräumt wird.
+Die Statuszeile gehört dem Schritt; läuft keiner, zeigt sie den RViz-Arbeiter
+(`_rviz_status` mit seinem Text `_rviz_text`, Fortschritt über `_rviz_fortschritt`)
+und danach „Bereit“ bzw. „Fehlgeschlagen — … (s. Protokoll)“. Endet ein Schritt,
+während der RViz-Arbeiter noch läuft, gibt `_set_busy` ihm die Statuszeile zurück.
+`RvizPlayer.ensure_metadata` rekonstruiert unter einer eigenen Sperre
+(`_meta_lock`, nicht `_lock`, das der Takt abfragt): ein zweiter Aufruf wartet und
+findet dann die Datei, statt ein zweites reindex zu starten.
 
 ### Öffnen
 
@@ -1207,6 +1306,13 @@ sofort laden; Farbebenen liest `_reload_layers`. Projekt aus dem Cache öffnen
 über `_oeffne_projekt`: ein einzelner Flug, dessen Bag da ist, geht den Weg des
 Bag-Öffnens; ein zusammengeführter oder einer ohne Bag wird ohne Bag geöffnet — Karte,
 Farben und Export sind da, 360°-Video und GPS-Prüfung nicht.
+
+Jeder Projektwechsel geht durch `_clear_bag_state`: ein offenes Ausrichtfenster
+schließt (es rechnet mit Wolke und Lage des alten Projekts), und der Mäanderflug wird
+vergessen; das neue Projekt bringt seinen aus der Einstellung `meander_dir` mit
+(`_setze_maeanderordner`, samt Thermal-Haken nach den vorhandenen _T.JPG). Bricht man
+das Vorbereiten des 360°-Videos ab, lädt die Karte trotzdem (`_on_pano_ready` mit
+None); nur das Video bleibt leer.
 
 **Autotest-Haken:** Ist `SUPER360_AUTOTEST=<bagpfad>` gesetzt, öffnet das Fenster
 beim Start dieses Bag, wartet auf die Cache-Artefakte, schaltet durch alle Reiter,
@@ -1268,6 +1374,7 @@ def speichern(out_dir, rgb, maske, meta, temperatur=None)
 def laden(out_dir, n_points) -> (rgb, maske) | None
 def lade_temperatur(out_dir, n_points) -> np.ndarray | None
 def meta_lesen(ordner) -> dict | None; def passt(ordner, **soll) -> bool
+    # meta_lesen: None auch, wenn meta.json kein JSON-Objekt ist; passt dann False
 ```
 
 ## Teststrategie
@@ -1308,4 +1415,7 @@ Cache: `SUPER360_CACHE_ROOT` auf eine frische Kopie setzen.
   `ui/main_window.py` in die Mixins, Methode für Methode AST-gleich.
 - `pruefe_alles.sh` — Sammelprüfung in Stufen: kompilieren, pyflakes, import, namen
   (kein Name in zwei Mixins), threadregel (kein Job fasst `self` an), selbsttests
-  (`python3 -m core.<modul>`), gpu, ui, ui-zeit, autotest, echtcache.
+  (`python3 -m core.<modul>`), gpu, ui, ui-zeit, autotest, echtcache. Kinder laufen
+  mit `OMP_NUM_THREADS=8` und `OMP_WAIT_POLICY=PASSIVE`; sonst belegt die
+  Open3D-Poisson im Selbsttest von `core.mesh` unter Fremdlast alle Kerne und läuft
+  ins Zeitlimit.

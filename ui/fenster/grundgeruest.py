@@ -79,6 +79,10 @@ class GrundgeruestMixin:
             self._status_pbar.setRange(0, 0)  # unbestimmt bis erster Fortschritt
         if text is not None:
             self._status_lbl.setText(text)
+        if not busy:
+            # Läuft noch Beenden oder Wiederholen der Wiedergabe, gehört die
+            # Statuszeile jetzt wieder ihr.
+            self._rviz_status()
         self._update_enabled()
 
     def _on_progress(self, frac: float, msg: str) -> None:
@@ -130,6 +134,11 @@ class GrundgeruestMixin:
         except Exception as exc:  # noqa: BLE001
             self._log(traceback.format_exc())
             self._show_error("Interner Fehler", str(exc))
+        if self._auto_kette and not self._busy:
+            # Der Schritt hat keinen nächsten angestoßen (Hinweis, Rückfrage
+            # verneint, Fehler im Fertig-Zweig): die Kette ist zu Ende.
+            self._auto_kette = False
+            self._log("Automatik angehalten — der nächste Schritt ist nicht gestartet.")
         QTimer.singleShot(0, self._mesh_nachholen)
 
     def _worker_failed(self, worker: Worker, title: str, msg: str,

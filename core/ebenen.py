@@ -40,12 +40,8 @@ def lade_farbdateien(colors_dir: str, n_points: int,
         return None, None, (f"Farb-Cache passt nicht zur Punktwolke "
                             f"({colors.size // 3} Farben, {n_points} Punkte) — ignoriert.")
     if expected_fingerprint is not None:
-        stored = None
-        try:
-            with open(os.path.join(colors_dir, "meta.json"), encoding="utf-8") as fh:
-                stored = json.load(fh).get("rec_fingerprint")
-        except (OSError, ValueError):
-            stored = None
+        meta = meta_lesen(colors_dir)
+        stored = meta.get("rec_fingerprint") if meta is not None else None
         if stored is not None and stored != expected_fingerprint:
             return None, None, ("Farb-Cache stammt von einer anderen Aufzeichnung "
                                 "— ignoriert.")
@@ -98,12 +94,14 @@ def laden(out_dir: str, n_points: int) -> tuple[np.ndarray, np.ndarray] | None:
 
 
 def meta_lesen(ordner: str) -> dict | None:
-    """``meta.json`` eines Ebenen-Ordners; None, wenn sie fehlt oder unlesbar ist."""
+    """``meta.json`` eines Ebenen-Ordners; None, wenn sie fehlt, unlesbar oder
+    kein JSON-Objekt ist."""
     try:
         with open(os.path.join(ordner, "meta.json"), encoding="utf-8") as fh:
-            return json.load(fh)
+            meta = json.load(fh)
     except (OSError, ValueError):
         return None
+    return meta if isinstance(meta, dict) else None
 
 
 def passt(ordner: str, **soll) -> bool:

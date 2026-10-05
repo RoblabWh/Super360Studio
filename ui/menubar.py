@@ -123,8 +123,7 @@ _TABELLE = (
            "ohne Rückfrage. Änderungen werden sofort dort gespeichert."),
     Befehl("merge", "Zweiten Flug laden …", "_on_merge_pick", _M_DATEI, "Ctrl+Shift+O",
            "Zweites Rosbag dazuladen. Dessen Karte muss berechnet sein —\n"
-           "sonst wird gefragt, ob sie jetzt berechnet werden soll.\n"
-           "Zweites Rosbag laden und mit dem offenen zusammenführen.",
+           "sonst wird gefragt, ob sie jetzt berechnet werden soll.",
            braucht=("rec",), trenner=True),
     Befehl("meander", "Mäanderflug wählen …", "_on_meander_pick", _M_DATEI, "",
            "Ordner mit den Bildern eines DJI-Kartierungsfluges.\n"
@@ -144,9 +143,7 @@ _TABELLE = (
            _M_DATEI, braucht=("world",)),
     Befehl("mesh_cc", "Mesh in CloudCompare öffnen", "_on_mesh_cloudcompare", _M_DATEI, "",
            "Dreiecksnetz mit den Farben der angezeigten Ebene; gespeichert im\n"
-           "Projektordner unter mesh/.\n"
-           "Dreiecksnetz aus der Wolke erzeugen (Einstellungen im Abschnitt Mesh)\n"
-           "und in CloudCompare öffnen.",
+           "Projektordner unter mesh/. Einstellungen im Abschnitt Mesh.",
            braucht=("world",)),
     Befehl("screenshot", "3D-Ansicht als Bild speichern …", "_on_screenshot", _M_DATEI,
            "Ctrl+P", braucht=None),
@@ -220,9 +217,9 @@ _TABELLE = (
            braucht=("rec", "flug")),
     Befehl("splat_onboard", "360°-Kamera per Splat einfärben", "_on_splat_onboard",
            _M_SPLAT, "",
-           "Nimmt die Extrinsik aus dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster\n"
-           "und Himmelssaum aus dem Abschnitt Einfärbung (360°-Kamera).\n"
-           "Farben aus den Frames der 360°-Kamera zugleich lernen (GPU).",
+           "Ein Splat aus den Frames der 360°-Kamera (GPU). Nimmt die Extrinsik aus\n"
+           "dem Abschnitt Kamera-Kalibrierung, Helligkeitsfenster und Himmelssaum\n"
+           "aus dem Abschnitt Einfärbung (360°-Kamera).",
            braucht=_KARTE),
     Befehl("fusion", "Fusionieren (ohne Splat)", "_on_fusion", _M_SPLAT, "",
            "Onboard-Farben an den Mäander angleichen und nach Flächenlage mischen:\n"
@@ -230,8 +227,8 @@ _TABELLE = (
            braucht=("world", "fusion")),
     Befehl("splat_gemeinsam", "Beide in einem Splat einfärben", "_on_splat_gemeinsam",
            _M_SPLAT, "",
-           "Ein Splat aus beiden Flügen. Die Farbe steht im Mäander, jedes Onboard-Bild\n"
-           "bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\n"
+           "Ein Splat aus beiden Flügen (GPU). Die Farbe steht im Mäander, jedes\n"
+           "Onboard-Bild bekommt seine eigene Farbmatrix. Schritte: beide Felder zusammen.\n"
            "Liegt eine Fusion (ohne Splat) vor, startet die Farbmatrix dort.",
            braucht=_KARTE + ("flug",)),
 
@@ -258,7 +255,7 @@ _TABELLE = (
 
     Menue(_M_WERKZEUGE),
     Befehl("measure", "Messen", "_on_toggle_measure", _M_WERKZEUGE, "M",
-           "Zwei Klicks in die Wolke: Abstand in Metern.",
+           "Zwei Klicks in die Wolke: Abstand in Metern. Esc verwirft die Marken.",
            braucht=("world",), schaltbar=True),
     Befehl("exploration", "Explorationsgrad neu berechnen", "_on_exploration_neu",
            _M_WERKZEUGE, "",

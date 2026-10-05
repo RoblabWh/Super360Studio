@@ -44,8 +44,10 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import subprocess
 import sys
+import threading
 
 import numpy as np
 
@@ -773,6 +775,12 @@ def datensatz_gemeinsam(ordner: str, ak: dict, punkte: np.ndarray, maeander: dic
 
 # ------------------------------------------------------------- Training
 
+#: Takt, in dem :func:`trainieren` auf Abbruch prueft, und die Frist zwischen
+#: terminate und kill (s).
+_TAKT = 0.2
+_FRIST = 3.0
+
+
 def trainieren(python: str, ordner: str, progress=None, cancel=None, log=None,
                cpu: bool = False, alle_bilder: bool = False) -> dict:
     """``scripts/splat_train.py`` als Unterprozess; Protokoll s. dort.
@@ -788,9 +796,35 @@ def trainieren(python: str, ordner: str, progress=None, cancel=None, log=None,
             "CUDA-Kernel — das dauert Minuten, in denen keine Zeile kommt.")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, bufsize=1, env=env)
+    # Gelesen wird in einem eigenen Faden: der Trainer schweigt oft minutenlang
+    # (Kernelbau, grosse Datensaetze), ein Abbruch soll trotzdem sofort greifen.
+    zeilen = queue.Queue()
+    lesefehler = []
+
+    def lesen():
+        try:
+            for z in proc.stdout:
+                zeilen.put(z)
+        except Exception as exc:  # noqa: BLE001 — an die Hauptschleife weitergeben
+            lesefehler.append(exc)
+        finally:
+            zeilen.put(None)
+
+    leser = threading.Thread(target=lesen, daemon=True)
+    leser.start()
     pruefung, rest = [], []
     try:
-        for zeile in proc.stdout:
+        while True:
+            if cancel is not None and (cancel() if callable(cancel) else cancel.is_set()):
+                raise RuntimeError("Abgebrochen")
+            try:
+                zeile = zeilen.get(timeout=_TAKT)
+            except queue.Empty:
+                continue
+            if zeile is None:
+                if lesefehler:
+                    raise lesefehler[0]
+                break
             zeile = zeile.rstrip()
             if not zeile:
                 continue
@@ -809,13 +843,16 @@ def trainieren(python: str, ordner: str, progress=None, cancel=None, log=None,
             elif teile_[0] != "DONE":
                 rest.append(zeile)
                 del rest[:-30]
-            if cancel is not None and (cancel() if callable(cancel) else cancel.is_set()):
-                proc.terminate()
-                raise RuntimeError("Abgebrochen")
         proc.wait()
     finally:
         if proc.poll() is None:
-            proc.kill()
+            proc.terminate()
+            try:
+                proc.wait(timeout=_FRIST)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+        leser.join(timeout=_FRIST)
     if proc.returncode != 0:
         raise RuntimeError("Splat-Training fehlgeschlagen:\n" + "\n".join(rest[-12:]))
     with open(os.path.join(ordner, "bericht.json"), encoding="utf-8") as fh:
@@ -1080,7 +1117,10 @@ def gegenprobe(ordner, ak, welt, pf, direkt_w, temp, cancel, log) -> dict:
 
 
 if __name__ == "__main__":
+    import atexit
+    import shutil
     import tempfile
+    import time
 
     sys.path.insert(0, _REPO)
     from PIL import Image
@@ -1156,6 +1196,7 @@ if __name__ == "__main__":
 
     print("== Test 5: Gegenprobe erkennt die bessere Einfaerbung ==")
     tmp = tempfile.mkdtemp(prefix="splatvergleich_")
+    atexit.register(shutil.rmtree, tmp, True)
     os.makedirs(os.path.join(tmp, "bilder"))
     def muster(x, y):
         return np.stack([128 + 80 * np.sin(0.8 * x), 128 + 80 * np.cos(0.7 * y),
@@ -1212,7 +1253,6 @@ if __name__ == "__main__":
     print("  kalt dunkel, warm hell, ungesehen grau")
 
     print("== Test 6b: Trainingsfolge mit den Fortschrittsspannen der drei Jobs ==")
-    import threading
     aufrufe = []
 
     def trainieren_ersatz(python, ordner, progress=None, cancel=None, log=None,
@@ -1305,6 +1345,45 @@ if __name__ == "__main__":
     finally:
         find_splat_python = finde_echt
     print("  Aufrufe und Fortschritt wie in den Jobs, Gegenprobe und Interpreter gleich")
+
+    print("== Test 6c: Abbruch, waehrend der Trainer schweigt ==")
+    stumm = os.path.join(tmp, "stumm.py")
+    with open(stumm, "w", encoding="utf-8") as fh:
+        fh.write("import signal, sys, time\n"
+                 "if '--alle' in sys.argv:\n"
+                 "    signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                 "print('INFO bereit', flush=True)\n"
+                 "time.sleep(120)\n")
+    skript_echt = SKRIPT
+    try:
+        SKRIPT = stumm
+        for taub in (False, True):
+            ab, zeilen, aus = threading.Event(), [], {}
+
+            def lauf_6c():
+                try:
+                    trainieren(sys.executable, tmp, cancel=ab.is_set, log=zeilen.append,
+                               alle_bilder=taub)
+                except RuntimeError as exc:
+                    aus["fehler"] = str(exc)
+                aus["ende"] = time.monotonic()
+
+            th = threading.Thread(target=lauf_6c)
+            th.start()
+            frist = time.monotonic() + 60
+            while len(zeilen) < 2 and time.monotonic() < frist:
+                time.sleep(0.05)
+            assert zeilen[1:] == ["Splat: bereit"], zeilen
+            t0 = time.monotonic()
+            ab.set()
+            th.join(timeout=_FRIST + 10)
+            assert not th.is_alive() and aus["fehler"] == "Abgebrochen", aus
+            dauer = aus["ende"] - t0
+            assert dauer < (_FRIST + 3 if taub else 3), (taub, dauer)
+            print(f"  {'taub fuer SIGTERM' if taub else 'gewoehnlich'}: "
+                  f"Abbruch nach {dauer:.2f} s")
+    finally:
+        SKRIPT = skript_echt
 
     if "--mit-training" in sys.argv:
         print("== Test 7: Training im Splat-Interpreter (CPU-Selbsttest) ==")

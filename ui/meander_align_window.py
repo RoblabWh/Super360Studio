@@ -470,6 +470,9 @@ class MeanderAlignWindow(QtWidgets.QDialog):
         self._timer.setSingleShot(True)
         self._timer.setInterval(90)
         self._timer.timeout.connect(self._neu)
+        # Stand beim Oeffnen: daran misst sich, ob noch etwas nicht uebernommen ist
+        self._gesperrt = False
+        self._anfang = self._reglerstand()
 
     # ------------------------------------------------------------------ Lage
 
@@ -650,9 +653,30 @@ class MeanderAlignWindow(QtWidgets.QDialog):
                 "rgb_faktor": self.rgb_faktor(),
                 "thermal_faktor": self.thermal_faktor()}
 
+    def _reglerstand(self) -> tuple:
+        regler = [*self._spins.values(), *self._spins_th.values(),
+                  self._massstab_rgb, self._massstab_th]
+        return tuple(float(r.value()) for r in regler)
+
+    def geaendert(self) -> bool:
+        """Stehen die Regler anders als beim Öffnen, ohne übernommen zu sein?"""
+        return self._reglerstand() != self._anfang
+
+    def sperre_uebernahme(self, gesperrt: bool) -> None:
+        """Solange im Hauptfenster ein Schritt läuft, nichts zurückschreiben:
+        er rechnet mit der Pipeline, deren Lage „Lage übernehmen“ setzt."""
+        self._gesperrt = bool(gesperrt)
+        self._btn_ok.setEnabled(not self._gesperrt)
+        self._btn_ok.setToolTip(
+            "Im Hauptfenster läuft gerade ein Arbeitsschritt — übernehmen geht "
+            "wieder, sobald er fertig ist." if self._gesperrt else "")
+
     def _uebernehmen(self) -> None:
         self.uebernommen.emit(self.ergebnis())
-        self.accept()
+        # Weist das Hauptfenster ab, weil ein Schritt laeuft, sperrt es den
+        # Knopf; dann bleibt das Fenster mit seiner Stellung offen.
+        if not self._gesperrt:
+            self.accept()
 
 
 if __name__ == "__main__":
@@ -802,6 +826,19 @@ if __name__ == "__main__":
     assert abs(w.lage()[0] - 30.0) < 1e-9 and w.thermal_zuschlag() == (0.0, 0.0, 0.0)
     assert abs(w.rgb_faktor() - 1.1) < 1e-9 and abs(w.thermal_faktor() - 1.0) < 1e-9
     print("zurücksetzen stellt den Stand beim Öffnen wieder her")
+
+    assert not w.geaendert(), "nach zurücksetzen gilt der Stand beim Öffnen"
+    w._spins["y"].setValue(0.4)
+    assert w.geaendert(), "Änderung am Regler nicht erkannt"
+    angenommen = []
+    w.accepted.connect(lambda: angenommen.append(1))
+    w.sperre_uebernahme(True)
+    w._uebernehmen()
+    assert not w._btn_ok.isEnabled() and not angenommen, "gesperrt angenommen"
+    w.sperre_uebernahme(False)
+    w._uebernehmen()
+    assert w._btn_ok.isEnabled() and angenommen
+    print("gesperrt bleibt das Fenster offen; Änderungen seit dem Öffnen erkannt")
 
     # Alte align.json: t nur mit x und y. Das Fenster muss trotzdem zeichnen.
     class AltePipe(FakePipe):

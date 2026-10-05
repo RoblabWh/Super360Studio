@@ -73,8 +73,12 @@ class MaeanderJustageMixin:
                            job, fertig)
 
     def _freigabe_maeander(self, zustand: dict, busy: bool) -> None:
-        """Lagetext der Seitenleiste nachziehen (aufgerufen von _update_enabled)."""
+        """Lagetext der Seitenleiste nachziehen und „Lage übernehmen“ im
+        Ausrichtfenster sperren, solange ein Schritt läuft (aufgerufen von
+        _update_enabled)."""
         self._lbl_meander_lage.setText(self._meander_zustand_text())
+        if self._meander_fenster is not None:
+            self._meander_fenster.sperre_uebernahme(busy)
 
     def _meander_zustand_text(self) -> str:
         """Welche Lage und Optik gilt — oder was dafür noch fehlt."""
@@ -234,6 +238,13 @@ class MaeanderJustageMixin:
             # Seit dem Oeffnen wurde neu ausgerichtet, eingemessen oder ein
             # anderer Flug gewaehlt: Das alte Fenster rechnet mit der alten
             # Lage und schriebe sie mit „Lage übernehmen“ zurück.
+            if offen.geaendert() and not self._meander_fenster_ersetzen(offen):
+                self._log("Ausrichtfenster nicht ersetzt — es hat nicht "
+                          "übernommene Reglerstellungen.")
+                offen.show()
+                offen.raise_()
+                offen.activateWindow()
+                return
             offen.close()
             self._meander_fenster = None
             self._log("Das offene Ausrichtfenster zeigte eine ältere Lage — "
@@ -260,12 +271,30 @@ class MaeanderJustageMixin:
         fenster.finished.connect(lambda *_a, f=fenster: self._meander_fenster_zu(f))
         fenster.destroyed.connect(lambda *_a, f=fenster: self._meander_fenster_zu(f))
         fenster.setAttribute(Qt.WA_DeleteOnClose, True)
+        fenster.sperre_uebernahme(self._busy)
         self._meander_fenster = fenster       # Referenz halten, sonst weg
         fenster.show()
         if self._live is None:
             self._log("Das Ausrichtfenster zeigt die Überlagerung. Für die "
                       "Farbvorschau darin werden die Vorschaubilder gebraucht — "
                       "die lädt „Ausrichten“ im Anschluss.")
+
+    def _meander_fenster_ersetzen(self, fenster) -> bool:
+        """Rueckfrage, bevor ein veraltetes Fenster samt Reglerstellung geht."""
+        if self._meander_fenster_gilt(fenster, bilder=False):
+            # Nur die Vorschaubilder sind neu, die Lage gilt noch
+            rettung = ("Die Lage gilt noch: Mit „Lage übernehmen“ im offenen "
+                       "Fenster lassen sie sich vorher sichern.")
+        else:
+            rettung = ("Übernehmen lassen sie sich nicht mehr — sie beziehen "
+                       "sich auf die Lage von damals.")
+        return QMessageBox.question(
+            self, "Im Fenster justieren",
+            "Das offene Ausrichtfenster zeigt eine ältere Lage, und seine Regler "
+            "stehen anders als beim Öffnen, ohne übernommen zu sein.\n\n"
+            f"{rettung}\n\nTrotzdem durch ein neues Fenster ersetzen? Die "
+            "Reglerstellungen gehen dabei verloren.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No) == QMessageBox.Yes
 
     def _meander_fenster_zu(self, fenster) -> None:
         if self._meander_fenster is fenster:
@@ -299,6 +328,20 @@ class MaeanderJustageMixin:
         """Lage aus dem Ausrichtfenster uebernehmen: RGB als neue Basis,
         Thermal als Zuschlag darauf, dazu beide Massstaebe."""
         from core import meander as meander_mod
+        if self._busy:
+            # Der laufende Schritt rechnet mit der Pipeline; ihre Lage darf
+            # sich nicht mitten in ihm aendern.
+            self._log("Lage aus dem Ausrichtfenster nicht übernommen — es läuft "
+                      "noch ein Arbeitsschritt.")
+            if fenster is not None:
+                fenster.sperre_uebernahme(True)
+            QMessageBox.information(
+                self, "Im Fenster justieren",
+                "Es läuft noch ein Arbeitsschritt, der mit der Lage rechnet. Die "
+                "Lage aus dem Fenster wird deshalb jetzt nicht übernommen — das "
+                "Fenster bleibt offen, nach dem Schritt „Lage übernehmen“ "
+                "erneut drücken.")
+            return
         if fenster is not None and not self._meander_fenster_gilt(fenster, bilder=False):
             # Inzwischen gilt eine andere Lage oder ein anderer Flug: die
             # Werte des Fensters beziehen sich nicht mehr darauf.

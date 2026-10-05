@@ -33,13 +33,27 @@ Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
 Oben die Menüleiste (**Datei**, **Ablauf**, **Ansicht**, **Werkzeuge**, **Hilfe**),
 rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
 klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. Welche
-Abschnitte offen sind, merkt sich das Projekt.
+Abschnitte offen sind, merkt sich das Projekt. **Werkzeuge → Einstellungen auf
+Vorgabe** setzt die Werte des Projekts nach Rückfrage zurück; der Klappzustand
+bleibt.
+
+Während ein Schritt läuft (Karte, Einfärben, Ausrichten …), sind die übrigen
+Befehle grau; ihr Tooltip endet dann mit „Gesperrt, solange ein Schritt läuft.“
+Auch sonst nennt der Tooltip eines grauen Knopfes oder Menüeintrags, was fehlt,
+etwa „Erst ein Rosbag öffnen.“ Abgebrochen wird über den Knopf in der Statusleiste.
+
+Das Menü **Ansicht** führt Farbe, Hintergrund, Bereich (die Reiter 3D-Karte,
+360°-Video, GPS, Protokoll) und Kantenbetonung (EDL); Hintergrund und
+Kantenbetonung ziehen mit dem Abschnitt **Anzeige** der Seitenleiste gleich. Dort
+stehen außerdem „Nur eingefärbte Punkte“, „Anzeige-Voxel“ (dünnt nur die Anzeige
+aus) und „Flugbahn zeigen“.
 
 Die Seitenleiste ist frei in der Breite: am Trenner zur 3D-Ansicht ziehen, die
 gezogene Breite bleibt erhalten (für alle Projekte). Breitere Leiste, breitere
-Felder; wird sie schmal, rücken Knöpfe untereinander, und was dann noch nicht
-passt, erreicht eine waagerechte Scrollleiste. `Strg+B` (**Ansicht → Seitenleiste**)
-blendet sie ganz aus.
+Felder; wird sie schmal, rücken Knöpfe untereinander, und lange Haken- und
+Knopftexte brechen um. Schmaler als der breiteste Abschnittskopf lässt sie sich
+nicht ziehen. `Strg+B` (**Ansicht → Seitenleiste**) blendet sie ganz aus und
+wieder ein.
 
 Ganz oben rechts steht der **Explorationsgrad** des offenen Fluges — wie viel des
 Zielgebiets die Drohne im Explorationsmodus gesehen hat (s. unten).
@@ -188,10 +202,14 @@ liegen im Menü **Ablauf** (Öffnen und Export unter **Datei**).
 5. **Einfärbung (360°-Kamera)** — „Einfärben“.
 6. **Mäander-Einfärbung** — aus den Bildern eines DJI-Kartierungsfluges, s. unten.
 7. **Gaussian Splat und Fusion** — s. unten.
-8. **Mesh** — Dreiecksnetz der Wolke für CloudCompare.
+8. **Mesh** — Dreiecksnetz der Wolke, für den Schalter **Mesh** über der
+   3D-Ansicht und für CloudCompare. „Mesh-Raster“, „Detail (Tiefe)“, „Ränder
+   kürzen“ und „Laub als Punkte (Hybrid)“ legen fest, wie fein und was vernetzt
+   wird; **Mesh in CloudCompare öffnen** schreibt es mit den Farben der
+   angezeigten Ebene unter `mesh/` ins Projekt und öffnet es dort.
 9. **Export** — berücksichtigt „Nur eingefärbte Punkte".
 
-Dazu die Abschnitte **Anzeige** und **Wiedergabe (RViz)**. Der Reiter **GPS**
+Dazu die Abschnitte **Anzeige** und **Wiedergabe (RViz)** (s. unten). Der Reiter **GPS**
 zeigt Ampel + Gründe; Georeferenzierung nur bei grün/gelb möglich.
 
 ## Explorationsgrad
@@ -231,7 +249,7 @@ Zuwachs in Prozentpunkten. **Werkzeuge → Explorationsgrad neu berechnen** rech
 am Cache vorbei noch einmal; sonst liegt das Ergebnis als `exploration.json` im
 Projekt und ist beim nächsten Öffnen sofort da.
 
-Zwei Dinge gehören zur Zahl dazu:
+Drei Dinge gehören zur Zahl dazu:
 
 * **Neben dem Volumen steht die Grundfläche.** Liegt der untere Teil der Box
   unter dem Boden, ist er prinzipiell nicht beobachtbar, und 100 % im Volumen
@@ -240,6 +258,9 @@ Zwei Dinge gehören zur Zahl dazu:
 * **Ohne EPIC im Bag gibt es keinen Grad.** Fehlen Box, Scans oder Flugbahn,
   zeigt die Kachel einen Strich und im Tooltip, was fehlt — das ist kein Fehler,
   ein reiner Kartierungsflug hat schlicht kein Zielgebiet.
+* **Eine zusammengeführte Karte hat keinen Grad.** Er gilt je Flug; die Kachel
+  zeigt einen Strich, und neu berechnen lässt er sich nur im Rosbag des einzelnen
+  Flugs.
 
 Nachgerechnet gegen `BA_Evaluation/auswertung_exploration.py` (dieselbe Bag,
 dasselbe Raster), die Zahlen stimmen auf die Nachkommastelle überein:
@@ -267,11 +288,15 @@ Die Maus steuert die Wolke **genau wie der VS-Code-Punktwolken-Viewer**
 Oben liegt die **Leiste** wie dort:
 
 * **Farbe** — Einheitsfarbe, Intensität, Höhe, RGB Onboard, RGB Mäander,
-  Thermal Mäander, dazu dieselben Quellen aus dem Gaussian Splat. Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
+  Thermal Mäander, dazu dieselben Quellen aus dem Gaussian Splat und die Fusion
+  (s. „Farbquellen“). Farbmodus und Farbquelle in einem; was das Projekt nicht hat,
   ist ausgegraut. Das Menü **Ansicht → Farbe** zieht mit.
 * **Punkte** — 0,5 bis 10 px in Viertelschritten. Gebrochene Größen wirken
   wirklich (bei 1 / 1,5 / 2 px gemessen 18,6 / 22,2 / 23,4 % bedeckte Pixel).
-* **Messen** und **Ansicht zurücksetzen**.
+* **Messen** (derselbe Schalter wie **Werkzeuge → Messen**, ohne Wolke grau) und
+  **Ansicht zurücksetzen**.
+* **Mesh** — zeigt statt der Punkte das Dreiecksnetz (Einstellungen im Abschnitt
+  **Mesh**); gibt es für diese Einstellungen noch keines, wird es dabei gerechnet.
 * **Temperatur anzeigen** (Standard an) — über einem Punkt zeigt die Maus
   seine Temperatur, **in jedem Farbmodus**, sobald es eine Thermal-Mäander-Ebene
   mit Temperaturen gibt.
@@ -346,7 +371,8 @@ per Kreuzkorrelation über den Gierwinkel, fein über den Höhenunterschied zum
 Rastermodell. Kein ICP über sechs Freiheitsgrade — das verkippt an Gebäudekanten
 und zerstört die Lotrechte, die man geschenkt bekommt.
 
-Ablauf: **Mäanderflug wählen** (Ordner mit den `_V.JPG`), **Ausrichten**,
+Der Weg: **Mäanderflug wählen …** (Ordner mit den `_V.JPG`; Knopf in Abschnitt 6
+oder **Datei → Mäanderflug wählen …**), **Ausrichten**,
 Ergebnis im Viewer prüfen, dann **Einfärben**. Ist noch kein COLMAP-Modell da,
 wird vorher gefragt — bei 255 Bildern dauert die Rekonstruktion etwa eine halbe
 Stunde und liegt danach im Arbeitsordner des Projekts.
@@ -406,6 +432,14 @@ dreht, bekommt die Thermal-Farbvorschau. **Lage übernehmen** schreibt beide
 Lagen zurück ins Hauptfenster, **zurücksetzen** stellt die Lage beim Öffnen
 wieder her.
 
+Solange im Hauptfenster ein Schritt läuft, ist **Lage übernehmen** gesperrt —
+der Schritt rechnet mit der Lage; das Fenster bleibt mit seinen Reglern offen,
+danach geht es. Es gibt höchstens ein Ausrichtfenster, ein zweiter Klick holt es
+nach vorn. Wurde inzwischen neu ausgerichtet oder eingemessen, ersetzt der Klick
+das Fenster durch eines mit der neuen Lage; stehen seine Regler anders als beim
+Öffnen, ohne übernommen zu sein, fragt das Programm vorher. Beim Wechsel des
+Projekts schließt das Fenster.
+
 Gezeichnet wird als **Bild**, nicht mit einem zweiten 3D-Fenster. Zwei
 OpenGL-Kontexte in einer Anwendung sind je nach Grafiktreiber und Sitzung eine
 Quelle schwarzer Fenster. Das Bild rechnet numpy mit Tiefenpuffer, ein Bild aus
@@ -453,7 +487,12 @@ an texturarmen Dächern.
 
 **„Automatisch: ausrichten bis zur Farbe“** macht alles hintereinander, rund
 sechs Minuten: Ausrichten → Optik einmessen → Feinausrichten → Einfärben mit
-Sichtprüfung. Jeder Schritt gibt es auch als eigenen Knopf.
+Sichtprüfung. Jeder Schritt gibt es auch als eigenen Knopf. Fehlt noch das
+COLMAP-Modell, fragt die Automatik einmal zu Beginn. Startet ein Schritt keinen
+nächsten (Hinweis, verneinte Rückfrage), hält sie an, und im Protokoll steht
+„Automatik angehalten — der nächste Schritt ist nicht gestartet.“; scheitert ein
+Schritt selbst, steht dort „Automatik angehalten — der Schritt davor ist
+fehlgeschlagen.“
 
 **Feinausrichten** (`core/optik.py`, `feinausrichten`) legt das Fotomodell auf
 die Karte — mit den Maßen, die den jeweiligen Freiheitsgrad wirklich festlegen:
@@ -593,7 +632,9 @@ die Geometrie die Karte selbst:
 4. **Training** in einem eigenen Interpreter mit torch und gsplat
    (`scripts/splat_train.py`). Danach wird je Gaussian aufsummiert, wie viel sie zu den
    Bildern beigetragen hat; unter einem halben Pixel gilt sie als ungesehen, ihre
-   Punkte bleiben ungefärbt.
+   Punkte bleiben ungefärbt. Abbrechen beendet das Training binnen Sekunden, auch
+   wenn der Trainer gerade nichts ausgibt; nur ein Kernelbau von gsplat (beim
+   allerersten Lauf, minutenlang) kann danach noch eine Weile weiterlaufen.
 
 ### Gegenprobe
 
@@ -614,6 +655,17 @@ fiele zugunsten des Splats aus.
 Onboard kann die direkte Einfärbung nicht ohne die Prüfframes neu gerechnet werden;
 verglichen wird mit der vorhandenen Ebene, die diese Frames kannte. Die Probe begünstigt
 dort die direkte Projektion.
+
+### Fusion ohne Splat
+
+**Fusionieren (ohne Splat)** im selben Abschnitt braucht keine GPU: es gleicht die
+Onboard-Farben an den Mäander an und mischt nach Flächenlage — Dächer und Boden aus
+dem Mäander, Fassaden aus der 360°-Kamera (`core/fusion.py`). Dafür braucht es eine
+Farbebene der 360°-Kamera und eine des Mäanderfluges, sonst ist der Befehl grau; je
+Seite wird die Splat-Ebene genommen, wenn es eine gibt. Das Ergebnis ist die Ebene
+„RGB Fusion“. **Beide in einem Splat einfärben** lernt beides gemeinsam (Ebene
+„RGB Fusion (Splat)“) und startet die Farbabbildung bei einer vorhandenen Fusion.
+Passen die beiden Flüge inhaltlich nicht zusammen, taugt die Fusion nicht (s. unten).
 
 ### Stand der Prüfung
 
@@ -696,6 +748,8 @@ Mehrere Einfärbungen liegen nebeneinander im Projekt und lassen sich unter
 | **RGB Onboard (Splat)** | dieselben Frames, gemeinsam gelernt, `colors_onboard_splat/` |
 | **RGB Mäander (Splat)** | dieselben `_V.JPG`, gemeinsam gelernt, `colors_meander_splat/` |
 | **Temperatur Mäander (Splat)** | Temperaturen der R-JPEGs, `colors_meander_thermal_splat/` |
+| **RGB Fusion** | Onboard an den Mäander angeglichen und gemischt, `colors_fusion/` |
+| **RGB Fusion (Splat)** | beide Flüge in einem Splat, Farbe im Mäander, `colors_fusion_splat/` |
 
 Nach dem Einfärben einer zusammengeführten Karte steht im Protokoll die Quote je
 Abschnitt, nicht nur eine Gesamtzahl — sonst merkt man nicht, wenn ein ganzer
@@ -709,11 +763,14 @@ Angeboten wird nur, was berechnet ist. Der Export schreibt die angezeigte Ebene.
 Jeder Flug bekommt von FAST-LIO ein eigenes Weltsystem, verankert im ersten
 Scan. Zwei Karten liegen darum beliebig zueinander, auch wenn sie dasselbe
 Gebäude zeigen. Der Ablauf im Abschnitt **Zusammenführen (optional)** der
-Seitenleiste (oder unter **Ablauf → Zusammenführen**):
+Seitenleiste (Laden unter **Datei**, der Rest unter **Ablauf → Zusammenführen**):
 
 1. **Zweiten Flug laden …** — dessen Karte muss berechnet sein; ist sie es nicht,
    wird mit der zu erwartenden Dauer gefragt und FAST-LIO läuft direkt hier.
-   Die zweite Wolke erscheint orange im Viewer.
+   Die zweite Wolke erscheint orange im Viewer. Der offene Flug braucht sein
+   Rosbag (Lotrechte und Kamera kommen daraus) und muss ein Einzelflug sein:
+   mehr als zwei Flüge kann das Programm nicht, ein schon zusammengeführtes
+   Projekt wird abgelehnt.
 2. **Automatisch ausrichten** — globale Suche (FGR über FPFH) plus ICP von grob nach
    fein. Dauert Sekunden bis Minuten. **Nur fein ausrichten (ICP)** verfeinert
    stattdessen die aktuelle Lage, was nach einer Handjustage reicht.
@@ -729,6 +786,15 @@ sie zu verwerfen.
 4. **Zusammenführen** schreibt eine gemeinsame Aufzeichnung und öffnet sie als
    Arbeitswolke. Sie lässt sich danach als Ganzes einfärben und exportieren;
    jeder Abschnitt wird mit der Kamera seines eigenen Bags eingefärbt.
+5. **Zweiten Flug verwerfen** entfernt den dazugeladenen Flug wieder.
+
+Was an der alten Wolke hing, gilt für die gemeinsame nicht: Farbebenen, Mesh und
+Explorationsgrad fallen weg, auch die einer früheren Zusammenführung derselben
+Flüge (Protokollzeile). Die Kachel zeigt einen Strich, weil der Grad je Flug gilt;
+**Werkzeuge → Explorationsgrad neu berechnen** lehnt in einem zusammengeführten
+Projekt ab. Die Extrinsik aus dem Abschnitt **Kamera-Kalibrierung** wird als
+`extrinsic.json` des neuen Projekts gespeichert. Die Lage des Mäanderfluges bleibt
+gültig, denn die gemeinsame Wolke liegt im Rahmen des offenen Flugs.
 
 Nach dem Ausrichten stehen Trefferquote und Restfehler im Protokoll. Unter 0,3
 Trefferquote überlappen die Wolken zu wenig — dann von Hand grob zusammenschieben
@@ -782,6 +848,13 @@ während 0,84 möglich waren — die Extrinsik war 15,7° verdreht und kostete 2
 Farbqualität. Erst ab 5° Abstand und 0,08 Vorsprung wird gewarnt; darunter lohnt
 der Abbruch nicht (bei 2,5° sind es 3 %).
 
+In einem zusammengeführten Projekt wird jeder Flug für sich geprüft, mit Bildpaaren
+aus der Kamera seines eigenen Bags und denselben Schwellen. Je Flug steht eine
+Gütezeile im Protokoll, und die Warnung nennt den Flug, der sie auslöst. Ebenso nimmt
+**Automatisch kalibrieren (grob)** dort Bildpaare aus allen Flügen. Liegt das Bag
+eines Flugs nicht mehr am Ort, wird ohne ihn geprüft bzw. kalibriert, mit einer
+Protokollzeile.
+
 Genauer als das braucht die Kalibrierung nicht zu sein. Unterhalb von etwa 0,5°
 ändert eine Verschiebung die Farbqualität nur noch um Bruchteile eines Prozents,
 und der Hebelarm zwischen Kamera und Lidar ist bei diesem Aufbau messbar null.
@@ -803,6 +876,14 @@ ein Fehlgriff:
 
 Was das nicht repariert: die 360°-Kamera belichtet im Gegenlicht die ganze Szene
 über, nicht nur den Himmel. Kronen bleiben dadurch blasser als in Wirklichkeit.
+
+Gegen Blaulicht von Einsatzfahrzeugen (Nachtflug) gibt es einen dritten Filter: der
+Haken **Blaulicht filtern** blendet den Unterblock **Blaulicht** mit Farbton,
+Sättigung, Helligkeit und „Restblau neutralisieren“ ein. Proben im Blaubereich zählen
+dann nur, wenn es für den Punkt keine andere gibt; **Standardwerte** setzt die am
+Nachtflug eingestellten Werte. **Blaumaske zeigen** (auch unter **Ablauf →
+Einfärbung (360°-Kamera)**, mit Bag immer frei) markiert im aktuellen Kamerabild
+magenta, was als Blaulicht gilt.
 
 ## Projekt mitnehmen
 
@@ -834,6 +915,18 @@ braucht.
 
 Ein Zielordner, der nicht leer ist und kein Projekt enthält, wird abgelehnt statt
 zugeschüttet.
+
+## Wiedergabe in RViz
+
+Der Abschnitt **Wiedergabe (RViz)** (auch unter **Werkzeuge → RViz-Wiedergabe**)
+spielt das geöffnete Bag in RViz ab, samt live gestitchtem Pano. **Starten** ist ein
+Schritt wie jeder andere; **Beenden** und **Wiederholen** (leert die Anzeige und
+spielt von vorn) gehen auch, während ein anderer Schritt läuft. Darunter steht der
+Zustand: „Läuft“, „Gestoppt“ oder „RViz offen — Bag durchgelaufen“. Solange Beenden
+oder Wiederholen arbeitet, zeigt die Statusleiste das mit Fortschrittsbalken und
+danach „Bereit“ — außer ein Schritt läuft, dann bleibt sie bei ihm. Hat das Bag
+eine leere `metadata.yaml` (abgebrochene Aufnahme), wird sie vor dem Abspielen
+einmal rekonstruiert. Dafür braucht es ROS 2 und EPIC (s. „Vor dem ersten Start“).
 
 ## Cache
 

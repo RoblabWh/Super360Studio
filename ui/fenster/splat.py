@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 from core.gemeinsam import fmt_int as _fmt_int
 from core.project import Project
 
-from ui.bausteine import Unterblock, _compact_combo, _wrappable
+from ui.bausteine import Unterblock, _compact_combo, _wrappable, haken
 
 
 def _splat_anker(welt, cfg, progress_cb, cancel, log_cb, von, bis) -> dict:
@@ -88,7 +88,7 @@ class SplatMixin:
         self._chk_splat_posen.setToolTip(
             "Je Bild eine kleine starre Korrektur gegen die feste Lidar-Geometrie.\n"
             "Wie weit sie gewandert sind, steht danach im Protokoll.")
-        self._chk_splat_pruefen = QCheckBox("Gegenprobe mit zurückgehaltenen Bildern")
+        self._chk_splat_pruefen = haken("Gegenprobe mit zurückgehaltenen Bildern")
         self._chk_splat_pruefen.setChecked(True)
         self._chk_splat_pruefen.setToolTip(
             "Erst ohne jedes achte Bild (Onboard: jeden zehnten Frame) trainieren\n"

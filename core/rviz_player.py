@@ -59,6 +59,10 @@ class RvizPlayer:
         self._pano: Optional[subprocess.Popen] = None
         self._bag: Optional[str] = None
         self._lock = threading.RLock()
+        # Eigene Sperre fuers Rekonstruieren: reindex dauert Minuten, und
+        # _lock darf so lange nicht gehalten werden (die GUI fragt
+        # is_playing/rviz_running im Takt)
+        self._meta_lock = threading.Lock()
         self._readers: list[threading.Thread] = []
 
     # ------------------------------------------------------------- Hilfsmittel
@@ -152,8 +156,13 @@ class RvizPlayer:
         """metadata.yaml rekonstruieren, falls sie fehlt oder leer ist.
 
         Abgebrochene Aufnahmen haben eine 0-Byte-metadata.yaml; `ros2 bag play`
-        weigert sich dann. Die .db3-Dateien selbst sind intakt.
+        weigert sich dann. Die .db3-Dateien selbst sind intakt. Ein zweiter
+        Aufruf waehrend des Rekonstruierens wartet und findet dann die Datei.
         """
+        with self._meta_lock:
+            self._ensure_metadata(bag_path)
+
+    def _ensure_metadata(self, bag_path: str) -> None:
         meta = os.path.join(bag_path, "metadata.yaml")
         if os.path.isfile(meta) and os.path.getsize(meta) > 0:
             return

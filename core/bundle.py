@@ -155,7 +155,11 @@ def export_project(project, dest: str, teile: dict, bag_paths=None,
     Manifest, wird abgelehnt — sonst schuettet der Export fremde Daten zu.
     """
     dest = os.path.abspath(dest)
-    ok, _zustand = pruefe_ziel(dest)
+    ok, zustand = pruefe_ziel(dest)
+    if zustand == "datei":
+        raise RuntimeError(
+            f"'{os.path.basename(dest)}' ist eine Datei, kein Ordner. "
+            f"Bitte einen leeren oder neuen Ordner wählen.")
     if not ok:
         raise RuntimeError(
             f"'{os.path.basename(dest)}' ist nicht leer und enthält kein "
@@ -410,6 +414,7 @@ if __name__ == "__main__":
         export_project(proj, datei, {}, bag_paths=[bag_a])
     except RuntimeError as exc:
         print(f"  Datei abgelehnt: {str(exc)[:60]}…")
+        assert "eine Datei" in str(exc) and "nicht leer" not in str(exc), str(exc)
     else:
         raise AssertionError("Datei als Ziel wurde nicht abgelehnt")
     assert open(datei).read() == "nicht loeschen"
