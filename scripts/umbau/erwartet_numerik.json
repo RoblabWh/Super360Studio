@@ -10,5 +10,9 @@
  "colorizer.colorizer.auto_calibrate_startwert/meldungen": {
   "grund": "Lenas Antwort vom 2026-10-04 (Texte angleichen): die Fortschrittsmeldungen von core.colorizer.auto_calibrate sagen „Kamera-Kalibrierung“ statt „Auto-Kalibrierung“, die Schlusszeile Gier/Nick/Roll in ° statt Yaw/Pitch/Roll in deg, Schrittweiten in ° statt deg. Nachgewiesen: der neue Wert ist bitgleich der alten Meldungsfolge nach genau dieser Umformulierung (gleiche Zeilen, Zahlen und Reihenfolge); alle Rechenteile der Proben unverändert.",
   "hash": "b1289ddfd299629543a7c8f90b83a334658304eea0358c36220f1f22ef6b1c8e"
+ },
+ "maeander.optik.datei/unlesbarer_faktor.geladen.rgb_faktor": {
+  "grund": "Fehler-Welle (P9 F2): core.optik.laden setzt null oder Unlesbares bei rgb_faktor/thermal_faktor auf die neutrale Vorgabe 1.0, statt den Text („viel“) durchzureichen, der später bei float() abstürzte. Für gültige Werte unverändert (P9 alt gegen neu an vielen Eingaben, übrige Teile der Probe bitgleich).",
+  "hash": "bc1cacbf56c8d1c0a598f151bc4341ba71ec92a09b69b0533dbdfe2f7a21dfb2"
  }
 }
