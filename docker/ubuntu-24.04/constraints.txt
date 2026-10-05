@@ -1,0 +1,29 @@
+# Feste Versionen für das Image super360-u2404-basis (pip install -c).
+#
+# Genau die Versionen, mit denen Ubuntu 22.04 (Python 3.10) getestet ist und
+# gegen die die Numerik-Proben unter scripts/umbau/vorher stehen. Mit ihnen
+# rechnet das Image unter 24.04 (Python 3.12) bitgleich. Mit den neuesten
+# Fassungen (Stand 2026-10: numpy 2.5, scipy 1.18, opencv 4.14, open3d 0.20,
+# pyproj 3.8) wichen 43 Teile ab: Gleitkommazahlen in den letzten Stellen,
+# ±2 Graustufen an wenigen Pixeln, und open3d 0.20 schreibt im PCD-Kopf rgb
+# als U statt F.
+#
+# requirements.txt bleibt bewusst offen (nur Untergrenzen, OpenCV < 5): Wer
+# die App selbst installiert, bekommt aktuelle Pakete; die Abweichungen sind
+# Rundungsrauschen. Das Image dagegen soll prüfen, ob 24.04 dasselbe rechnet,
+# und braucht dafür dieselben Bibliotheken wie der Vorher-Stand.
+#
+# Alle Versionen haben fertige Wheels für CPython 3.12 (manylinux, x86_64).
+
+numpy==2.2.6
+scipy==1.14.1
+opencv-python==4.12.0.88
+opencv-python-headless==4.12.0.88
+open3d==0.19.0
+Pillow==12.1.1
+laspy==2.7.0
+pyproj==3.7.1
+rosbags==0.10.10
+pyopencl==2026.1.4
+pyqtdarktheme==2.1.0
+darkdetect==0.7.1

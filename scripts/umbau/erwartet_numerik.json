@@ -1,0 +1,14 @@
+{
+ "colorizer.colorizer.auto_calibrate/meldungen": {
+  "grund": "Lenas Antwort vom 2026-10-04 (Texte angleichen): die Fortschrittsmeldungen von core.colorizer.auto_calibrate sagen „Kamera-Kalibrierung“ statt „Auto-Kalibrierung“, die Schlusszeile Gier/Nick/Roll in ° statt Yaw/Pitch/Roll in deg, Schrittweiten in ° statt deg. Nachgewiesen: der neue Wert ist bitgleich der alten Meldungsfolge nach genau dieser Umformulierung (gleiche Zeilen, Zahlen und Reihenfolge); alle Rechenteile der Proben unverändert.",
+  "hash": "214c9ae2bd7cc29e9a3e3b4636fcdeb804789337a916474720dd6e8e7d183b7b"
+ },
+ "colorizer.colorizer.auto_calibrate_ohne_validierung/meldungen": {
+  "grund": "Lenas Antwort vom 2026-10-04 (Texte angleichen): die Fortschrittsmeldungen von core.colorizer.auto_calibrate sagen „Kamera-Kalibrierung“ statt „Auto-Kalibrierung“, die Schlusszeile Gier/Nick/Roll in ° statt Yaw/Pitch/Roll in deg, Schrittweiten in ° statt deg. Nachgewiesen: der neue Wert ist bitgleich der alten Meldungsfolge nach genau dieser Umformulierung (gleiche Zeilen, Zahlen und Reihenfolge); alle Rechenteile der Proben unverändert.",
+  "hash": "50cd49b676b2b7a0698a70c19ea20b3635edbf0cb07a73e9b8adccb205d43a1d"
+ },
+ "colorizer.colorizer.auto_calibrate_startwert/meldungen": {
+  "grund": "Lenas Antwort vom 2026-10-04 (Texte angleichen): die Fortschrittsmeldungen von core.colorizer.auto_calibrate sagen „Kamera-Kalibrierung“ statt „Auto-Kalibrierung“, die Schlusszeile Gier/Nick/Roll in ° statt Yaw/Pitch/Roll in deg, Schrittweiten in ° statt deg. Nachgewiesen: der neue Wert ist bitgleich der alten Meldungsfolge nach genau dieser Umformulierung (gleiche Zeilen, Zahlen und Reihenfolge); alle Rechenteile der Proben unverändert.",
+  "hash": "b1289ddfd299629543a7c8f90b83a334658304eea0358c36220f1f22ef6b1c8e"
+ }
+}

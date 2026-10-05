@@ -13,11 +13,22 @@
 #   installation  scripts/pruefe_installation.py
 #   alles         scripts/umbau/pruefe_alles.sh mit den Stufen aus --stufen
 #                 (Vorgabe: kompilieren pyflakes import namen threadregel
-#                 selbsttests gpu ui autotest); deren Vorher-Stand ist 22.04
+#                 selbsttests gpu ui autotest) und --erwartet
+#                 scripts/umbau/erwartet_umbau.json. Der Vorher-Stand ist der
+#                 Stand vor dem Umbau unter 22.04; die Datei nennt, was der Umbau
+#                 gewollt geändert hat (28 statt 29 Job-Funktionen, weil die
+#                 beiden FAST-LIO-Jobs in einer Fabrik liegen; ui.main_window
+#                 hat keinen Selbsttest mehr). Die Stufe gpu braucht das Bag und
+#                 das Projekt, die core/colorizer_gpu.py fest nennt; fehlt eins,
+#                 wird sie mit Hinweis übersprungen (Bag auch per --gpu-bag)
 #   numerik       scripts/umbau/numerik_probe.py --schreibe nach <aus>/numerik,
 #                 danach Hash für Hash gegen --numerik-ref (Vorgabe: der
 #                 Vorher-Stand scripts/umbau/vorher); bei Abweichung die größte
-#                 Differenz aus den abgelegten Werten
+#                 Differenz aus den abgelegten Werten. Freigegeben sind die
+#                 Teile aus scripts/umbau/erwartet_numerik.json (Grund und Hash
+#                 des neuen Werts je Teil, wie numerik_probe.py --erwartet).
+#                 Fehlen die abgelegten Werte (*.npz) in scripts/umbau/vorher,
+#                 wird der Schritt mit Hinweis übersprungen
 #   export        seg0-Projekt aus einer Kopie des Caches laden, als LAS (lokal
 #                 und mit festem Georef-Ursprung) und PLY schreiben, zurücklesen
 #                 und die Hashes der gelesenen Arrays ausgeben
@@ -39,6 +50,9 @@
 #                     als /aus)
 #   --image NAME      Vorgabe super360-u2404-basis:latest
 #   --stufen "…"      Stufen für 'alles'
+#   --gpu-bag DIR     das Bag für die Stufe gpu, falls es nicht an dem Ort liegt,
+#                     den core/colorizer_gpu.py nennt (im Container dort
+#                     eingebunden; mit --host wirkungslos)
 #   --numerik-ref DIR Vergleichsstand für 'numerik' (etwa <aus>/numerik eines
 #                     --host-Laufs)
 #   --host            ohne Docker auf dem Rechner laufen
@@ -61,6 +75,9 @@ EINBINDEN=()
 AUS="/tmp/super360_modtests/u2404/app"
 STUFEN="kompilieren pyflakes import namen threadregel selbsttests gpu ui autotest"
 NUMERIK_REF=""
+GPU_BAG=""
+ERWARTET_ALLES="scripts/umbau/erwartet_umbau.json"
+ERWARTET_NUMERIK="scripts/umbau/erwartet_numerik.json"
 HOST=0
 DRINNEN=0
 GEWAEHLT=()
@@ -73,6 +90,7 @@ while [ $# -gt 0 ]; do
         --image) IMAGE="${2:-}"; shift 2 || exit 2 ;;
         --stufen) STUFEN="${2:-}"; shift 2 || exit 2 ;;
         --numerik-ref) NUMERIK_REF="${2:-}"; shift 2 || exit 2 ;;
+        --gpu-bag) GPU_BAG="${2:-}"; shift 2 || exit 2 ;;
         --host) HOST=1; shift ;;
         --drinnen) DRINNEN=1; shift ;;
         -h|--help) sed -n -e '2,/^$/{' -e 's/^# \{0,1\}//' -e 'p' -e '}' "$SKRIPT"; exit 0 ;;
@@ -87,6 +105,47 @@ for s in "${GEWAEHLT[@]+"${GEWAEHLT[@]}"}"; do
     esac
 done
 [ ${#GEWAEHLT[@]} -gt 0 ] || GEWAEHLT=("${ALLE_SCHRITTE[@]}")
+
+# ------------------------------------------------------- Stufe gpu vorbereiten
+
+# Bag und Projekt, die der Selbsttest core.colorizer_gpu fest erwartet. Stehen
+# sie nicht bereit, fällt die Stufe aus 'alles' heraus, statt zu scheitern.
+gpu_pfade() {
+    python3 - "$REPO/core/colorizer_gpu.py" <<'PY'
+import ast, sys
+werte = {}
+for knoten in ast.walk(ast.parse(open(sys.argv[1], encoding="utf-8").read())):
+    if isinstance(knoten, ast.Assign) and len(knoten.targets) == 1 \
+            and getattr(knoten.targets[0], "id", None) in ("BAG", "CACHE"):
+        werte[knoten.targets[0].id] = ast.literal_eval(knoten.value)
+print(werte.get("BAG", ""))
+print(werte.get("CACHE", ""))
+PY
+}
+
+GPU_EINBINDEN=()
+case " ${GEWAEHLT[*]} " in *" alles "*) mit_alles=1 ;; *) mit_alles=0 ;; esac
+case " $STUFEN " in *" gpu "*) mit_gpu=1 ;; *) mit_gpu=0 ;; esac
+if [ "$DRINNEN" = 0 ] && [ "$mit_alles" = 1 ] && [ "$mit_gpu" = 1 ]; then
+    { read -r GPU_SOLL_BAG; read -r GPU_SOLL_CACHE; } < <(gpu_pfade)
+    gpu_quelle="${GPU_BAG:-$GPU_SOLL_BAG}"
+    grund=""
+    if [ -z "$GPU_SOLL_BAG" ] || [ -z "$GPU_SOLL_CACHE" ]; then
+        grund="core/colorizer_gpu.py nennt kein BAG/CACHE"
+    elif [ ! -d "$gpu_quelle" ]; then
+        grund="Bag $gpu_quelle fehlt (anderer Ort: --gpu-bag DIR)"
+    elif [ ! -d "$GPU_SOLL_CACHE" ]; then
+        grund="Projekt $GPU_SOLL_CACHE fehlt"
+    elif [ "$HOST" = 1 ] && [ "$gpu_quelle" != "$GPU_SOLL_BAG" ]; then
+        grund="--gpu-bag wirkt nur im Container, der Selbsttest liest $GPU_SOLL_BAG"
+    fi
+    if [ -n "$grund" ]; then
+        echo "Hinweis: Stufe gpu übersprungen — $grund."
+        STUFEN="$(echo " $STUFEN " | sed 's/ gpu / /; s/^ *//; s/ *$//')"
+    else
+        GPU_EINBINDEN=("$(cd "$gpu_quelle" && pwd):$GPU_SOLL_BAG" "$GPU_SOLL_CACHE:$GPU_SOLL_CACHE")
+    fi
+fi
 
 # ------------------------------------------------------------ Docker starten
 
@@ -105,9 +164,20 @@ if [ "$HOST" = 0 ] && [ "$DRINNEN" = 0 ]; then
     volumes=(-v "$REPO:/super360:ro" -v "$AUS:/aus" -e "HOME=$HEIM"
              --tmpfs "$HEIM:exec,mode=1777" -v "$DATEN:$DATEN:ro")
     [ -n "$MERGER" ] && volumes+=(-v "$(cd "$MERGER" && pwd):$HEIM/PointCloudMerger:ro")
+    ziele=("$DATEN")
     for d in "${EINBINDEN[@]+"${EINBINDEN[@]}"}"; do
         d="$(cd "$d" && pwd)" || exit 2
         volumes+=(-v "$d:$d:ro")
+        ziele+=("$d")
+    done
+    # Bag und Projekt der Stufe gpu, sofern nicht schon über --daten oder
+    # --einbinden im Container.
+    for paar in "${GPU_EINBINDEN[@]+"${GPU_EINBINDEN[@]}"}"; do
+        quelle="${paar%%:*}" ziel="${paar#*:}" drin=0
+        for z in "${ziele[@]}"; do
+            case "$ziel/" in "$z"/*) [ "$quelle" = "$ziel" ] && drin=1 ;; esac
+        done
+        [ "$drin" = 1 ] || volumes+=(-v "$quelle:$ziel:ro")
     done
     argumente=(--drinnen --aus /aus --stufen "$STUFEN")
     if [ -n "$NUMERIK_REF" ]; then
@@ -179,21 +249,44 @@ s_installation() {
 }
 
 s_alles() {
+    # Ohne Stufe liefe pruefe_alles.sh alle; bleibt nach dem Übergehen von gpu
+    # keine übrig, gibt es nichts zu tun.
+    [ -n "${STUFEN// /}" ] || { echo "Keine Stufe übrig."; return 0; }
     # shellcheck disable=SC2086
-    bash scripts/umbau/pruefe_alles.sh $STUFEN
+    bash scripts/umbau/pruefe_alles.sh --erwartet "$ERWARTET_ALLES" $STUFEN
 }
 
 s_numerik() {
-    local ziel="$AUS/numerik"
+    local ziel="$AUS/numerik" ref="${NUMERIK_REF:-scripts/umbau/vorher}"
+    if ! ls "$ref"/numerik_*.npz >/dev/null 2>&1; then
+        # Nur der Vorher-Stand im Repo darf fehlen; ein ausdrücklich genannter nicht.
+        [ -z "$NUMERIK_REF" ] || { echo "--numerik-ref: in $ref liegen keine numerik_*.npz" >&2; return 1; }
+        echo "Hinweis: numerik übersprungen — in $ref liegen keine numerik_*.npz" \
+             "(abgelegte Werte des Vergleichsstands)."
+        return 0
+    fi
     rm -rf "$ziel"
     python3 scripts/umbau/numerik_probe.py --schreibe --ziel "$ziel" || return 1
-    python3 - "$ziel" "${NUMERIK_REF:-scripts/umbau/vorher}" <<'PY'
+    python3 - "$ziel" "$ref" "$ERWARTET_NUMERIK" <<'PY'
 import glob, json, os, sys
 import numpy as np
-neu_dir, alt_dir = sys.argv[1], sys.argv[2]
+neu_dir, alt_dir, erwartet_pfad = sys.argv[1:4]
 sys.path.insert(0, "scripts/umbau")
-from numerik_probe import groesste_differenz
-gleich = toleranz = anders = 0
+from numerik_probe import _eintrag_fuer, erwartet_laden, groesste_differenz
+erwartet = erwartet_laden(erwartet_pfad) if os.path.isfile(erwartet_pfad) else {}
+benutzt = set()
+
+
+def freigegeben(familie, key, wert):
+    """Grund aus erwartet_numerik.json, wenn der neue Wert genau so freigegeben ist."""
+    e = _eintrag_fuer(erwartet, f"{familie}.{key}")
+    if e is not None and erwartet[e]["hash"] == wert:
+        benutzt.add(e)
+        return erwartet[e]["grund"]
+    return None
+
+
+gleich = toleranz = frei = anders = 0
 for js in sorted(glob.glob(os.path.join(neu_dir, "numerik_*.json"))):
     familie = os.path.basename(js)[8:-5]
     alt_js = os.path.join(alt_dir, os.path.basename(js))
@@ -213,6 +306,13 @@ for js in sorted(glob.glob(os.path.join(neu_dir, "numerik_*.json"))):
                 gleich += 1; continue
             anders += 1
             key = f"{probe}/{teil}"
+            grund = freigegeben(familie, key, "neu" if a is None else "fehlt" if n is None
+                                else n["hash"])
+            if grund is not None:
+                anders -= 1
+                frei += 1
+                print(f"  {key}: freigegeben ({grund[:70]}…)")
+                continue
             if a is None or n is None:
                 print(f"  {key}: nur {'neu' if a is None else 'alt'}"); continue
             if key in w_a.files and key in w_n.files:
@@ -226,7 +326,10 @@ for js in sorted(glob.glob(os.path.join(neu_dir, "numerik_*.json"))):
                 toleranz += 1
                 continue
             print(f"  {key}: Hash anders{' (unstet, Toleranz %s)' % unstet if unstet else ''}; {text}")
-print(f"numerik: {gleich} Teile bitgleich, {toleranz} unstete in ihrer Toleranz, {anders} anders")
+for e in sorted(set(erwartet) - benutzt):
+    print(f"  Hinweis: {e} ist freigegeben, weicht aber nicht (so) ab")
+print(f"numerik: {gleich} Teile bitgleich, {toleranz} unstete in ihrer Toleranz, "
+      f"{frei} freigegeben, {anders} anders")
 sys.exit(1 if anders else 0)
 PY
 }

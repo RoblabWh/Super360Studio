@@ -1,0 +1,4 @@
+{
+ "threadregel_jobs": 28,
+ "selbsttests_entfallen": ["ui.main_window"]
+}

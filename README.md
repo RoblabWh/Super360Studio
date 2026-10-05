@@ -238,6 +238,17 @@ docker build -f docker/ubuntu-24.04/basis.Dockerfile -t super360-u2404-basis:lat
 bash docker/ubuntu-24.04/pruefe_app.sh --daten ~/RosBagSuper_Gui --merger ~/PointCloudMerger
 ```
 
+Das Image installiert die Python-Pakete in den Versionen aus
+`docker/ubuntu-24.04/constraints.txt` (der getestete 22.04-Stand), damit die
+Numerik-Proben bitgleich zum Vorher-Stand rechnen; `requirements.txt` bleibt
+offen. Verglichen wird gegen `scripts/umbau/vorher`. Die gewollten Abweichungen
+des Umbaus stehen in `scripts/umbau/erwartet_umbau.json` und
+`erwartet_numerik.json`. Die Stufe `gpu` braucht das Bag und das Projekt, die
+`core/colorizer_gpu.py` nennt; fehlt eins, wird sie mit Hinweis übersprungen
+(anderer Ort des Bags: `--gpu-bag DIR`). Ohne die abgelegten Werte
+`scripts/umbau/vorher/numerik_*.npz` entfällt der Numerik-Vergleich ebenso.
+Am Ende steht `pruefe_app: alle Schritte bestanden`.
+
 ## Start
 
 ```bash

@@ -3,7 +3,8 @@
 # und OpenCL auf der NVIDIA-GPU. Ohne ROS, COLMAP und Splat; die bauen darauf
 # auf (FROM super360-u2404-basis:latest).
 #
-# Bauen (Kontext ist die Repo-Wurzel, gebraucht wird nur requirements.txt):
+# Bauen (Kontext ist die Repo-Wurzel, gebraucht werden nur requirements.txt
+# und docker/ubuntu-24.04/constraints.txt):
 #
 #   docker build -f docker/ubuntu-24.04/basis.Dockerfile -t super360-u2404-basis:latest .
 #
@@ -54,13 +55,16 @@ ENV PATH=$SUPER360_VENV/bin:$PATH
 # kein highgui, im Image steht deshalb die headless-Variante.
 # pyqtdarktheme 2.1.0 verlangt Python <3.12, ist aber reines Python ohne
 # entfernte Module; es kommt mit --ignore-requires-python dazu (s. requirements.txt).
-COPY requirements.txt /tmp/requirements.txt
+# constraints.txt legt die Versionen auf den getesteten 22.04-Stand fest, damit
+# die Numerik bitgleich zum Vorher-Stand bleibt; requirements.txt bleibt offen
+# (Begründung in constraints.txt).
+COPY requirements.txt docker/ubuntu-24.04/constraints.txt /tmp/
 RUN python3 -m venv --system-site-packages "$SUPER360_VENV" \
     && sed -e 's/^opencv-python\b/opencv-python-headless/' /tmp/requirements.txt > /tmp/req.txt \
-    && pip install --no-cache-dir -r /tmp/req.txt \
-    && pip install --no-cache-dir --ignore-requires-python "pyqtdarktheme==2.1.0" \
+    && pip install --no-cache-dir -c /tmp/constraints.txt -r /tmp/req.txt \
+    && pip install --no-cache-dir --ignore-requires-python -c /tmp/constraints.txt pyqtdarktheme \
     && pip install --no-cache-dir pyflakes \
-    && rm /tmp/requirements.txt /tmp/req.txt
+    && rm /tmp/requirements.txt /tmp/req.txt /tmp/constraints.txt
 
 # Was die pip-Pakete zur Laufzeit aus dem System brauchen: open3d lädt
 # libgomp (bis 0.19) bzw. libusb-1.0 (ab 0.20), qdarktheme importiert
