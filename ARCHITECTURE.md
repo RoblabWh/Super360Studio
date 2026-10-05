@@ -1405,7 +1405,9 @@ Cache: `SUPER360_CACHE_ROOT` auf eine frische Kopie setzen.
 - `basis.py` — gemeinsame Grundlage (Repo-Wurzel, frische Projektkopie, Fenster bauen).
 - `numerik_probe.py` mit `proben_colorizer.py`, `proben_geometrie.py`,
   `proben_maeander.py`, `proben_splat.py` — feste Eingaben, Ausgaben als SHA-256 gegen
-  den Vorher-Stand (Numerik in `core/` bleibt bitgleich).
+  den Vorher-Stand (Numerik in `core/` bleibt bitgleich). Die Vergleichswerte
+  `vorher/numerik_*.npz` (16 MB) liegen nicht mehr im Repo; für einen Vergleich holt
+  `git checkout fehlerwelle -- scripts/umbau/vorher` sie aus dem Tag zurück.
 - `ablauf_probe.py` mit `ablaeufe_projekt.py`, `ablaeufe_maeander.py` — fährt die
   Handler des Hauptfensters mit ersetzten Blattfunktionen und vergleicht Aufruffolge,
   Fortschritt, Protokoll und meta-dicts; gewollte Abweichungen über `--erwartet`.
