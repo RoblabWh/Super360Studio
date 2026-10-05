@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QFileDialog, QFormLayout, QLabel, QMessageBox, QWidget,
 )
 
-from ui.bausteine import Unterblock, _wrappable, knopfzeile
+from ui.bausteine import Unterblock, _wrappable, haken, knopfzeile
 from ui.feinregler import regler_pixel
 
 
@@ -47,7 +47,7 @@ class MaeanderMixin:
         self._btn_meander_fein = self._befehlsknopf("meander_fein")
         self._btn_meander_run = self._befehlsknopf("meander_run")
         form.addRow(knopfzeile(self._btn_meander_fein, self._btn_meander_run))
-        self._chk_sichtbar = QCheckBox("Beim Einfärben Sichtbarkeit prüfen (Wände)")
+        self._chk_sichtbar = haken("Beim Einfärben Sichtbarkeit prüfen (Wände)")
         self._chk_sichtbar.setChecked(True)
         self._chk_sichtbar.setToolTip(
             "Jeder Punkt nur aus Bildern, die ihn wirklich sehen, und aus dem,\n"
@@ -172,6 +172,8 @@ class MaeanderMixin:
         work = self._project.meander_work_dir()
         if meander_mod.hat_modell(work):
             return True
+        if self._auto_kette:
+            return True                   # die Automatik hat beim Start gefragt
         if meander_mod.find_colmap_python() is None:
             self._show_error(
                 "Mäander-Einfärbung",
@@ -351,6 +353,9 @@ class MaeanderMixin:
             self._on_meander_align()      # weiter ueber die Vorschaubilder
         else:
             self._auto_weiter("einmessen")
+        if self._auto_kette and not self._busy:
+            self._auto_kette = False
+            self._log("Automatik angehalten — der nächste Schritt ist nicht gestartet.")
 
     def _auto_weiter(self, schritt: str) -> None:
         if not self._auto_kette:

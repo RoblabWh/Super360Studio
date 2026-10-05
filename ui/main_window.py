@@ -157,6 +157,7 @@ class MainWindow(GrundgeruestMixin,
         # Beenden und Wiederholen der RViz-Wiedergabe laufen in einem eigenen
         # Arbeiter neben dem Schritt (s. _rviz_job)
         self._rviz_worker: Optional[Worker] = None
+        self._rviz_text = ""              # sein Text in der Statuszeile
         self._busy = False
         self._loading_ui = False
         self._closing = False
@@ -290,12 +291,15 @@ class MainWindow(GrundgeruestMixin,
         self._leiste_timer = einmal_timer(self, 1000, self._leiste_speichern)
         # Arbeitsfläche links, Bedienung rechts — der Splitter lässt die
         # Seitenleiste in der Breite ziehen, Ctrl+B blendet sie ganz aus.
+        # Gezogen wird nur bis zur Untergrenze: eine auf 0 px zugezogene
+        # Leiste gälte weiter als sichtbar, Ctrl+B holte sie nicht zurück.
         self._splitter = QSplitter(Qt.Horizontal, self)
         self._splitter.addWidget(self._tabs)
         self._splitter.addWidget(self._sidebar_scroll)
         self._splitter.setStretchFactor(0, 1)
         self._splitter.setStretchFactor(1, 0)
         self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
         self._splitter.setSizes([1200, self._leiste_breite])
         self._splitter.splitterMoved.connect(self._leiste_gezogen_melden)
         root.addWidget(self._splitter, 1)
@@ -339,7 +343,7 @@ class MainWindow(GrundgeruestMixin,
         # Leiste ueber der 3D-Ansicht: gleiche Wirkung wie Seitenleiste und Menue
         self._cloud_view.farbmodus_gewaehlt.connect(self._on_farbleiste)
         self._cloud_view.punktgroesse_geaendert.connect(self._on_leiste_punktgroesse)
-        self._cloud_view.messen_angefordert.connect(self._on_toggle_measure)
+        self._cloud_view.messen_folgt(self._actions["measure"])
         self._cloud_view.temperatur_umgeschaltet.connect(self._on_leiste_temperatur)
         self._cloud_view.mesh_umgeschaltet.connect(self._on_leiste_mesh)
         self._mesh_timer.timeout.connect(self._mesh_timer_abgelaufen)

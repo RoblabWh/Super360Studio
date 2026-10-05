@@ -2,8 +2,9 @@
 
 Schreibt am Hauptfenster: _bag, _bag_info, _btn_fastlio, _btn_open,
 _btn_open_project, _colors, _combo_config, _exploration, _fixes, _info_table,
-_layers, _lbl_fastlio, _meander_pipe, _n_frames, _pano_failed, _pano_src,
-_parts, _project, _quality, _rec, _settings, _spin_rate, _valid, _world.
+_layers, _lbl_fastlio, _meander_dir, _meander_fenster, _meander_pipe,
+_n_frames, _pano_failed, _pano_src, _parts, _project, _quality, _rec, _settings,
+_spin_rate, _valid, _world.
 """
 from __future__ import annotations
 
@@ -26,7 +27,7 @@ from core.exploration import (
 )
 from core.gemeinsam import fmt_int as _fmt_int
 from core.kalibrierung import REPO_WURZEL
-from core.project import Project
+from core.project import Project, lies_aufzeichnungs_meta
 from core.recording import lade_mit_hinweis
 
 from ui.bausteine import _wrappable, auswahl, knopfzeile, zahl
@@ -136,6 +137,12 @@ class ProjektMixin:
         self._start_worker(f"Öffne Bag: {os.path.basename(path)} …", job, self._on_bag_opened)
 
     def _clear_bag_state(self) -> None:
+        # Das Ausrichtfenster rechnet mit Wolke und Lage des bisherigen Projekts
+        fenster = self._meander_fenster
+        if fenster is not None:
+            self._meander_fenster = None
+            fenster.close()
+            self._log("Ausrichtfenster geschlossen — es gehörte zum bisherigen Projekt.")
         self._bag = None
         self._bag_info = None
         self._project = None
@@ -157,6 +164,11 @@ class ProjektMixin:
         self._parts = None
         self._layers = {}
         self._meander_pipe = None
+        # Der Mäanderflug gehört zum Projekt; dessen Einstellungen bringen ihn
+        # beim Öffnen zurück (s. _setze_maeanderordner)
+        self._meander_dir = None
+        self._lbl_meander.setText("Kein Mäanderflug geladen.")
+        self._chk_thermal.setEnabled(True)
         self._live_clear()
         self._meander_setze_thermal((0.0, 0.0, 0.0))
         self._meander_setze_optik({"rgb_faktor": 1.0, "thermal_faktor": 1.0,
@@ -203,14 +215,18 @@ class ProjektMixin:
             self._settings.update(project.load_settings())
         except RuntimeError as exc:
             self._log(str(exc))
-        self._apply_settings_to_widgets()
-
-        T = None
         try:
-            T = project.load_extrinsic()
-        except RuntimeError as exc:
-            self._log(str(exc))
-        self._spins_from_extrinsic(T if T is not None else np.eye(4))
+            self._apply_settings_to_widgets()
+        finally:
+            # Die Extrinsik gehört zum Projekt: scheitert ein Einstellungswert,
+            # dürfen die Regler trotzdem nicht die des vorigen Projekts zeigen
+            # (die nächste Regleränderung schriebe sie sonst hierher).
+            T = None
+            try:
+                T = project.load_extrinsic()
+            except RuntimeError as exc:
+                self._log(str(exc))
+            self._spins_from_extrinsic(T if T is not None else np.eye(4))
 
     # ======================================================= Explorationsgrad
 
@@ -252,7 +268,25 @@ class ProjektMixin:
 
     def _on_exploration_neu(self) -> None:
         """Explorationsgrad neu rechnen, am Cache vorbei."""
-        if self._bag_info is None or self._project is None:
+        if self._project is None:
+            return
+        try:
+            meta = lies_aufzeichnungs_meta(self._project.recording_dir())
+        except (OSError, ValueError):
+            meta = None
+        quellen = (meta.get("sources") or []) if isinstance(meta, dict) else []
+        if len(quellen) >= 2:
+            # Das offene Bag ist nur der erste Flug; sein Grad gilt nicht fuer
+            # die gemeinsame Karte und ersetzte den Hinweis in exploration.json.
+            self._log("Explorationsgrad nicht neu berechnet — die Karte ist "
+                      "zusammengeführt.")
+            QMessageBox.information(
+                self, "Explorationsgrad neu berechnen",
+                "Die Karte ist aus mehreren Flügen zusammengeführt; der "
+                "Explorationsgrad gilt je Flug. Für einen Flug sein Rosbag "
+                "öffnen und dort neu berechnen.")
+            return
+        if self._bag_info is None:
             return
         pfad, projekt = self._bag_info.path, self._project
 
@@ -299,7 +333,7 @@ class ProjektMixin:
             progress_cb(0.05, "Baue 360°-Stitcher (LUT) …")
             src = StitchingPanoSource(bag, calib, width, pano_dir)
             if cancel.is_set():
-                raise RuntimeError("Abgebrochen")
+                return None     # nur das Video fällt weg, die Karte lädt trotzdem
             if src.count > 0:
                 progress_cb(0.7, "Stitche erstes Panorama …")
                 src.get_pano(0)
@@ -317,7 +351,15 @@ class ProjektMixin:
         self._start_worker("Bereite 360°-Video vor …", job, self._on_pano_ready,
                            on_failed=on_pano_failed)
 
-    def _on_pano_ready(self, src: StitchingPanoSource) -> None:
+    def _on_pano_ready(self, src: Optional[StitchingPanoSource]) -> None:
+        if src is None:
+            # Abgebrochen: wie ein Pano-Fehler, die restliche Kette läuft weiter
+            self._pano_failed = True
+            self._log("Abgebrochen — 360°-Video nicht vorbereitet.")
+            self._status_lbl.setText("360°-Video abgebrochen.")
+            if self._project is not None and self._project.has_recording():
+                self._start_recording_load()
+            return
         self._pano_src = src
         self._pano_view.set_source(src)
         self._log(f"360°-Video bereit: {src.count} Frames, {src.fps:.1f} fps, "

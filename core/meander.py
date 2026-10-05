@@ -431,7 +431,8 @@ def kameras(p, opt: dict, th, thermal: bool = True) -> dict:
     der Aufrufer.
     """
     from core import optik as optik_mod  # noqa: PLC0415
-    rf, tf = float(opt["rgb_faktor"]), float(opt["thermal_faktor"])
+    tf = opt.get("thermal_faktor")            # null in der Datei: Vorgabe 1.0
+    rf, tf = float(opt["rgb_faktor"]), 1.0 if tf is None else float(tf)
     yaw = float(np.degrees(p.yaw))
     # lage_affine statt p.affine(): nimmt die Feinausrichtung mit
     A, b = lage_affine(p, yaw, p.t)
@@ -887,6 +888,10 @@ if __name__ == "__main__":
     assert pk.yaw == 0.3 and pk.t.tolist() == [1.0, 2.0], "Basislage veraendert"
     k = kameras(pk, opt, zus, thermal=False)
     assert k["thermal"] is None and k["temperatur"] is None and k["A_th"] is None
+    # null in der Datei: laden laesst den Wert stehen, es gilt die Vorgabe
+    optik_mod.speichern(tmp, {"rgb_faktor": 1.05, "thermal_faktor": None})
+    k = kameras(pk, optik_mod.laden(tmp), zus)
+    assert k["thermal_faktor"] == 1.0 and k["rgb_faktor"] == 1.05
     pk.thermal_cams = lambda: None
     pk.thermal_paare = {}
     k = kameras(pk, opt, zus)

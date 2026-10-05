@@ -4,6 +4,8 @@ Schreibt am Hauptfenster: _btn_autocal, _btn_overlay, _ext_spins, _loading_ui.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -68,7 +70,7 @@ class KalibrierungMixin:
             return
         try:
             self._project.save_extrinsic(T)
-        except RuntimeError as exc:
+        except (OSError, RuntimeError) as exc:
             self._log(f"Extrinsik nicht gespeichert: {exc}")
 
     def _on_extrinsic_changed(self, *_a) -> None:
@@ -109,6 +111,21 @@ class KalibrierungMixin:
         self._start_worker("Erzeuge Überlagerung …", job, on_done,
                            cancellable=False)
 
+    def _kalibrier_teile(self):
+        """Abschnitte einer zusammengeführten Aufzeichnung, deren Bag vorhanden ist.
+
+        Ohne Abschnitte oder ohne ein einziges vorhandenes Bag None: dann gilt
+        wie bisher das führende Bag.
+        """
+        if not self._parts:
+            return None
+        teile = [p for p in self._parts if os.path.exists(p[0].bag_path)]
+        for p in self._parts:
+            if p not in teile:
+                self._log(f"Kamera-Kalibrierung ohne den Flug aus "
+                          f"{os.path.basename(p[0].bag_path)} — Bag nicht am Ort.")
+        return teile or None
+
     def _on_autocal_clicked(self) -> None:
         if self._rec is None or self._bag is None:
             return
@@ -117,10 +134,14 @@ class KalibrierungMixin:
             return
         T_init = self._extrinsic_from_spins()
         rec, bag, calib = self._rec, self._bag, self._calib
+        # zusammengeführt: Frame-Paare aus jedem Flug mit dessen Kamera
+        teile = self._kalibrier_teile()
+        weiter = {"parts": teile} if teile else {}
 
         def job(progress_cb, cancel, log_cb):
             return colorizer.auto_calibrate(rec, bag, calib, T_init=T_init,
-                                            progress_cb=progress_cb, cancel=cancel)
+                                            progress_cb=progress_cb, cancel=cancel,
+                                            **weiter)
 
         def on_done(result) -> None:
             T, score = result

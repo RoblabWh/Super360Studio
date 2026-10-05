@@ -248,6 +248,9 @@ class EinfaerbungMixin:
             T_imu_cam0=T)
         rec, bag, calib = self._rec, self._bag, self._calib
         parts = self._parts
+        # zusammengeführt: Prüfpaare aus jedem Flug mit dessen Kamera
+        pruef_teile = self._kalibrier_teile()
+        pruef_weiter = {"parts": pruef_teile} if pruef_teile else {}
         out_dir = self._project.layer_dir("onboard")
 
         def job(progress_cb, cancel, log_cb):
@@ -257,16 +260,33 @@ class EinfaerbungMixin:
             # sonst nicht auf — sie kostet aber die halbe Farbqualitaet.
             progress_cb(0.01, "Prüfe Extrinsik …")
             try:
-                chk = colorizer.check_extrinsic(rec, bag, calib, T, cancel=cancel)
+                chk = colorizer.check_extrinsic(rec, bag, calib, T, cancel=cancel,
+                                                **pruef_weiter)
             except RuntimeError as exc:
                 log_cb(f"Extrinsik-Prüfung übersprungen: {exc}")
             else:
-                log_cb(f"Extrinsik-Güte (Foto-Konsistenz): {chk['score']:.3f}; "
-                       f"bestes erreichbares {chk['best_score']:.3f} "
-                       f"{chk['dist_deg']:.1f}° daneben.")
+                # zusammengeführt: je Flug geprüft, die Warnung nennt den Flug
+                je_flug = chk.get("teile")
+                wo = ""
+                if je_flug:
+                    for e in je_flug:
+                        name = os.path.basename(pruef_teile[e["teil"] - 1][0].bag_path)
+                        flug = f"Flug {e['teil']} ({name})"
+                        if "fehler" in e:
+                            log_cb(f"Extrinsik-Prüfung {flug} übersprungen: {e['fehler']}")
+                        else:
+                            log_cb(f"Extrinsik-Güte {flug} (Foto-Konsistenz): "
+                                   f"{e['score']:.3f}; bestes erreichbares "
+                                   f"{e['best_score']:.3f} {e['dist_deg']:.1f}° daneben.")
+                    wo = "in " + ", ".join(
+                        f"Flug {e['teil']}" for e in je_flug if e.get("suspect")) + " "
+                else:
+                    log_cb(f"Extrinsik-Güte (Foto-Konsistenz): {chk['score']:.3f}; "
+                           f"bestes erreichbares {chk['best_score']:.3f} "
+                           f"{chk['dist_deg']:.1f}° daneben.")
                 if chk["suspect"]:
                     log_cb(
-                        "WARNUNG: die gespeicherte Extrinsik ist deutlich verdreht. "
+                        f"WARNUNG: die gespeicherte Extrinsik ist {wo}deutlich verdreht. "
                         "Das kostet spürbar Farbqualität — Lauf abbrechen, "
                         "'Automatisch kalibrieren (grob)' starten und neu einfärben.")
             return colorizer.colorize(rec, bag, calib, params, out_dir,

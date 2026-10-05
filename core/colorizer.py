@@ -804,8 +804,14 @@ def _top_distinct(scored: list[tuple[float, Rotation]], k: int,
     return out
 
 
-def _default_score_frames(rec, bag, n: int = 5) -> list[int]:
-    """~n gleichverteilte Kamera-Frames innerhalb der Aufzeichnung (mit Rand)."""
+def _default_score_frames(rec, bag, n: int = 5, parts=None) -> list:
+    """~n gleichverteilte Kamera-Frames innerhalb der Aufzeichnung (mit Rand).
+
+    Mit ``parts`` (zusammengefuehrte Aufzeichnung, s. :func:`colorize`) s.
+    :func:`_teil_score_frames`; ``bag`` bleibt dann unbenutzt.
+    """
+    if parts:
+        return _teil_score_frames(rec, parts, n)
     cs = bag.camera_stamps()
     t0 = float(rec.stamps[0]) + 2.0
     t1 = float(rec.stamps[-1]) - 2.0
@@ -815,6 +821,58 @@ def _default_score_frames(rec, bag, n: int = 5) -> list[int]:
     idx = sorted({int(np.clip(np.searchsorted(cs, t), 0, len(cs) - 1))
                   for t in targets})
     return idx
+
+
+def _teil_score_frames(rec, parts, n: int) -> list[tuple[int, int]]:
+    """Anker-Frames einer zusammengefuehrten Aufzeichnung als ``(Abschnitt, Frame)``.
+
+    Die ~n Frames werden nach Flugdauer auf die Abschnitte verteilt (je
+    Abschnitt mindestens zwei, mit Rand) und in der Kamera des jeweiligen Bags
+    gesucht. Ueber die ganze Aufzeichnung verteilt fielen sie sonst in die Pause
+    zwischen den Fluegen und in den zweiten Flug, fuer den das erste Bag keine
+    Frames hat; dort sammelten sie sich am letzten Frame des ersten Bags.
+    """
+    spannen = []
+    for ti, (_, von, bis) in enumerate(parts):
+        bis = min(int(bis), int(rec.n_scans))
+        if bis > int(von):
+            spannen.append((ti, float(rec.stamps[int(von)]), float(rec.stamps[bis - 1])))
+    gesamt = sum(b - a for _, a, b in spannen)
+    idx: set[tuple[int, int]] = set()
+    for ti, a, b in spannen:
+        cs = parts[ti][0].camera_stamps()
+        if len(cs) == 0:
+            continue
+        anteil = (b - a) / gesamt if gesamt > 0.0 else 1.0 / len(spannen)
+        k = max(2, int(round(n * anteil)))
+        t0, t1 = a + 2.0, b - 2.0
+        if t1 <= t0:
+            t0, t1 = a, b
+        idx.update((ti, int(np.clip(np.searchsorted(cs, t), 0, len(cs) - 1)))
+                   for t in np.linspace(t0, t1, k))
+    return sorted(idx)
+
+
+def _zwischen_frames(frames) -> list:
+    """Validierungs-Anker: zeitliche Zwischenpunkte benachbarter Anker-Frames.
+
+    Anker als ``(Abschnitt, Frame)`` mitteln nur innerhalb ihres Abschnitts.
+    """
+    if len(frames) and isinstance(frames[0], tuple):
+        fr = sorted((int(ti), int(f)) for ti, f in frames)
+        return sorted({(ta, (a + b) // 2) for (ta, a), (tb, b) in zip(fr[:-1], fr[1:])
+                       if ta == tb and (ta, (a + b) // 2) not in fr})
+    fr = sorted(int(f) for f in frames)
+    return sorted({(a + b) // 2 for a, b in zip(fr[:-1], fr[1:])
+                   if (a + b) // 2 not in fr})
+
+
+def _score_kontext(rec, bag, calib_json: str, frames, cancel, parts):
+    """:class:`_PhotoScoreContext`; ``parts`` nur fuer zusammengefuehrte Aufzeichnungen."""
+    if parts:
+        return _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel,
+                                  parts=parts)
+    return _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
 
 
 _PC_DOWNSCALE = 2               # Fisheye-Graubilder 1/2-aufgeloest
@@ -831,16 +889,29 @@ class _PhotoScoreContext:
     Lidar-Weltpunkte in beide Kamerabilder projiziert (cam0, sonst cam1) und
     die Grauwerte verglichen. Nur die korrekte Extrinsik trifft in beiden
     Frames dieselbe Oberflaeche -> hohe ZNCC. Score = Mittel ueber Paare.
+
+    ``parts`` bedient zusammengefuehrte Aufzeichnungen wie bei :func:`colorize`;
+    die Anker sind dann ``(Abschnitt, Frame)``. Jedes Paar bleibt in seinem
+    Abschnitt: Bild aus dessen Bag, Posen und Partnersuche nur innerhalb der
+    Scan-Zeitspanne des Fluges (in der Pause dazwischen interpoliert
+    ``interpolate_pose`` sonst zwischen den Fluegen), Lidar-Punkte nur aus
+    dessen Scans.
     """
 
     def __init__(self, rec, bag, calib_json: str,
-                 anchor_frames: Sequence[int], cancel=None):
+                 anchor_frames: Sequence, cancel=None, parts=None):
         self.cam0, self.cam1, T01 = DoubleSphereCamera.from_calib(calib_json)
         self._R01 = np.ascontiguousarray(T01[:3, :3], dtype=np.float32)
         self._t01 = T01[:3, 3].astype(np.float32)
-        cs = bag.camera_stamps()
+        if parts:
+            teile = [(b, int(v), min(int(bis), int(rec.n_scans))) for b, v, bis in parts]
+            anker = [(int(ti), int(f)) for ti, f in anchor_frames]
+        else:
+            teile = [(bag, None, None)]
+            anker = [(0, int(f)) for f in anchor_frames]
+        teil_stamps = [t[0].camera_stamps() for t in teile]
 
-        def gray_halves(fidx: int) -> tuple[np.ndarray, np.ndarray]:
+        def gray_halves(bag, fidx: int) -> tuple[np.ndarray, np.ndarray]:
             img = bag.read_camera(fidx)
             out = []
             for sl in (img[:, :SPLIT_X], img[:, SPLIT_X:2 * SPLIT_X]):
@@ -851,17 +922,25 @@ class _PhotoScoreContext:
             return out[0], out[1]
 
         self.pairs: list[dict] = []
-        self.pair_frames: list[tuple[int, int]] = []
-        for fa in anchor_frames:
+        self.pair_frames: list[tuple] = []
+        for ti, fa in anker:
             _check_cancel(cancel)
-            t_a = float(cs[int(fa)])
-            T_a = rec.interpolate_pose(t_a)
+            bag_t, von, bis = teile[ti]
+            cs = teil_stamps[ti]
+            if von is None:
+                lo, hi = -np.inf, np.inf
+            else:
+                lo, hi = float(rec.stamps[von]), float(rec.stamps[bis - 1])
+            t_a = float(cs[fa])
+            T_a = rec.interpolate_pose(t_a) if lo <= t_a <= hi else None
             if T_a is None:
                 continue
             # Partner mit maximaler Relativbewegung (Rotation bevorzugt)
             rot_a = Rotation.from_matrix(T_a[:3, :3])
             best: tuple[float, float] | None = None
             for dt in np.arange(*_PC_PARTNER_DT, 0.2):
+                if t_a + dt > hi:
+                    break
                 T_b = rec.interpolate_pose(t_a + dt)
                 if T_b is None:
                     continue
@@ -874,12 +953,15 @@ class _PhotoScoreContext:
                 continue
             fb = int(np.clip(np.searchsorted(cs, best[1]), 0, len(cs) - 1))
             t_b = float(cs[fb])
-            T_b = rec.interpolate_pose(t_b)
-            if T_b is None or fb == int(fa):
+            T_b = rec.interpolate_pose(t_b) if lo <= t_b <= hi else None
+            if T_b is None or fb == fa:
                 continue
 
             a = int(np.searchsorted(rec.stamps, min(t_a, t_b) - 0.5))
             b = max(int(np.searchsorted(rec.stamps, max(t_a, t_b) + 0.5)), a + 1)
+            if von is not None:
+                a = min(max(a, von), bis - 1)
+                b = min(max(b, a + 1), bis)
             stride = max(1, int(rec.offsets[b] - rec.offsets[a]) // _PC_PTS_PER_PAIR)
             pw, _ = _strided_world_points(rec, stride, a, b)
             Ma = _inv_rigid(T_a).astype(np.float32)
@@ -889,12 +971,12 @@ class _PhotoScoreContext:
             keep = ((np.linalg.norm(qa, axis=1) > 0.7)
                     & (np.linalg.norm(qb, axis=1) > 0.7)
                     & (np.linalg.norm(qa, axis=1) < _AC_MAX_RANGE))
-            ga = gray_halves(int(fa))
-            gb = gray_halves(fb)
+            ga = gray_halves(bag_t, fa)
+            gb = gray_halves(bag_t, fb)
             self.pairs.append(dict(
                 qa=np.ascontiguousarray(qa[keep]),
                 qb=np.ascontiguousarray(qb[keep]), ga=ga, gb=gb))
-            self.pair_frames.append((int(fa), fb))
+            self.pair_frames.append(((ti, fa), (ti, fb)) if parts else (fa, fb))
         if len(self.pairs) < 3:
             raise RuntimeError(
                 "Kamera-Kalibrierung: zu wenige Frame-Paare mit gueltiger LIO-Pose.")
@@ -993,7 +1075,8 @@ _CHECK_MIN_DEG = 5.0     # ... und so weit muss der bessere Wert weg liegen
 
 
 def check_extrinsic(rec, bag, calib_json: str, T: np.ndarray,
-                    frames: Sequence[int] | None = None, cancel=None) -> dict:
+                    frames: Sequence | None = None, cancel=None,
+                    parts: Sequence[tuple] | None = None) -> dict:
     """Sitzt ``T`` auf einem Gipfel der Foto-Konsistenz oder auf einer Flanke?
 
     Ein kurzer Hillclimb (10/3/1 Grad) startet bei ``T``. Bleibt er dort, ist die
@@ -1007,14 +1090,32 @@ def check_extrinsic(rec, bag, calib_json: str, T: np.ndarray,
     rund eine Minute, dieser Test wenige Sekunden und laeuft deshalb vor jeder
     Einfaerbung mit.
 
+    ``parts`` wie bei :func:`colorize` (zusammengefuehrte Aufzeichnung): jeder
+    Flug wird fuer sich geprueft, mit eigenen Paaren aus der Kamera seines Bags
+    und so vielen wie ein Einzelflug, denn die Schwellen sind an Einzelfluegen
+    gemessen; gemischte Paare verduennten einen schiefen Flug. ``frames`` dann
+    als ``(Abschnitt, Frame)``. ``suspect``, sobald ein Flug die Schwelle reisst;
+    die uebrigen Werte stammen vom schlechtesten Flug (verdaechtig vor
+    unverdaechtig, dann groesster Vorsprung ``best_score - score`` — der absolute
+    Score ist zwischen Fluegen nicht vergleichbar). Dazu ``teil`` (dessen
+    Abschnitt ab 1) und ``teile``: je Flug ``teil`` und dieselben Werte, oder
+    ``teil`` und ``fehler``, wenn er zu wenige Frame-Paare hatte.
+
     Rueckgabe: ``{"score", "best_score", "best_T", "dist_deg", "suspect"}``.
     """
     T = np.asarray(T, dtype=np.float64)
     if T.shape != (4, 4):
         raise RuntimeError(f"T muss 4x4 sein, erhalten {T.shape}.")
+    if parts:
+        return _check_je_flug(rec, calib_json, T, frames, cancel, parts)
     if frames is None:
         frames = _default_score_frames(rec, bag, 8)
     ctx = _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
+    return _check_lage(ctx, T, cancel)
+
+
+def _check_lage(ctx, T: np.ndarray, cancel) -> dict:
+    """Hillclimb ab ``T`` auf einem Paar-Kontext, s. :func:`check_extrinsic`."""
     cur = Rotation.from_matrix(T[:3, :3])
     score = ctx.score(cur.as_matrix())
     best, best_rot = _hillclimb(ctx, cur, score, 20, cancel)
@@ -1030,9 +1131,36 @@ def check_extrinsic(rec, bag, calib_json: str, T: np.ndarray,
     }
 
 
+def _check_je_flug(rec, calib_json: str, T: np.ndarray, frames, cancel,
+                   parts) -> dict:
+    """:func:`check_extrinsic` fuer eine zusammengefuehrte Aufzeichnung, je Flug."""
+    teile: list[dict] = []
+    for ti, teil in enumerate(parts):
+        _check_cancel(cancel)
+        if frames is None:
+            fr = _teil_score_frames(rec, [teil], 8)
+        else:
+            fr = [(0, int(f)) for t, f in frames if int(t) == ti]
+        try:
+            ctx = _PhotoScoreContext(rec, teil[0], calib_json, fr, cancel=cancel,
+                                     parts=[teil])
+        except RuntimeError as exc:
+            _check_cancel(cancel)
+            teile.append({"teil": ti + 1, "fehler": str(exc)})
+            continue
+        teile.append({"teil": ti + 1, **_check_lage(ctx, T, cancel)})
+    gepr = [e for e in teile if "fehler" not in e]
+    if not gepr:
+        raise RuntimeError(
+            "Kamera-Kalibrierung: in keinem Flug genug Frame-Paare mit gueltiger LIO-Pose.")
+    schlecht = max(gepr, key=lambda e: (e["suspect"], e["best_score"] - e["score"]))
+    return {**schlecht, "teile": teile}
+
+
 def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
-                   frames: list[int] | None = None,
-                   progress_cb: ProgressCb = None, cancel=None
+                   frames: list | None = None,
+                   progress_cb: ProgressCb = None, cancel=None,
+                   parts: Sequence[tuple] | None = None
                    ) -> tuple[np.ndarray, float]:
     """Grobe Rotationssuche fuer T_imu_cam0 (Translation = 0).
 
@@ -1044,20 +1172,21 @@ def auto_calibrate(rec, bag, calib_json: str, T_init: np.ndarray | None = None,
     einem unabhaengigen Validierungs-Paarsatz bewertet (gegen Overfitting);
     zurueckgegeben wird (T_imu_cam0 4x4, Validierungs-Score). Score < ~0.3
     bedeutet schwache/unsichere Ausrichtung -> UI warnt.
+
+    ``parts`` wie bei :func:`check_extrinsic` (zusammengefuehrte Aufzeichnung).
     """
-    _check_camera_resolution(bag)
+    for b in ([p[0] for p in parts] if parts else [bag]):
+        _check_camera_resolution(b)
     if frames is None:
-        frames = _default_score_frames(rec, bag, 10)
+        frames = _default_score_frames(rec, bag, 10, parts=parts)
     if progress_cb is not None:
         progress_cb(0.0, "Kamera-Kalibrierung: bereite Frame-Paare vor")
-    ctx = _PhotoScoreContext(rec, bag, calib_json, frames, cancel=cancel)
+    ctx = _score_kontext(rec, bag, calib_json, frames, cancel, parts)
     # Validierungs-Anker: zeitliche Zwischenpunkte der Optimierungs-Anker
-    fr = sorted(int(f) for f in frames)
-    val_frames = sorted({(a + b) // 2 for a, b in zip(fr[:-1], fr[1:])
-                         if (a + b) // 2 not in fr})
+    val_frames = _zwischen_frames(frames)
     try:
-        vctx: _PhotoScoreContext | None = _PhotoScoreContext(
-            rec, bag, calib_json, val_frames, cancel=cancel)
+        vctx: _PhotoScoreContext | None = _score_kontext(
+            rec, bag, calib_json, val_frames, cancel, parts)
     except RuntimeError:
         vctx = None
 

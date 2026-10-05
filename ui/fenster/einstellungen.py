@@ -121,6 +121,17 @@ def _setze_maeanderordner(f, wert) -> None:
         f._meander_dir = d
         f._lbl_meander.setText(f"{os.path.basename(d)} (aus den "
                                f"Einstellungen)")
+        # wie nach „Mäanderflug wählen …“: ohne Thermalbilder kein Haken
+        try:
+            n_t = len([n for n in os.listdir(d) if n.upper().endswith("_T.JPG")])
+        except OSError as exc:
+            # nicht lesbar (Rechte, abgezogener Datenträger): Haken frei lassen,
+            # das Öffnen des Projekts darf daran nicht scheitern
+            f._log(f"Mäanderordner nicht lesbar: {exc}")
+            return
+        f._chk_thermal.setEnabled(n_t > 0)
+        if n_t == 0:
+            f._chk_thermal.setChecked(False)
 
 
 def _setze_ebene(f, wert) -> None:
@@ -172,7 +183,8 @@ _LESEN: dict = {
     "maeanderordner": lambda f, e: f._meander_dir or "",
     "ebene": lambda f, e: f._layer_key,
     "abschnitte": lambda f, e: f._sections.states(),
-    "seitenleiste": lambda f, e: bool(f._sidebar_scroll.isVisible()),
+    # isHidden statt isVisible: vor dem ersten show() ist nichts sichtbar
+    "seitenleiste": lambda f, e: not f._sidebar_scroll.isHidden(),
 }
 
 
@@ -202,7 +214,7 @@ class EinstellungenMixin:
         self._settings = self._collect_settings()
         try:
             self._project.save_settings(self._settings)
-        except RuntimeError as exc:
+        except (OSError, RuntimeError) as exc:
             self._log(f"Einstellungen nicht gespeichert: {exc}")
 
     def _on_setting_changed(self, *_a) -> None:

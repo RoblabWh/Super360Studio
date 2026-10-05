@@ -1,10 +1,10 @@
 """Zusammenführen (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _bag, _bag_info, _btn_merge_apply, _btn_merge_auto,
-_btn_merge_drop, _btn_merge_icp, _btn_merge_pick, _colors, _lbl_merge,
+_btn_merge_drop, _btn_merge_icp, _btn_merge_pick, _exploration, _lbl_merge,
 _merge_bag, _merge_center, _merge_cloud, _merge_kipp_grad, _merge_rec,
-_merge_T, _merge_T_basis, _merge_T_kipp, _pano_src, _parts, _project,
-_spin_merge, _valid.
+_merge_T, _merge_T_basis, _merge_T_kipp, _pano_src, _parts, _project, _rec,
+_spin_merge, _world.
 """
 from __future__ import annotations
 
@@ -26,6 +26,11 @@ from core.recording import lade_mit_hinweis
 from ui.bausteine import (
     _wrappable, aktionshaken, knopfzeile, reglergruppe, still_setzen,
 )
+
+#: Kachel und exploration.json einer zusammengeführten Karte: der Grad
+#: kommt aus dem Bag eines Flugs und lässt sich nicht zusammenlegen.
+_GRAD_HINWEIS = ("Die Karte ist aus mehreren Flügen zusammengeführt; der "
+                 "Explorationsgrad gilt je Flug.")
 
 
 class ZusammenfuehrenMixin:
@@ -107,6 +112,23 @@ class ZusammenfuehrenMixin:
                 self, "Zusammenführen",
                 "Erst einen Flug öffnen und seine Karte berechnen — der ist "
                 "dann der Bezug, auf den der zweite gelegt wird.")
+            return
+        if self._bag is None:
+            QMessageBox.information(
+                self, "Zusammenführen",
+                "Das Projekt ist ohne sein Rosbag geöffnet. Zusammenführen geht "
+                "nur mit dem Bag des offenen Flugs: Aus ihm kommen die Lotrechte "
+                "und die Kamera für die Einfärbung der gemeinsamen Karte.")
+            return
+        # merge_recordings kennt zwei Quellen; die Abschnitte einer schon
+        # zusammengeführten Aufzeichnung gingen verloren
+        if (len(self._rec.meta.get("sources") or []) > 1
+                or len(self._parts or []) > 1):
+            QMessageBox.information(
+                self, "Zusammenführen",
+                "Der offene Flug ist schon aus mehreren Flügen zusammengeführt. "
+                "Zusammenführen geht nur von Einzelflügen aus — mehr als zwei "
+                "Flüge kann das Programm nicht.")
             return
         start = os.path.dirname(os.path.abspath(self._bag.bag_path))
         path = QFileDialog.getExistingDirectory(self, "Zweites Rosbag wählen", start)
@@ -296,6 +318,17 @@ class ZusammenfuehrenMixin:
         rec_a, rec_b = self._rec, self._merge_rec
         T = self._merge_T.copy()
         out_dir = project_m.recording_dir()
+        # Nie eine Aufzeichnung ersetzen, die gerade offen ist (memmap)
+        offen = [os.path.join(self._project.dir, "recording")] + [
+            os.path.dirname(f) for f in (getattr(r.points, "filename", None)
+                                         for r in (rec_a, rec_b)) if f]
+        if any(os.path.realpath(out_dir) == os.path.realpath(d) for d in offen):
+            QMessageBox.warning(
+                self, "Zusammenführen",
+                f"Das Ziel '{project_m.bag_name}' ist die gerade offene "
+                f"Aufzeichnung — sie würde überschrieben, während sie geladen "
+                f"ist. Nicht zusammengeführt.")
+            return
         # T_ab gilt fuer B nach dem Kippausgleich; von B wie geladen nach A
         # fuehrt T_ab @ T_kipp_b.
         info = {"fitness": None,
@@ -307,6 +340,13 @@ class ZusammenfuehrenMixin:
             meta = merge_mod.merge_recordings(
                 rec_a, rec_b, T, out_dir, bag_a, bag_b,
                 info=info, progress_cb=progress_cb, cancel=cancel)
+            if merge_mod.ableitungen_entfernen(project_m):
+                log_cb("Farbebenen und Mesh einer früheren Zusammenführung "
+                       "entfernt — sie gehörten zur alten Lage.")
+            try:
+                project_m.save_exploration({"keine_daten": _GRAD_HINWEIS})
+            except OSError as exc:
+                log_cb(f"exploration.json nicht geschrieben: {exc}")
             progress_cb(0.99, "Lade zusammengeführte Aufzeichnung …")
             return {"project": project_m, "meta": meta}
 
@@ -329,11 +369,24 @@ class ZusammenfuehrenMixin:
             self._bag_info = self._bag.info()
         except Exception as exc:  # noqa: BLE001
             self._log(f"Info des führenden Bags nicht lesbar: {exc}")
-        self._colors = None
-        self._valid = None
+        # Mit der alten Wolke gilt nichts mehr, was an ihr hing: Farbebenen,
+        # Mesh, Georeferenz, Explorationsgrad. Die Mäander-Lage bleibt, die
+        # gemeinsame Wolke liegt im Rahmen des offenen Flugs.
+        self._rec = None
+        self._world = None
+        self._cloud_view.set_cloud(None)
+        self._cloud_view.set_path(None)
+        self._reload_layers()
+        self._mesh_vergessen()
         self._georef_setzen(None)
+        if self._quality is not None:
+            self._gps_panel.set_quality(self._quality, self._fixes, None)
+        self._exploration = None
+        self._zeige_exploration(_GRAD_HINWEIS)
         self._pano_src = None
         self._pano_view.set_source(None)
+        # Die Extrinsik der Regler gilt jetzt für die gemeinsame Aufzeichnung
+        self._speichere_extrinsik(self._extrinsic_from_spins())
         self.setWindowTitle(f"Super360 Studio — {project_m.bag_name}")
         self._log(f"Zusammengeführt: {meta['n_scans']} Scans, "
                   f"{_fmt_int(meta['n_points'])} Punkte aus "

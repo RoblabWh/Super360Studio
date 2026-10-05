@@ -216,8 +216,9 @@ class AnzeigeMixin:
                 try:
                     from core.colorizer import rec_fingerprint
                     fp = rec_fingerprint(self._rec)
-                except Exception:  # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001 — Kompat: ohne Prüfung laden
                     fp = None
+                    self._log(f"Aufzeichnungs-Fingerprint nicht verfügbar: {exc}")
                 colors, valid, err = lade_farbdateien(
                     self._project.layer_dir(key), n, expected_fingerprint=fp,
                     log_cb=self._log)
@@ -391,7 +392,8 @@ class AnzeigeMixin:
             self._tabs.setCurrentIndex, self._tabs.currentIndex())
         self._actions["edl"].setChecked(self._chk_edl.isChecked())
         self._actions["edl"].setEnabled(self._chk_edl.isEnabled())
-        self._actions["sidebar"].setChecked(self._sidebar_scroll.isVisible())
+        # isHidden statt isVisible: vor dem ersten show() ist nichts sichtbar
+        self._actions["sidebar"].setChecked(not self._sidebar_scroll.isHidden())
 
     def _sync_menu_state(self) -> None:
         """Hintergrund und Kantenbetonung im Menue an die Seitenleiste angleichen
@@ -423,7 +425,7 @@ class AnzeigeMixin:
             still_setzen(act, bool(on))
 
     def _on_toggle_sidebar(self) -> None:
-        self._set_sidebar_visible(not self._sidebar_scroll.isVisible())
+        self._set_sidebar_visible(self._sidebar_scroll.isHidden())
         self._save_settings()
 
     def _on_expand_all(self) -> None:

@@ -156,11 +156,17 @@ def laden(work_dir: str) -> dict:
     try:
         with open(os.path.join(work_dir, DATEI), encoding="utf-8") as fh:
             gel = json.load(fh)
-        d.update({k: gel[k] for k in gel})
-        d["rgb_faktor"] = float(d["rgb_faktor"])
-        d["thermal_faktor"] = float(d["thermal_faktor"])
-    except (OSError, ValueError, KeyError, TypeError):
+        if isinstance(gel, dict):
+            d.update(gel)
+    except (OSError, ValueError):
         pass
+    # null oder Unlesbares in der Datei: die neutrale Vorgabe, damit jeder
+    # Leser eine Zahl bekommt
+    for k in ("rgb_faktor", "thermal_faktor"):
+        try:
+            d[k] = 1.0 if d[k] is None else float(d[k])
+        except (TypeError, ValueError):
+            d[k] = 1.0
     return d
 
 
@@ -801,6 +807,7 @@ def einmessen(pipe, punkte: np.ndarray, yaw_deg: float, t, foto_ordner: str,
 
 
 if __name__ == "__main__":
+    import shutil
     import tempfile
 
     print("== Test 1: LRF aus dem XMP ==")
@@ -856,4 +863,5 @@ if __name__ == "__main__":
     a = rng.integers(0, 256, 5000).astype(float)
     assert _mi(a, 255 - a) > _mi(a, rng.permutation(a)) + 1.0
     print("  invertierte Abbildung (Thermalpalette) klar ueber Zufall")
+    shutil.rmtree(tmp, ignore_errors=True)
     print("optik SELFTEST OK")

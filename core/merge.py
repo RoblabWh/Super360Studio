@@ -487,6 +487,24 @@ def merge_recordings(rec_a, rec_b, T_ab: np.ndarray, out_dir: str,
     return meta
 
 
+def ableitungen_entfernen(projekt) -> list[str]:
+    """Farbebenen und Mesh einer frueheren Aufzeichnung im Projekt entfernen.
+
+    Beides gilt nur fuer die Aufzeichnung, aus der es gerechnet ist. Fremdes
+    erkennt die App beim Laden an Punktzahl und Fingerprint; werden dieselben
+    Fluege in neuer Lage noch einmal zusammengefuehrt, bleiben Scans, Punkte
+    und Stempel aber gleich, und Farben und Mesh der alten Lage galten weiter.
+    Der Maeander-Ordner bleibt. Liefert die Namen der entfernten Ordner.
+    """
+    entfernt: list[str] = []
+    for name in (*projekt.LAYERS.values(), "mesh"):
+        ordner = os.path.join(projekt.dir, name)
+        if os.path.isdir(ordner):
+            shutil.rmtree(ordner)
+            entfernt.append(name)
+    return entfernt
+
+
 if __name__ == "__main__":
     # ------------------------------------------------------------------
     # Selbsttest: synthetische Wolke, bekannt verdreht -> zurueckfinden,
@@ -606,4 +624,24 @@ if __name__ == "__main__":
         assert np.array_equal(lage_aus_reglern(yaw_deg, versatz, c, basis_b),
                               ui_formel(yaw_deg, versatz, c, basis_b)), yaw_deg
     print(f"  Einheit bei Nullreglern, {len(faelle)} Faelle je Basis bitgleich")
+
+    print("== Test 4: ableitungen_entfernen raeumt Farbebenen und Mesh ==")
+    from core.project import Project
+
+    out = tempfile.mkdtemp(prefix="mergetest_")
+    prj = Project(os.path.join(out, "a+b"), cache_root=out)
+    for name in ("onboard", "meander_rgb"):
+        with open(os.path.join(prj.layer_dir(name), "colors.bin"), "wb") as fh:
+            fh.write(b"\0" * 6)
+    os.makedirs(os.path.join(prj.dir, "mesh", "geometrie", "alt"))
+    bleibt = [prj.recording_dir(), prj.meander_work_dir()]
+    weg = ableitungen_entfernen(prj)
+    assert sorted(weg) == ["colors", "colors_meander_rgb", "mesh"], weg
+    assert not any(prj.has_layer(k) or os.path.isdir(os.path.join(prj.dir, n))
+                   for k, n in Project.LAYERS.items())
+    assert not os.path.exists(os.path.join(prj.dir, "mesh"))
+    assert all(os.path.isdir(d) for d in bleibt), "Aufzeichnung/Maeander mit entfernt"
+    assert ableitungen_entfernen(prj) == []
+    shutil.rmtree(out, ignore_errors=True)
+    print(f"  entfernt: {', '.join(weg)}; Aufzeichnung und Maeander bleiben")
     print("merge SELFTEST OK")

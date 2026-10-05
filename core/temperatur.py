@@ -111,6 +111,7 @@ def abtasten(bild: np.ndarray, u: np.ndarray, v: np.ndarray, W: float, H: float)
 
 
 if __name__ == "__main__":
+    import shutil
     import sys
     import tempfile
 
@@ -131,7 +132,8 @@ if __name__ == "__main__":
     teile.append(seg(0xE5, lut.tobytes() + b"\x00\x00"))
     teile.append(seg(0xC0, b"\x08" + struct.pack(">HH", 1024, 1280) + b"\x03"))
     teile.append(seg(0xDA, b"\x00"))
-    pfad = os.path.join(tempfile.mkdtemp(prefix="rjpeg_"), "x_T.JPG")
+    tmp = tempfile.mkdtemp(prefix="rjpeg_")
+    pfad = os.path.join(tmp, "x_T.JPG")
     with open(pfad, "wb") as fh:
         fh.write(b"".join(teile))
     t = lies_rjpeg(pfad)
@@ -148,6 +150,7 @@ if __name__ == "__main__":
         fh.write(b"\xff\xd8" + seg(0xE0, b"JFIF\x00") + seg(0xDA, b"\x00"))
     assert lies_rjpeg(pfad) is None, "Datei ohne Rohwerte ergab Temperaturen"
     print("  ohne Rohwerte: None")
+    shutil.rmtree(tmp, ignore_errors=True)
 
     echt = sys.argv[1] if len(sys.argv) > 1 else None
     if echt:

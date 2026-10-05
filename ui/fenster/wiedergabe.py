@@ -1,7 +1,7 @@
 """Wiedergabe (RViz) (Mixin des Hauptfensters).
 
 Schreibt am Hauptfenster: _btn_rviz_replay, _btn_rviz_start, _btn_rviz_stop,
-_lbl_rviz, _rviz_timer, _rviz_worker.
+_lbl_rviz, _rviz_text, _rviz_timer, _rviz_worker.
 """
 from __future__ import annotations
 
@@ -59,7 +59,8 @@ class WiedergabeMixin:
         Starten ist ein Schritt wie jeder andere. Beenden und Wiederholen
         (``eigener``) laufen in einem eigenen Arbeiter, auch während ein
         Schritt läuft: er setzt weder _busy noch _worker, und solange er
-        läuft, sind die drei Befehle der Wiedergabe gesperrt.
+        läuft, sind die drei Befehle der Wiedergabe gesperrt. Die Statuszeile
+        zeigt ihn, solange kein Schritt läuft (s. _rviz_status).
         """
         def job(progress_cb, cancel, log_cb):
             progress_cb(0.1, text)
@@ -79,18 +80,43 @@ class WiedergabeMixin:
             return
         worker = Worker(job, self, cancellable=False)
         self._rviz_worker = worker
+        self._rviz_text = text
         worker.log.connect(self._log)
+        worker.progress.connect(self._rviz_fortschritt)
         worker.finished.connect(lambda _r, w=worker: self._rviz_fertig(w))
-        worker.failed.connect(lambda _m, w=worker: self._rviz_fertig(w))
+        worker.failed.connect(lambda _m, w=worker: self._rviz_fertig(w, gescheitert=True))
         self._log(text)
+        self._rviz_status()
         self._refresh_rviz_state()
         worker.start()
 
-    def _rviz_fertig(self, worker: Worker) -> None:
+    def _rviz_status(self) -> None:
+        """Den eigenen Arbeiter der Wiedergabe in der Statuszeile zeigen.
+
+        Die Statuszeile gehört einem laufenden Schritt; nur ohne ihn stehen
+        dort Text und Fortschritt der Wiedergabe.
+        """
+        if self._busy or self._rviz_worker is None:
+            return
+        self._status_pbar.setRange(0, 0)
+        self._status_pbar.setVisible(True)
+        self._status_lbl.setText(self._rviz_text)
+
+    def _rviz_fortschritt(self, frac: float, msg: str) -> None:
+        if not self._busy:
+            self._on_progress(frac, msg)
+
+    def _rviz_fertig(self, worker: Worker, gescheitert: bool = False) -> None:
         """Eigener Arbeiter der Wiedergabe ist durch, fertig oder gescheitert."""
         if self._rviz_worker is worker:
             self._rviz_worker = None
         self._retire(worker)
+        if not self._busy and not self._closing:
+            # Die Meldung des Fehlers steht schon im Protokoll (Worker.log)
+            self._status_pbar.setVisible(False)
+            self._status_lbl.setText(
+                f"Fehlgeschlagen — {self._rviz_text.rstrip(' …')} (s. Protokoll)"
+                if gescheitert else "Bereit")
         self._refresh_rviz_state()
 
     def _on_rviz_start(self) -> None:

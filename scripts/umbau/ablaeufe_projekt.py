@@ -210,7 +210,7 @@ class _Welt:
     def colorizer(self) -> None:
         s, welt = self.s, self
 
-        def pruefe(rec, bag, calib, T, frames=None, cancel=None):
+        def pruefe(rec, bag, calib, T, frames=None, cancel=None, parts=None):
             if welt.extrinsik == "fehler":
                 raise RuntimeError("zu wenige Kamera-Frames für die Prüfung (Stub)")
             return {"score": 0.612, "best_score": 0.655, "dist_deg": 1.5,

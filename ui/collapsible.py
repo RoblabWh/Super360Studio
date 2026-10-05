@@ -27,6 +27,8 @@ class Section(QtWidgets.QWidget):
     """Kopfzeile mit Pfeil, darunter der Inhalt; klappt auf Klick zu."""
 
     toggled = QtCore.pyqtSignal(str, bool)  # Schluessel, offen
+    #: Klasse der Kopfzeile; ein Unterblock nimmt eine, deren Text umbricht
+    _kopf_klasse = QtWidgets.QToolButton
 
     def __init__(self, key: str, title: str, content: QtWidgets.QWidget,
                  expanded: bool = True, parent: QtWidgets.QWidget | None = None):
@@ -37,7 +39,7 @@ class Section(QtWidgets.QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
 
-        self._head = QtWidgets.QToolButton(self)
+        self._head = self._kopf_klasse(self)
         self._head.setCheckable(True)
         self._head.setChecked(bool(expanded))
         self._head.setAutoRaise(True)
