@@ -2,69 +2,6 @@
 
 ![Punktwolke des DRZ-Geländes in fünf Ansichten, nacheinander überblendet](assets/modelle.gif)
 
-Bis 2026-09 hieß das Programm „RosBag Suite 360".
-
-PyQt5-GUI für die Auswertung der Drohnen-Rosbags (ROS2 Humble, Livox Mid-360 +
-Dual-Fisheye-360°-Kamera "paycam" + mavros-GPS):
-
-1. **Punktwolke (FAST-LIO2)** — berechnet aus dem Bag die dichteste Karte
-   (`whs_dense.yaml`: alle gültigen Punkte, volle Scans via
-   `/cloud_registered_body` + `/Odometry`) und zeigt sie im 3D-Viewer (VTK).
-2. **360°-Video** — stitcht die Dual-Fisheye-Frames Docker-frei (OpenCV-Remap,
-   Double-Sphere-Kalibrierung aus `Super360_Stitcher_rosbag`) und spielt sie ab
-   (Zoom aufs Mausrad, Pan, Frame-genaues Springen, 180°-Drehung).
-3. **Einfärbung** — färbt die Punktwolke aus den 360°-Bildern ein; zu dunkle /
-   zu helle Pixel (Schieber „Helligkeit von“ / „Helligkeit bis“) werden
-   ausgefiltert, nicht eingefärbte Punkte lassen sich ausblenden („Nur eingefärbte
-   Punkte").
-   Kamera-Extrinsik: grobe Kamera-Kalibrierung („Automatisch kalibrieren (grob)“)
-   + manuelle Feinjustage (Gier/Nick/Roll/X/Y/Z), Sichtprüfung mit
-   „Überlagerung prüfen“.
-4. **GPS** — prüft IMMER die Signalqualität (fix_type, Satelliten, eph/HDOP,
-   Kovarianz, Bewegungs-Baseline; Sentinel-Werte werden erkannt). Nur bei
-   brauchbarem Signal wird die LIO-Trajektorie per gewichteter
-   4-DOF-Ausrichtung (Yaw + Translation, Gewichte 1/eph²) auf ENU/UTM
-   georeferenziert; Residuen (RMS) werden ausgewiesen.
-5. **Export** — PLY/PCD (lokal) und LAS (georeferenziert in UTM, falls GPS
-   brauchbar; exakte pyproj-Projektion).
-
-## Bedienung im Überblick
-
-Oben die Menüleiste (**Datei**, **Ablauf**, **Ansicht**, **Werkzeuge**, **Hilfe**),
-rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
-klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. Welche
-Abschnitte offen sind, merkt sich das Projekt. **Werkzeuge → Einstellungen auf
-Vorgabe** setzt die Werte des Projekts nach Rückfrage zurück; der Klappzustand
-bleibt.
-
-Während ein Schritt läuft (Karte, Einfärben, Ausrichten …), sind die übrigen
-Befehle grau; ihr Tooltip endet dann mit „Gesperrt, solange ein Schritt läuft.“
-Auch sonst nennt der Tooltip eines grauen Knopfes oder Menüeintrags, was fehlt,
-etwa „Erst ein Rosbag öffnen.“ Abgebrochen wird über den Knopf in der Statusleiste.
-
-Das Menü **Ansicht** führt Farbe, Hintergrund, Bereich (die Reiter 3D-Karte,
-360°-Video, GPS, Protokoll) und Kantenbetonung (EDL); Hintergrund und
-Kantenbetonung ziehen mit dem Abschnitt **Anzeige** der Seitenleiste gleich. Dort
-stehen außerdem „Nur eingefärbte Punkte“, „Anzeige-Voxel“ (dünnt nur die Anzeige
-aus) und „Flugbahn zeigen“.
-
-Die Seitenleiste ist frei in der Breite: am Trenner zur 3D-Ansicht ziehen, die
-gezogene Breite bleibt erhalten (für alle Projekte). Breitere Leiste, breitere
-Felder; wird sie schmal, rücken Knöpfe untereinander, und lange Haken- und
-Knopftexte brechen um. Schmaler als der breiteste Abschnittskopf lässt sie sich
-nicht ziehen. `Strg+B` (**Ansicht → Seitenleiste**) blendet sie ganz aus und
-wieder ein.
-
-Ganz oben rechts steht der **Explorationsgrad** des offenen Fluges — wie viel des
-Zielgebiets die Drohne im Explorationsmodus gesehen hat (s. unten).
-
-Kurzbefehle: `Strg+O` Rosbag öffnen, `Strg+Umschalt+P` Projekt aus dem Cache,
-`Strg+I` exportiertes Projekt öffnen, `Strg+Umschalt+O` zweiten Flug laden,
-`F5` Karte berechnen, `F6` einfärben (360°-Kamera), `F7` Mäander einfärben,
-`M` messen, `R` Ansicht zurücksetzen, `Esc` Messung weg, `Strg+H` Höhenschnitt
-aufheben, `Strg+E` PLY/PCD speichern, `Strg+Umschalt+E` Projekt exportieren,
-`Strg+P` 3D-Ansicht als Bild, `Strg+B` Seitenleiste, `Strg+Q` beenden.
-
 ## Vor dem ersten Start
 
 Getestet auf **Ubuntu 22.04** mit dem System-Python **3.10** und einem
@@ -278,6 +215,43 @@ nur der FAST-LIO-Schritt startet intern Subprozesse mit ROS-Umgebung
 
 Projekte liegen im Cache unter `~/RosBagSuper_Gui/rosbag_suite/cache`, umzuhängen
 mit der Umgebungsvariable `SUPER360_CACHE_ROOT`.
+
+## Bedienung im Überblick
+
+Oben die Menüleiste (**Datei**, **Ablauf**, **Ansicht**, **Werkzeuge**, **Hilfe**),
+rechts die Seitenleiste mit den Einstellungen. Jeder Abschnitt der Seitenleiste
+klappt einzeln auf und zu, die Reihenfolge folgt dem Arbeitsablauf. Welche
+Abschnitte offen sind, merkt sich das Projekt. **Werkzeuge → Einstellungen auf
+Vorgabe** setzt die Werte des Projekts nach Rückfrage zurück; der Klappzustand
+bleibt.
+
+Während ein Schritt läuft (Karte, Einfärben, Ausrichten …), sind die übrigen
+Befehle grau; ihr Tooltip endet dann mit „Gesperrt, solange ein Schritt läuft.“
+Auch sonst nennt der Tooltip eines grauen Knopfes oder Menüeintrags, was fehlt,
+etwa „Erst ein Rosbag öffnen.“ Abgebrochen wird über den Knopf in der Statusleiste.
+
+Das Menü **Ansicht** führt Farbe, Hintergrund, Bereich (die Reiter 3D-Karte,
+360°-Video, GPS, Protokoll) und Kantenbetonung (EDL); Hintergrund und
+Kantenbetonung ziehen mit dem Abschnitt **Anzeige** der Seitenleiste gleich. Dort
+stehen außerdem „Nur eingefärbte Punkte“, „Anzeige-Voxel“ (dünnt nur die Anzeige
+aus) und „Flugbahn zeigen“.
+
+Die Seitenleiste ist frei in der Breite: am Trenner zur 3D-Ansicht ziehen, die
+gezogene Breite bleibt erhalten (für alle Projekte). Breitere Leiste, breitere
+Felder; wird sie schmal, rücken Knöpfe untereinander, und lange Haken- und
+Knopftexte brechen um. Schmaler als der breiteste Abschnittskopf lässt sie sich
+nicht ziehen. `Strg+B` (**Ansicht → Seitenleiste**) blendet sie ganz aus und
+wieder ein.
+
+Ganz oben rechts steht der **Explorationsgrad** des offenen Fluges — wie viel des
+Zielgebiets die Drohne im Explorationsmodus gesehen hat (s. unten).
+
+Kurzbefehle: `Strg+O` Rosbag öffnen, `Strg+Umschalt+P` Projekt aus dem Cache,
+`Strg+I` exportiertes Projekt öffnen, `Strg+Umschalt+O` zweiten Flug laden,
+`F5` Karte berechnen, `F6` einfärben (360°-Kamera), `F7` Mäander einfärben,
+`M` messen, `R` Ansicht zurücksetzen, `Esc` Messung weg, `Strg+H` Höhenschnitt
+aufheben, `Strg+E` PLY/PCD speichern, `Strg+Umschalt+E` Projekt exportieren,
+`Strg+P` 3D-Ansicht als Bild, `Strg+B` Seitenleiste, `Strg+Q` beenden.
 
 ## Bedienung (Ablauf in der Seitenleiste)
 
